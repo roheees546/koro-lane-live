@@ -105,20 +105,28 @@ export default function ProfilePage() {
       
       <h1 className="text-2xl font-black text-[#00e599] mb-6 tracking-tight">Profile & Brand</h1>
 
-      {/* 🟢 TOP CARD: STORE IDENTITY */}
-      <div className="bg-[#0a0a0c] border border-gray-900 rounded-2xl p-4 flex items-center gap-4 mb-6">
-        <div className="w-16 h-16 bg-[#003320] border-2 border-[#00e599] rounded-full flex items-center justify-center shrink-0 overflow-hidden">
-          {logoUrl ? (
-            <img src={logoUrl} alt="Store Logo" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-2xl font-black text-[#00e599] uppercase">{storeName ? storeName.charAt(0) : "S"}</span>
-          )}
+   {/* 🟢 TOP CARD: STORE IDENTITY (NOW CLICKABLE FOR PREVIEW) */}
+      <Link href={userId ? `/store/${userId}` : "#"} className="bg-[#0a0a0c] border border-gray-900 rounded-2xl p-4 flex items-center gap-4 mb-6 hover:border-[#00e599]/50 transition group cursor-pointer relative overflow-hidden block">
+        
+        {/* Chota sa 'Preview Store' text jo hover karne pe dikhega */}
+        <div className="absolute top-3 right-4 text-[8px] text-gray-500 font-bold uppercase tracking-widest group-hover:text-[#00e599] transition flex items-center gap-1">
+          Preview <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
         </div>
-        <div>
-          <h2 className="text-lg font-black uppercase tracking-tight">{storeName || "Unnamed Store"}</h2>
-          <span className="bg-[#00e599] text-black text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-widest mt-1 inline-block">Authorized Dealer</span>
+
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 bg-[#003320] border-2 border-[#00e599] rounded-full flex items-center justify-center shrink-0 overflow-hidden shadow-[0_0_15px_rgba(0,229,153,0.2)]">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Store Logo" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-2xl font-black text-[#00e599] uppercase">{storeName ? storeName.charAt(0) : "S"}</span>
+            )}
+          </div>
+          <div>
+            <h2 className="text-lg font-black uppercase tracking-tight">{storeName || "Unnamed Store"}</h2>
+            <span className="bg-[#00e599] text-black text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-widest mt-1 inline-block shadow-[0_0_10px_rgba(0,229,153,0.3)]">Authorized Dealer</span>
+          </div>
         </div>
-      </div>
+      </Link>
 
       {/* 🚀 THE VIRAL LOOP: MINI STORE LINK */}
       <div className="bg-[#003320]/20 border border-[#00e599]/30 rounded-2xl p-5 relative overflow-hidden mb-6 shadow-[0_0_20px_rgba(0,229,153,0.05)]">
