@@ -244,12 +244,12 @@ export default function Home() {
               )}
             </>
           ) : (
-            <div className="flex items-center gap-2">
-              <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="border border-gray-700 hover:border-[#00e599] hover:text-[#00e599] transition px-4 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                🧑‍🚀 Login as Scout
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="border border-gray-700 hover:border-[#00e599] hover:text-[#00e599] transition px-2.5 sm:px-4 py-1.5 rounded text-[8px] sm:text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 sm:gap-2">
+                🧑‍🚀 Scout
               </button>
-              <Link href="/login" className="bg-[#003320] text-[#00e599] border border-[#00e599]/30 hover:bg-[#00e599] hover:text-black transition px-4 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hidden md:flex">
-                🏪 Dealer Portal
+              <Link href="/login" className="bg-[#003320] text-[#00e599] border border-[#00e599]/30 hover:bg-[#00e599] hover:text-black transition px-2.5 sm:px-4 py-1.5 rounded text-[8px] sm:text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 sm:gap-2">
+                🏪 Dealer
               </Link>
             </div>
           )}
