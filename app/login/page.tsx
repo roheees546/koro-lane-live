@@ -127,10 +127,10 @@ export default function DealerLogin() {
                   Strict Platform Rules
                 </h3>
                 <ul className="text-[9px] text-gray-300 space-y-2.5 uppercase tracking-wider font-bold">
-                  <li className="flex gap-2 items-start"><span className="text-red-500">🚫</span> <span>Zada fate purane clothes not allowed.</span></li>
-                  <li className="flex gap-2 items-start"><span className="text-red-500">🚫</span> <span>Branded clothes not allowed.</span></li>
-                  <li className="flex gap-2 items-start"><span className="text-yellow-500">📏</span> <span>Measurements must be exact.</span></li>
-                  <li className="flex gap-2 items-start"><span className="text-[#00e599] animate-pulse">💎</span> <span className="text-[#00e599]">5% fixed fee for first 50 sellers.</span></li>
+                  <li className="flex gap-2 items-start"><span className="text-red-500 mt-0.5">🚫</span> <span>Strictly no heavily damaged, torn, or stained items.</span></li>
+                  <li className="flex gap-2 items-start"><span className="text-red-500 mt-0.5">🚫</span> <span>No branded merchandise or counterfeit apparel.</span></li>
+                  <li className="flex gap-2 items-start"><span className="text-blue-400 mt-0.5">📏</span> <span>All provided garment measurements must be 100% accurate.</span></li>
+                  <li className="flex gap-2 items-start"><span className="text-[#00e599] mt-0.5 animate-pulse">💎</span> <span className="text-[#00e599]">A flat 5% platform fee is deducted on every successful order.</span></li>
                 </ul>
                 <div className="mt-4 pt-3 border-t border-[#00e599]/20 flex items-center gap-2">
                   <input 
