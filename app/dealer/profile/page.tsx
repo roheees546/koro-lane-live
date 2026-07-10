@@ -22,6 +22,9 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   
+  // Image Upload State
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
   // 🔗 Naya State: Link Copier ke liye
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
@@ -51,11 +54,44 @@ export default function ProfilePage() {
       setStoreName(profile.store_name || "");
       setPhone(profile.phone || "");
       setUpiId(profile.upi_id || "");
-      setAddress(profile.store_address || profile.address || ""); // Check both just in case
+      setAddress(profile.store_address || profile.address || ""); 
       setLogoUrl(profile.logo_url || "");
       setInstagram(profile.instagram || "");
     }
     setLoading(false);
+  };
+
+  // 🔥 THE MAGIC: Image Upload from Gallery
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploadingLogo(true);
+      if (!e.target.files || e.target.files.length === 0) {
+        throw new Error("You must select an image to upload.");
+      }
+
+      const file = e.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Uploading to Supabase 'store_logos' bucket
+      const { error: uploadError } = await supabase.storage
+        .from('store_logos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Getting Public URL
+      const { data } = supabase.storage.from('store_logos').getPublicUrl(filePath);
+      
+      setLogoUrl(data.publicUrl);
+      alert("Logo uploaded successfully! ✅");
+
+    } catch (error: any) {
+      alert("Error uploading image: " + error.message);
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -68,8 +104,8 @@ export default function ProfilePage() {
         store_name: storeName,
         phone: phone,
         upi_id: upiId,
-        store_address: address, // Standardized column name
-        address: address,       // Fallback for safety
+        store_address: address, 
+        address: address,       
         logo_url: logoUrl,
         instagram: instagram
       })
@@ -101,7 +137,7 @@ export default function ProfilePage() {
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-[#00e599] font-bold tracking-widest text-xs uppercase">Loading Profile...</div>;
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans p-4 pb-24 max-w-3xl mx-auto">
+    <div className="min-h-screen bg-black text-white font-sans p-4 pb-24 max-w-3xl mx-auto selection:bg-[#00e599] selection:text-black">
       
       <h1 className="text-2xl font-black text-[#00e599] mb-6 tracking-tight">Profile & Brand</h1>
 
@@ -140,7 +176,7 @@ export default function ProfilePage() {
           <input 
             type="text" 
             readOnly 
-            value={userId ? `korolane.com/store/${userId.substring(0,8)}...` : "Loading..."} 
+            value={userId ? `${origin}/store/${userId}` : "Loading..."} 
             className="bg-transparent text-gray-400 text-xs px-3 py-2 outline-none w-full truncate font-mono"
           />
           <button 
@@ -170,9 +206,31 @@ export default function ProfilePage() {
             /* --- EDIT MODE FORM --- */
             <form onSubmit={handleSave} className="space-y-4">
               
+              {/* 📸 NEW: UPLOAD LOGO BUTTON */}
               <div>
-                <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5">Store Logo (Image URL)</label>
-                <input type="text" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} className="w-full bg-[#121214] border border-gray-800 rounded-lg text-white px-3 py-2 text-sm outline-none focus:border-[#00e599]" placeholder="Paste image link here (e.g. imgur, drive)" />
+                <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5">Store Logo</label>
+                <div className="flex items-center gap-4">
+                  {logoUrl && (
+                    <img src={logoUrl} alt="Preview" className="w-12 h-12 rounded-full border border-gray-800 object-cover" />
+                  )}
+                  <label className="cursor-pointer bg-[#121214] hover:bg-gray-800 border border-gray-800 rounded-lg text-white px-4 py-2.5 text-xs font-bold transition flex items-center gap-2">
+                    {uploadingLogo ? (
+                      <span className="animate-pulse">Uploading...</span>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        Choose From Gallery
+                      </>
+                    )}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleLogoUpload} 
+                      disabled={uploadingLogo}
+                      className="hidden" 
+                    />
+                  </label>
+                </div>
               </div>
 
               <div>
@@ -206,7 +264,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="pt-2">
-                <button type="submit" disabled={saving} className="w-full bg-[#00e599] text-black font-black py-3 rounded-lg uppercase tracking-widest text-[10px] hover:bg-[#00c580] transition shadow-[0_0_15px_rgba(0,229,153,0.2)] disabled:opacity-70">
+                <button type="submit" disabled={saving || uploadingLogo} className="w-full bg-[#00e599] text-black font-black py-3 rounded-lg uppercase tracking-widest text-[10px] hover:bg-[#00c580] transition shadow-[0_0_15px_rgba(0,229,153,0.2)] disabled:opacity-70">
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
