@@ -47,25 +47,32 @@ export default function ScoutTerminal() {
       .eq("id", session.user.id)
       .single();
 
-    let currentName = session.user.email?.split("@")[0] || "Scout";
+    // 🚀 FIX: Get the exact name the user uses to checkout
+    let exactCustomerName = "";
 
-    if (profile) {
-      currentName = profile.full_name || currentName;
-      setFullName(profile.full_name || "");
+    if (profile && profile.full_name) {
+      exactCustomerName = profile.full_name;
+      setFullName(profile.full_name);
       setPhone(profile.phone || "");
       setAddress(profile.address || "");
       setUpiId(profile.upi_id || "");
+    } else {
+      // Fallback if profile doesn't exist yet
+      exactCustomerName = session.user.email?.split("@")[0] || "Scout";
     }
 
-    // 2. Fetch Orders linked to this customer
-    const { data: scoutOrders } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("customer_name", currentName)
-      .order("created_at", { ascending: false });
+    // 2. Fetch Orders linked ONLY to this EXACT customer name
+    // (Ensure it doesn't just pull random "Scout" default names if possible)
+    if (exactCustomerName) {
+      const { data: scoutOrders } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("customer_name", exactCustomerName)
+        .order("created_at", { ascending: false });
 
-    if (scoutOrders) {
-      setOrders(scoutOrders);
+      if (scoutOrders) {
+        setOrders(scoutOrders);
+      }
     }
 
     setLoading(false);
@@ -89,24 +96,26 @@ export default function ScoutTerminal() {
       alert("ERROR: " + error.message);
     } else {
       alert("Profile Details Saved Successfully! ✅ Koro Lane Admin has your latest address.");
+      // Re-fetch to update orders list based on new name
+      fetchUserData();
     }
     setSaving(false);
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/"); // Changed to direct homepage
   };
 
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-[#00e599] font-bold tracking-widest text-xs uppercase">Loading Terminal...</div>;
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans pb-24">
+    <div className="min-h-screen bg-black text-white font-sans pb-24 selection:bg-[#00e599] selection:text-black">
       
       {/* HEADER */}
       <header className="px-6 py-5 flex justify-between items-center border-b border-gray-900 sticky top-0 bg-black/90 backdrop-blur z-30">
         <div>
-          <h1 className="text-xl font-black tracking-tighter">SCOUT <span className="text-[#00e599]">TERMINAL</span></h1>
+          <h1 className="text-xl font-black tracking-tighter">BUYER <span className="text-[#00e599]">TERMINAL</span></h1>
           <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Agent: {fullName || email}</p>
         </div>
         <div className="flex items-center gap-3">
