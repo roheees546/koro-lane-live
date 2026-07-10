@@ -26,14 +26,11 @@ export default function Home() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   
-  // 📜 NEW: ABOUT US MODAL STATE
-  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
-  
   const [checkoutStep, setCheckoutStep] = useState(1); 
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // 📝 Form Data (UTR removed)
+  // 📝 Form Data
   const [formData, setFormData] = useState({ 
     fullName: "", 
     mobile: "", 
@@ -215,27 +212,18 @@ export default function Home() {
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-[#00e599] font-bold tracking-widest text-xs uppercase">Loading Feed...</div>;
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans pb-20 selection:bg-[#00e599] selection:text-black">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-[#00e599] selection:text-black">
       
       {/* 🚀 SMART HEADER */}
       <header className="px-6 py-5 flex justify-between items-center border-b border-gray-900 sticky top-0 bg-black/90 backdrop-blur z-30">
         <h1 className="text-xl font-black tracking-tighter">KORO <span className="text-[#00e599]">LANE</span></h1>
         
         <div className="flex items-center gap-4">
-          
-          {/* 🔥 ABOUT US TRIGGER BUTTON */}
-          <button 
-            onClick={() => setIsAboutModalOpen(true)} 
-            className="text-[10px] text-gray-400 hover:text-[#00e599] font-bold uppercase tracking-widest transition"
-          >
-            About
-          </button>
-
           {isLoggedIn ? (
             <>
               <Link href="/scout" className="border border-gray-700 hover:border-[#00e599] hover:text-[#00e599] transition px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                Scout Terminal
+                Buyer Terminal
               </Link>
               {userRole === 'dealer' && (
                 <Link href="/dealer" className="bg-[#003320] text-[#00e599] border border-[#00e599]/30 transition px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
@@ -246,10 +234,10 @@ export default function Home() {
           ) : (
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="border border-gray-700 hover:border-[#00e599] hover:text-[#00e599] transition px-2.5 sm:px-4 py-1.5 rounded text-[8px] sm:text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 sm:gap-2">
-                🧑‍🚀 Scout
+                🧑‍🚀 Buyer
               </button>
               <Link href="/login" className="bg-[#003320] text-[#00e599] border border-[#00e599]/30 hover:bg-[#00e599] hover:text-black transition px-2.5 sm:px-4 py-1.5 rounded text-[8px] sm:text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 sm:gap-2">
-                🏪 Dealer
+                🏪 Seller
               </Link>
             </div>
           )}
@@ -287,7 +275,7 @@ export default function Home() {
       </section>
 
       {/* LIVE FEED */}
-      <div className="max-w-6xl mx-auto px-6 py-10 mt-4">
+      <div className="max-w-6xl mx-auto px-6 py-10 mt-4 mb-20">
         <div className="flex justify-between items-center border-b border-gray-900 pb-4 mb-6">
           <h3 className="text-sm font-black uppercase tracking-widest text-white flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#00e599] animate-ping"></span> Live Feed
@@ -322,41 +310,70 @@ export default function Home() {
         </div>
       </div>
 
-      {/* --- 📜 ABOUT US MODAL --- */}
-      {isAboutModalOpen && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setIsAboutModalOpen(false)}>
-          <div className="bg-[#0a0a0c] border border-gray-800 rounded-2xl w-full max-w-2xl p-8 relative overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)]" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setIsAboutModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white z-20 bg-gray-900 p-2 rounded-full">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
+      {/* 🚀 NEW: PREMIUM ABOUT US & SUPPORT FOOTER */}
+      <footer className="bg-[#050505] border-t border-gray-900 pt-20 pb-10 px-6 mt-10">
+        <div className="max-w-4xl mx-auto">
+          
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-black uppercase tracking-tight text-white mb-2">About <span className="text-[#00e599]">Us</span></h2>
+            <div className="w-16 h-1 bg-[#00e599] mx-auto rounded-full"></div>
+          </div>
 
-            <div className="absolute right-0 bottom-0 text-9xl font-black text-gray-900/10 pointer-events-none select-none tracking-tighter">ABOUT</div>
-            
-            <h2 className="text-[#00e599] text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2">
-              <span>//</span> The Koro Lane Manifesto
-            </h2>
-            
-            <p className="text-xs text-gray-300 font-bold uppercase tracking-wider leading-relaxed mb-4">
-              Surplus industry waste nahi, goldmine hai. But marketplace mein kachra upload karne waalo ne game kharab kar diya hai.
-            </p>
-            
-            <p className="text-xs text-gray-400 leading-relaxed mb-8 z-10 relative">
-              Koro Lane ek community-driven aggregator network hai jahan hum sirf verify kiye hue trusted local dealers ke 1-of-1 rare articles filter karke drop karte hain. No heavily torn items, no cheap quality. Sirf premium Tops & Bottoms jinke measurements ekdum exact hain taaki fit perfect baithe.
-            </p>
+          <div className="prose prose-invert prose-p:text-sm prose-p:text-gray-400 prose-p:leading-relaxed mx-auto mb-16">
+            <p><strong>KoRoLane started with a simple conversation.</strong></p>
+            <p>One evening, we were talking about fashion and future plans. My partner said, <em>"Rohit, I want to build our own clothing brand. We should buy clothes in bulk, create our own designs, and sell them."</em></p>
+            <p>That one conversation sparked our curiosity.</p>
+            <p>We started exploring Instagram to understand how people were selling fashion online. As we scrolled through hundreds of thrift pages and surplus clothing stores, we realized something surprising—there were thousands of independent sellers already doing an amazing job.</p>
+            <p><strong>But we also noticed a bigger problem.</strong></p>
+            <p>For sellers, reaching the right customers was difficult. Most depended entirely on Instagram, where managing orders, inventory, payments, and customer trust wasn't easy.</p>
+            <p>For customers, finding genuine thrift and surplus clothing was equally challenging. Every page had a different process, product details were often incomplete, and there was no single place to discover trusted sellers.</p>
+            <p><strong>That's when our idea changed.</strong></p>
+            <p>Instead of creating just another clothing brand, we decided to build something that could help everyone.</p>
+            <p>KoRoLane was born as a marketplace where thrift and surplus fashion sellers can grow their business, and buyers can discover unique, affordable pieces from trusted stores—all in one place.</p>
+            <p>We believe great clothes deserve a second chance, and passionate sellers deserve a platform that works for them.</p>
+            <p><strong>This is just the beginning.</strong></p>
+            <p>We're building KoRoLane one step at a time with a simple mission:<br/>
+            <span className="text-[#00e599] font-bold">To make thrift and surplus fashion easier to buy, easier to sell, and accessible to everyone.</span></p>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-900 z-10 relative">
-              <div>
-                <p className="text-[9px] text-gray-500 uppercase tracking-widest font-black mb-1">Curation Rule</p>
-                <p className="text-xs text-[#00e599] font-bold uppercase">Tops & Bottoms Only</p>
+          {/* CONTACT SUPPORT BOX */}
+          <div className="bg-[#0a0a0c] border border-gray-800 rounded-2xl p-8 text-center max-w-2xl mx-auto shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-[#00e599] opacity-50"></div>
+            <h3 className="text-sm font-black uppercase tracking-widest text-white mb-6">Need Support or Want to Join?</h3>
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
+              
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#003320] flex items-center justify-center text-[#00e599]">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                </div>
+                <div className="text-left">
+                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Email Us</p>
+                  <a href="mailto:rohees546@gmail.com" className="text-sm font-medium text-gray-300 hover:text-[#00e599] transition">rohees546@gmail.com</a>
+                </div>
               </div>
-              <div>
-                <p className="text-[9px] text-gray-500 uppercase tracking-widest font-black mb-1">Logistics Focus</p>
-                <p className="text-xs text-[#00e599] font-bold uppercase">Dehradun Speed-Run</p>
+
+              <div className="hidden sm:block w-px h-10 bg-gray-800"></div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#003320] flex items-center justify-center text-[#00e599]">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                </div>
+                <div className="text-left">
+                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Call / WhatsApp</p>
+                  <a href="tel:9027434335" className="text-sm font-medium text-gray-300 hover:text-[#00e599] transition">+91 90274 34335</a>
+                </div>
               </div>
+
             </div>
           </div>
+          
+          <div className="text-center mt-10">
+            <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">© 2024 Koro Lane. All Rights Reserved.</p>
+          </div>
+
         </div>
-      )}
+      </footer>
+
 
       {/* --- 🛡️ SECURE AUTH MODAL --- */}
       {isAuthModalOpen && (
@@ -366,7 +383,7 @@ export default function Home() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
             <h2 className="text-2xl font-black uppercase tracking-tight mb-2 text-center text-[#00e599]">{authMode === 'signup' ? 'Create Account' : 'Welcome Back'}</h2>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center mb-6">{selectedProduct ? "Secure your 1-of-1 item now." : "Access Scout Terminal"}</p>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center mb-6">{selectedProduct ? "Secure your 1-of-1 item now." : "Access Buyer Terminal"}</p>
 
             <form onSubmit={handleAuthSubmit} className="space-y-4">
               <div>
@@ -388,7 +405,7 @@ export default function Home() {
 
             <div className="mt-6 text-center">
               <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="text-[10px] text-gray-500 uppercase tracking-widest font-bold hover:text-white transition">
-                {authMode === 'login' ? "New Scout? Create Account" : "Already a Scout? Login Here"}
+                {authMode === 'login' ? "New Buyer? Create Account" : "Already a Buyer? Login Here"}
               </button>
             </div>
           </div>
@@ -456,7 +473,7 @@ export default function Home() {
 
             {checkoutStep === 1 && (
               <form onSubmit={handleAddressSubmit} className="space-y-4">
-                <div className="bg-[#003320]/30 border border-[#00e599]/30 p-3 rounded-lg text-[9px] font-bold text-[#00e599] uppercase tracking-widest mb-4 flex items-center gap-2">📍 Address auto-filled from your Scout Profile!</div>
+                <div className="bg-[#003320]/30 border border-[#00e599]/30 p-3 rounded-lg text-[9px] font-bold text-[#00e599] uppercase tracking-widest mb-4 flex items-center gap-2">📍 Address auto-filled from your Profile!</div>
                 <div><label className="block text-[10px] text-gray-400 uppercase mb-1">Your Full Name *</label><input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full bg-[#09090b] border border-gray-800 rounded-lg text-white px-3 py-2.5 text-sm outline-none focus:border-[#00e599]" /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block text-[10px] text-gray-400 uppercase mb-1">Mobile No. *</label><input required type="tel" value={formData.mobile} onChange={e => setFormData({...formData, mobile: e.target.value})} className="w-full bg-[#09090b] border border-gray-800 rounded-lg text-white px-3 py-2.5 text-sm outline-none focus:border-[#00e599]" /></div>
@@ -468,7 +485,7 @@ export default function Home() {
               </form>
             )}
 
-            {/* --- 🚀 NEW REAL QR & WHATSAPP STEP (NO UTR FORM) --- */}
+            {/* --- 🚀 REAL QR & WHATSAPP STEP --- */}
             {checkoutStep === 2 && (
               <form onSubmit={handlePaymentConfirm} className="space-y-6">
                 <div className="bg-[#050505] border border-[#00e599]/30 rounded-xl p-5 flex flex-col items-center justify-center text-center relative overflow-hidden">
@@ -500,7 +517,6 @@ export default function Home() {
                   </a>
                 </div>
 
-                {/* 📝 NEW TEXT INSTEAD OF UTR FORM */}
                 <div className="bg-[#121214] border border-[#00e599]/20 p-4 rounded-xl text-center">
                   <p className="text-[11px] text-[#00e599] font-bold uppercase tracking-widest">
                     After payment, share it to WhatsApp for confirmation.

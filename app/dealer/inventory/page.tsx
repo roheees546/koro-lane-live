@@ -24,8 +24,11 @@ export default function InventoryPage() {
   const [itemPrice, setItemPrice] = useState("");
   const [itemCategory, setItemCategory] = useState("Top");
   const [itemDesc, setItemDesc] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [existingImageUrl, setExistingImageUrl] = useState("");
+  
+  // 🔥 UPDATED: Arrays for Multiple Images
+  const [imageFiles, setImageFiles] = useState<File[]>([]); 
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
+  
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
@@ -67,8 +70,8 @@ export default function InventoryPage() {
     setItemPrice("");
     setItemCategory("Top");
     setItemDesc("");
-    setImageFile(null);
-    setExistingImageUrl("");
+    setImageFiles([]); // Reset array
+    setExistingImageUrls([]); // Reset array
     setIsCreateModalOpen(true);
   };
 
@@ -79,40 +82,51 @@ export default function InventoryPage() {
     setItemPrice(product.price.toString());
     setItemCategory(product.category || "Top");
     setItemDesc(product.description || "");
-    setExistingImageUrl(product.image_url || "");
-    setImageFile(null); 
+    
+    // Handle both old single image and new array of images gracefully
+    if (product.image_urls && Array.isArray(product.image_urls)) {
+      setExistingImageUrls(product.image_urls);
+    } else if (product.image_url) {
+      setExistingImageUrls([product.image_url]);
+    } else {
+      setExistingImageUrls([]);
+    }
+    
+    setImageFiles([]); 
     setIsEditModalOpen(true);
   };
 
-  // 🚀 CREATE PRODUCT ENGINE
+  // 🚀 CREATE PRODUCT ENGINE (NOW WITH MULTIPLE UPLOADS)
   const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!imageFile) {
-      alert("Please select a photo for the new article!");
+    if (imageFiles.length === 0) {
+      alert("Bawa, please select at least one photo!");
       return;
     }
     
     setIsCreating(true);
-    let publicUrl = "";
+    let uploadedUrls: string[] = [];
 
     try {
-      // 1. Upload Photo
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${userId}-create-${Math.random()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('product_images')
-        .upload(fileName, imageFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicUrlData } = supabase.storage
-        .from('product_images')
-        .getPublicUrl(fileName);
+      // 1. Loop through and Upload Multiple Photos
+      for (const file of imageFiles) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${userId}-create-${Math.random()}.${fileExt}`;
         
-      publicUrl = publicUrlData.publicUrl;
+        const { error: uploadError } = await supabase.storage
+          .from('product_images')
+          .upload(fileName, file);
 
-      // 2. Insert into Database
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from('product_images')
+          .getPublicUrl(fileName);
+          
+        uploadedUrls.push(publicUrlData.publicUrl);
+      }
+
+      // 2. Insert into Database (using image_urls array)
       const { error: insertError } = await supabase
         .from("products")
         .insert([{
@@ -121,7 +135,8 @@ export default function InventoryPage() {
           price: parseFloat(itemPrice),
           category: itemCategory,
           description: itemDesc,
-          image_url: publicUrl,
+          image_urls: uploadedUrls, // Save as array
+          image_url: uploadedUrls[0], // Fallback for older code
           is_sold: false
         }]);
 
@@ -129,7 +144,7 @@ export default function InventoryPage() {
 
       setIsCreateModalOpen(false);
       fetchInventory(); 
-      alert("New Article Live! 🚀");
+      alert("New Article Live with multiple photos! 🚀📸");
     } catch (error: any) {
       alert("Error adding item: " + error.message);
     } finally {
@@ -142,42 +157,53 @@ export default function InventoryPage() {
     e.preventDefault();
     setIsUpdating(true);
 
-    let finalImageUrl = existingImageUrl;
+    let finalImageUrls = [...existingImageUrls];
 
-    if (imageFile && userId) {
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${userId}-update-${Math.random()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('product_images')
-        .upload(fileName, imageFile);
+    try {
+      // If new images are selected, upload them and REPLACE the old ones
+      if (imageFiles.length > 0 && userId) {
+        finalImageUrls = []; // Clear old images
+        
+        for (const file of imageFiles) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${userId}-update-${Math.random()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('product_images')
+            .upload(fileName, file);
 
-      if (!uploadError) {
-        const { data: publicUrlData } = supabase.storage
-          .from('product_images')
-          .getPublicUrl(fileName);
-        finalImageUrl = publicUrlData.publicUrl;
+          if (!uploadError) {
+            const { data: publicUrlData } = supabase.storage
+              .from('product_images')
+              .getPublicUrl(fileName);
+            finalImageUrls.push(publicUrlData.publicUrl);
+          }
+        }
       }
-    }
 
-    const { error } = await supabase
-      .from("products")
-      .update({
-        title: itemName,
-        price: parseFloat(itemPrice),
-        category: itemCategory,
-        description: itemDesc,
-        image_url: finalImageUrl
-      })
-      .eq("id", editingId);
+      const { error } = await supabase
+        .from("products")
+        .update({
+          title: itemName,
+          price: parseFloat(itemPrice),
+          category: itemCategory,
+          description: itemDesc,
+          image_urls: finalImageUrls, // Save as array
+          image_url: finalImageUrls[0] || null // Fallback
+        })
+        .eq("id", editingId);
 
-    if (!error) {
-      setIsEditModalOpen(false);
-      fetchInventory(); 
-    } else {
+      if (!error) {
+        setIsEditModalOpen(false);
+        fetchInventory(); 
+      } else {
+        throw error;
+      }
+    } catch (error: any) {
       alert("Error updating item: " + error.message);
+    } finally {
+      setIsUpdating(false);
     }
-    setIsUpdating(false);
   };
 
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-[#00e599]">Loading Inventory...</div>;
@@ -191,7 +217,7 @@ export default function InventoryPage() {
         <div className="flex items-center gap-3">
           <span className="text-xs bg-[#111114] border border-gray-800 px-3 py-1.5 rounded-full font-bold">{products.length} Items</span>
           
-          {/* UPLOAD HEADER BUTTON (If they already have items) */}
+          {/* UPLOAD HEADER BUTTON */}
           {products.length > 0 && (
             <button onClick={openCreateModal} className="bg-[#00e599] text-black w-8 h-8 rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(0,229,153,0.3)] hover:scale-105 transition">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
@@ -221,7 +247,13 @@ export default function InventoryPage() {
                       <span className="text-red-500 text-[8px] font-black uppercase bg-red-500/20 px-2 py-1 rounded rotate-12 border border-red-500/50">Sold</span>
                    </div>
                 )}
-                <img src={product.image_url || "https://placehold.co/100x120/121214/00e599?text=SURPLUS"} alt={product.title} className="w-full h-full object-cover" />
+                {/* Visual indicator for multiple images in inventory list */}
+                {(product.image_urls && product.image_urls.length > 1) && (
+                   <div className="absolute top-1 right-1 bg-black/70 text-[8px] px-1.5 py-0.5 rounded text-white font-bold backdrop-blur-sm z-10 border border-gray-700">
+                     +{product.image_urls.length - 1}
+                   </div>
+                )}
+                <img src={product.image_urls?.[0] || product.image_url || "https://placehold.co/100x120/121214/00e599?text=SURPLUS"} alt={product.title} className="w-full h-full object-cover" />
               </div>
               
               <div className="flex flex-col flex-1 justify-between py-1">
@@ -307,20 +339,25 @@ export default function InventoryPage() {
                 </div>
               </div>
 
-              {/* IMAGE UPLOAD SECTION */}
+              {/* MULTIPLE IMAGE UPLOAD SECTION */}
               <div>
-                <label className="block text-[10px] text-gray-400 uppercase mb-2">Upload Photo *</label>
+                <label className="block text-[10px] text-gray-400 uppercase mb-1 flex justify-between">
+                  <span>Upload Photos *</span>
+                  <span className="text-[#00e599] font-bold">{imageFiles.length} Selected</span>
+                </label>
                 <input 
                   required
                   type="file" 
                   accept="image/*"
+                  multiple // 🔥 This allows selecting multiple photos!
                   onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setImageFile(e.target.files[0]);
+                    if (e.target.files) {
+                      setImageFiles(Array.from(e.target.files));
                     }
                   }}
                   className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#111114] file:text-white hover:file:text-[#00e599] cursor-pointer border border-gray-800 rounded-lg p-2 bg-[#09090b] transition" 
                 />
+                <p className="text-[8px] text-gray-500 mt-1 italic">Tip: You can select multiple images at once from your gallery.</p>
               </div>
 
               <div>
@@ -329,7 +366,7 @@ export default function InventoryPage() {
               </div>
               
               <button type="submit" disabled={isCreating} className="w-full mt-4 bg-[#00e599] hover:bg-[#00c985] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs transition flex justify-center items-center gap-2">
-                {isCreating ? "UPLOADING..." : "PUBLISH ARTICLE"}
+                {isCreating ? "UPLOADING PHOTOS..." : "PUBLISH ARTICLE"}
               </button>
             </form>
           </div>
@@ -370,23 +407,31 @@ export default function InventoryPage() {
 
               {/* IMAGE UPLOAD SECTION */}
               <div>
-                <label className="block text-[10px] text-gray-400 uppercase mb-2">Update Photo (Optional)</label>
-                {existingImageUrl && !imageFile && (
-                  <div className="flex items-center gap-3 mb-2 bg-[#0a0a0c] p-2 rounded border border-gray-800">
-                    <img src={existingImageUrl} className="w-8 h-10 object-cover rounded" alt="Current" />
-                    <span className="text-[10px] text-gray-500">Current Image Active</span>
+                <label className="block text-[10px] text-gray-400 uppercase mb-2">Update Photos (Optional)</label>
+                
+                {existingImageUrls.length > 0 && imageFiles.length === 0 && (
+                  <div className="mb-2 bg-[#0a0a0c] p-2 rounded border border-gray-800">
+                    <span className="text-[10px] text-gray-500 mb-1 block">Current Active Images:</span>
+                    <div className="flex gap-2 overflow-x-auto hide-scrollbar">
+                      {existingImageUrls.map((url, idx) => (
+                         <img key={idx} src={url} className="w-8 h-10 object-cover rounded shrink-0 border border-gray-700" alt="Current" />
+                      ))}
+                    </div>
                   </div>
                 )}
+                
                 <input 
                   type="file" 
                   accept="image/*"
+                  multiple // 🔥 Allows replacing with multiple new photos
                   onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setImageFile(e.target.files[0]);
+                    if (e.target.files) {
+                      setImageFiles(Array.from(e.target.files));
                     }
                   }}
                   className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#111114] file:text-white hover:file:text-[#00e599] cursor-pointer border border-gray-800 rounded-lg p-2 bg-[#09090b] transition" 
                 />
+                <p className="text-[8px] text-gray-500 mt-1 italic">Note: Uploading new photos will replace all current photos.</p>
               </div>
 
               <div>
@@ -401,7 +446,7 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
-
+      <style dangerouslySetInnerHTML={{__html: `.hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}} />
     </div>
   );
 }
