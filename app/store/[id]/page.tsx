@@ -27,11 +27,11 @@ export default function MiniStorePage() {
   return (
     <div className="min-h-screen bg-black text-white font-sans flex flex-col relative selection:bg-[#00e599] selection:text-black">
       
-      {/* 🔥 SUBTLE NAVIGATION: Koro Lane Watermark (Top Left) */}
+      {/* 🔥 SUBTLE NAVIGATION: Explore Marketplace (Top Left) */}
       <div className="absolute top-5 left-5 z-20">
-        <Link href="/" className="text-[9px] text-gray-700 hover:text-[#00e599] font-black uppercase tracking-widest transition flex items-center gap-1.5 opacity-60 hover:opacity-100">
+        <Link href="/" className="text-[10px] text-gray-400 hover:text-[#00e599] font-black uppercase tracking-widest transition flex items-center gap-2 bg-black/50 px-3 py-1.5 rounded-full border border-gray-800 backdrop-blur-md">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-          Koro Lane
+          Explore Marketplace
         </Link>
       </div>
 

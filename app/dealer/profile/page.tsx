@@ -129,9 +129,10 @@ export default function ProfilePage() {
     setTimeout(() => setCopied(false), 3000);
   };
 
+  // 🚀 FIXED: Logout redirecting to Homepage
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/"); // Direct throw to main feed
   };
 
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-[#00e599] font-bold tracking-widest text-xs uppercase">Loading Profile...</div>;
