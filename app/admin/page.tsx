@@ -105,6 +105,39 @@ export default function AdminDashboard() {
     }
   };
 
+  // 🔥 NEW POWER: REJECT FAKE ORDER & RESTORE ITEM
+  const handleRejectOrder = async (orderId: string, productId: string) => {
+    const confirmReject = confirm("🚨 FAKE ORDER ALERT! Kya sach me order delete karke item ko wapas Live karna hai?");
+    if (!confirmReject) return;
+
+    // 1. Pehle product ko wapas LIVE karo (is_sold: false)
+    if (productId) {
+      const { error: productError } = await supabase
+        .from("products")
+        .update({ is_sold: false })
+        .eq("id", productId);
+        
+      if (productError) {
+        alert("Item restore karne me dikkat aayi!");
+        return;
+      }
+    }
+
+    // 2. Phir fake order ko database se uda do (delete)
+    const { error: orderError } = await supabase
+      .from("orders")
+      .delete()
+      .eq("id", orderId);
+
+    if (!orderError) {
+      alert("Kachra saaf! ♻️ Item wapas marketplace par Live ho gaya hai.");
+      fetchOrders(); 
+      if(selectedOrder && selectedOrder.id === orderId) setSelectedOrder(null);
+    } else {
+      alert("Order delete karne me error aaya!");
+    }
+  };
+
   const handleDispatch = async (orderId: string) => {
     const confirmDispatch = confirm("Kya tumne yeh item Dealer se pick-up karke Customer ko dispatch kar diya hai?");
     if (!confirmDispatch) return;
@@ -257,8 +290,13 @@ export default function AdminDashboard() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-right flex flex-col gap-2 items-end">
+                      
+                      {/* 🔥 NEW UI: Split actions for Pending Orders */}
                       {order.payment_status === "Pending WhatsApp Confirmation" ? (
-                        <button onClick={() => handleVerifyPayment(order.id)} className="bg-yellow-500 text-black hover:bg-yellow-400 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition w-full shadow-[0_0_10px_rgba(234,179,8,0.2)]">Verify Pay ✅</button>
+                        <div className="flex flex-col gap-1.5 w-full">
+                          <button onClick={() => handleVerifyPayment(order.id)} className="bg-yellow-500 text-black hover:bg-yellow-400 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition w-full shadow-[0_0_10px_rgba(234,179,8,0.2)]">Verify Pay ✅</button>
+                          <button onClick={() => handleRejectOrder(order.id, order.product_id)} className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-black border border-red-500/20 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition w-full">Reject Fake ♻️</button>
+                        </div>
                       ) : order.status === "packed" ? (
                         <button onClick={() => handleDispatch(order.id)} className="bg-[#00e599] text-black hover:bg-[#00c580] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition w-full shadow-[0_0_10px_rgba(0,229,153,0.3)]">Dispatch 🚚</button>
                       ) : order.status === "dispatched" ? (
@@ -268,7 +306,7 @@ export default function AdminDashboard() {
                       )}
                       
                       {/* 🔥 VIEW DETAILS BUTTON */}
-                      <button onClick={() => setSelectedOrder(order)} className="bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition w-full border border-gray-700">
+                      <button onClick={() => setSelectedOrder(order)} className="bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition w-full border border-gray-700 mt-1">
                         Full Details 📋
                       </button>
                     </td>
@@ -359,7 +397,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Modal Footer actions */}
-            <div className="bg-[#0a0a0c] border-t border-gray-800 p-4 flex justify-between items-center gap-4">
+            <div className="bg-[#0a0a0c] border-t border-gray-800 p-4 flex justify-between items-center gap-4 flex-wrap">
                <div className="flex items-center gap-2">
                  <span className="text-[9px] text-gray-500 uppercase font-bold tracking-widest">Payment:</span>
                  <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded ${selectedOrder.payment_status === 'Verified' ? 'bg-[#00e599]/20 text-[#00e599]' : 'bg-yellow-500/20 text-yellow-500'}`}>
@@ -367,12 +405,20 @@ export default function AdminDashboard() {
                  </span>
                </div>
                
-               {/* Quick Action Button right inside modal */}
-               {selectedOrder.status === 'packed' && (
-                 <button onClick={() => handleDispatch(selectedOrder.id)} className="bg-white text-black font-black uppercase tracking-widest text-[10px] px-4 py-2 rounded-lg hover:bg-gray-200 shadow-md">
-                   Mark Dispatched 🚚
-                 </button>
-               )}
+               <div className="flex gap-2">
+                 {/* Fake Order Reject right inside modal too */}
+                 {selectedOrder.payment_status === 'Pending WhatsApp Confirmation' && (
+                   <button onClick={() => handleRejectOrder(selectedOrder.id, selectedOrder.product_id)} className="bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-black font-black uppercase tracking-widest text-[9px] px-4 py-2 rounded-lg transition">
+                     Reject Fake ♻️
+                   </button>
+                 )}
+
+                 {selectedOrder.status === 'packed' && (
+                   <button onClick={() => handleDispatch(selectedOrder.id)} className="bg-white text-black font-black uppercase tracking-widest text-[10px] px-4 py-2 rounded-lg hover:bg-gray-200 shadow-md">
+                     Mark Dispatched 🚚
+                   </button>
+                 )}
+               </div>
             </div>
 
           </div>

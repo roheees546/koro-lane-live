@@ -185,8 +185,10 @@ export default function Home() {
     setIsProcessing(true);
 
     try {
+      // 🔥 UPDATE: Adding product_id so Admin can restore it if fake
       const { error: orderError } = await supabase.from('orders').insert([{
-          dealer_id: selectedProduct.dealer_id, 
+          dealer_id: selectedProduct.dealer_id,
+          product_id: selectedProduct.id, 
           product_name: selectedProduct.title,
           customer_name: formData.fullName,
           price: selectedProduct.price,
@@ -197,6 +199,7 @@ export default function Home() {
         }]);
       if (orderError) throw orderError;
 
+      // This acts as the "HOLD" - item is removed from feed immediately
       const { error: productError } = await supabase.from('products').update({ is_sold: true }).eq('id', selectedProduct.id);
       if (productError) throw productError;
 
