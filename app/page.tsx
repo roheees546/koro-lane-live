@@ -185,7 +185,6 @@ export default function Home() {
     setIsProcessing(true);
 
     try {
-      // 🔥 UPDATE: Adding product_id so Admin can restore it if fake
       const { error: orderError } = await supabase.from('orders').insert([{
           dealer_id: selectedProduct.dealer_id,
           product_id: selectedProduct.id, 
@@ -199,7 +198,6 @@ export default function Home() {
         }]);
       if (orderError) throw orderError;
 
-      // This acts as the "HOLD" - item is removed from feed immediately
       const { error: productError } = await supabase.from('products').update({ is_sold: true }).eq('id', selectedProduct.id);
       if (productError) throw productError;
 
@@ -251,17 +249,13 @@ export default function Home() {
 
       {/* 🚀 UPGRADED HERO SECTION */}
       <section className="relative px-6 pt-24 pb-20 flex flex-col items-center text-center max-w-4xl mx-auto overflow-hidden border-b border-gray-900">
-        
-        {/* Background Subtle Neon Radial Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-[#00e599]/5 blur-[120px] rounded-full pointer-events-none"></div>
 
-        {/* Exclusive Dehradun Tag */}
         <div className="bg-[#003320]/60 border border-[#00e599]/30 text-[#00e599] px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest mb-8 flex items-center gap-2 shadow-[0_0_15px_rgba(0,229,153,0.1)]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#00e599] animate-pulse"></span>
           ⚡ Live & Available in Dehradun Only
         </div>
 
-        {/* Main Enhanced Heading */}
         <h1 className="text-4xl sm:text-6xl font-black uppercase tracking-tight leading-none mb-6 text-white max-w-3xl">
           FIND RARE <br className="sm:hidden" />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00e599] to-[#00c580] shadow-sm">
@@ -273,7 +267,6 @@ export default function Home() {
           The underground network for premium handpicked streetwear, oversized tees, hoodies, and jackets from verified surplus dealers.
         </p>
         
-        {/* Next Day Delivery Hook */}
         <p className="text-[10px] text-[#00e599] font-black uppercase tracking-widest bg-gray-900/50 px-4 py-2 rounded-lg border border-gray-800">
           🚀 Next Day Flash Delivery Straight to Your Doorstep
         </p>
@@ -318,8 +311,6 @@ export default function Home() {
       {/* 🚀 3-BLOCK PREMIUM FOOTER */}
       <footer className="bg-[#050505] border-t border-gray-900 pt-20 pb-10 px-6 mt-10">
         <div className="max-w-5xl mx-auto space-y-8">
-          
-          {/* BLOCK 1: THE JOURNEY (Read More Toggle) */}
           <div className="bg-[#0a0a0c] border border-gray-800 rounded-2xl p-8 relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-800 via-gray-600 to-gray-800"></div>
             <h2 className="text-xl font-black uppercase tracking-tight text-white mb-6 flex items-center gap-2">
@@ -350,8 +341,6 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
-            {/* BLOCK 2: ABOUT US (Left) */}
             <div className="bg-[#0a0a0c] border border-gray-800 rounded-2xl p-8 relative overflow-hidden shadow-2xl flex flex-col justify-center">
                <div className="absolute top-0 left-0 w-full h-1 bg-[#00e599] opacity-30"></div>
                <h2 className="text-xl font-black uppercase tracking-tight text-white mb-4 flex items-center gap-2">
@@ -365,7 +354,6 @@ export default function Home() {
                </p>
             </div>
 
-            {/* BLOCK 3: CONTACT SUPPORT (Right) */}
             <div className="bg-[#0a0a0c] border border-gray-800 rounded-2xl p-8 relative overflow-hidden shadow-2xl flex flex-col justify-center">
               <div className="absolute top-0 left-0 w-full h-1 bg-[#00e599] opacity-80"></div>
               <h3 className="text-xl font-black uppercase tracking-tight text-white mb-6 flex items-center gap-2">
@@ -447,21 +435,19 @@ export default function Home() {
           <div className="bg-[#0f0f11] border border-gray-800 rounded-2xl w-full max-w-xl overflow-hidden relative flex flex-col max-h-[90vh] sm:max-h-[95vh] shadow-[0_0_50px_rgba(0,0,0,0.8)]" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setIsDetailsOpen(false)} className="absolute top-4 right-4 z-20 bg-black/60 p-2.5 rounded-full text-gray-300 hover:text-white backdrop-blur-sm border border-gray-700/50 transition"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             
-            {/* Native Scroll-Snap Gallery Container - MADE TALLER & LARGER */}
+            {/* Native Scroll-Snap Gallery Container */}
             <div className="w-full h-[55vh] sm:h-[60vh] max-h-[600px] bg-[#050505] relative flex overflow-x-auto snap-x snap-mandatory hide-scrollbar scroll-smooth">
               {selectedProduct.image_urls && selectedProduct.image_urls.length > 0 ? (
                 selectedProduct.image_urls.map((img: string, idx: number) => (
                   <div key={idx} className="w-full h-full flex-shrink-0 snap-center relative cursor-zoom-in group" onClick={() => setFullScreenImage(img)}>
                     <img src={img} className="w-full h-full object-contain" alt={`Product View ${idx}`} />
                     
-                    {/* Expand Icon Hint */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center pointer-events-none">
                       <div className="bg-black/50 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition backdrop-blur-md">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
                       </div>
                     </div>
 
-                    {/* Floating Counter Badge */}
                     {selectedProduct.image_urls.length > 1 && (
                       <div className="absolute top-5 left-5 bg-black/80 border border-gray-800 text-white text-[10px] font-black tracking-widest px-3 py-1.5 rounded-md backdrop-blur-md uppercase shadow-lg">
                         {idx + 1} / {selectedProduct.image_urls.length}
@@ -535,6 +521,16 @@ export default function Home() {
 
             {checkoutStep === 1 && (
               <form onSubmit={handleAddressSubmit} className="space-y-4">
+                
+                {/* 🔥 NEW: FREE NEXT DAY DELIVERY BADGE */}
+                <div className="flex items-center gap-3 bg-gradient-to-r from-[#003320]/40 to-transparent border border-[#00e599]/20 p-3 rounded-xl mb-4">
+                  <span className="text-xl">🚀</span>
+                  <div>
+                    <p className="text-[10px] font-black text-[#00e599] uppercase tracking-widest">Free Next Day Delivery</p>
+                    <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Your item will reach you by tomorrow!</p>
+                  </div>
+                </div>
+
                 <div className="bg-[#003320]/30 border border-[#00e599]/30 p-3 rounded-lg text-[9px] font-bold text-[#00e599] uppercase tracking-widest mb-4 flex items-center gap-2">📍 Address auto-filled from your Profile!</div>
                 <div><label className="block text-[10px] text-gray-400 uppercase mb-1">Your Full Name *</label><input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full bg-[#09090b] border border-gray-800 rounded-lg text-white px-3 py-2.5 text-sm outline-none focus:border-[#00e599]" /></div>
                 <div className="grid grid-cols-2 gap-4">
@@ -547,24 +543,35 @@ export default function Home() {
               </form>
             )}
 
-            {/* --- 🚀 REAL QR & WHATSAPP STEP --- */}
+            {/* --- 🚀 REAL QR, UPI DEEP LINK & WHATSAPP STEP --- */}
             {checkoutStep === 2 && (
               <form onSubmit={handlePaymentConfirm} className="space-y-6">
                 <div className="bg-[#050505] border border-[#00e599]/30 rounded-xl p-5 flex flex-col items-center justify-center text-center relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-[#00e599] animate-pulse"></div>
                   <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Scan using GPay, PhonePe, or Paytm</h3>
                   
-                  {/* Real Static QR Code from public folder */}
+                  {/* Real Static QR Code */}
                   <div className="bg-white p-2 rounded-xl mb-4 shadow-[0_0_20px_rgba(0,229,153,0.15)]">
                     <img src="/qr.jpg" alt="UPI QR" className="w-40 h-40 object-contain" />
                   </div>
                   
                   <p className="text-xl font-black text-white">Amount: <span className="text-[#00e599]">₹{selectedProduct.price.toLocaleString('en-IN')}</span></p>
                   
-                  {/* Custom UPI & Name Details */}
-                  <div className="mt-3 space-y-1">
+                  <div className="mt-3 space-y-1 w-full">
                     <p className="text-[12px] font-bold text-[#00e599] uppercase tracking-widest">UPI ID: {ADMIN_UPI}</p>
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Paying to: Co-founder Rohit Singh Rana</p>
+                  </div>
+
+                  {/* 🔥 DIRECT UPI PAYMENT BUTTON */}
+                  <div className="w-full mt-5">
+                    <a 
+                      href={`upi://pay?pa=${ADMIN_UPI}&pn=Rohit%20Singh%20Rana&am=${selectedProduct.price}&cu=INR`}
+                      className="w-full flex items-center justify-center gap-2 bg-[#00e599] text-black px-4 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-[#00c580] transition shadow-[0_0_20px_rgba(0,229,153,0.4)] animate-pulse"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                      Pay Directly via UPI App
+                    </a>
+                    <p className="text-[8px] text-gray-500 uppercase font-bold tracking-widest mt-2">(Opens GPay, PhonePe, Paytm on Mobile)</p>
                   </div>
 
                   {/* WhatsApp Connect Button */}
@@ -572,7 +579,7 @@ export default function Home() {
                     href={`https://wa.me/919027434335?text=Hi Rohit, I am paying ₹${selectedProduct.price} for the ${selectedProduct.title}.`} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="mt-5 w-full flex items-center justify-center gap-2 bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 px-4 py-3 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#25D366] hover:text-black transition"
+                    className="mt-4 w-full flex items-center justify-center gap-2 bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 px-4 py-3 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#25D366] hover:text-black transition"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.553 4.195 1.602 6.015L.175 24l6.113-1.602a11.96 11.96 0 005.743 1.472h.005c6.645 0 12.03-5.385 12.03-12.031S18.676 0 12.031 0zm0 21.84c-1.846 0-3.655-.497-5.244-1.44l-.376-.223-3.896 1.021 1.042-3.798-.245-.39C2.186 15.348 1.63 13.722 1.63 12.03 1.63 6.286 6.286 1.63 12.03 1.63c5.744 0 10.4 4.656 10.4 10.4 0 5.744-4.656 10.4-10.4 10.4zm5.713-7.8c-.314-.157-1.857-.916-2.145-1.022-.287-.105-.497-.157-.706.157-.21.314-.812 1.022-.995 1.23-.183.21-.366.236-.68.079-.314-.157-1.324-.488-2.52-1.554-.93-.828-1.557-1.85-1.74-2.164-.183-.314-.02-.484.137-.64.14-.14.314-.366.47-.55.157-.183.21-.314.314-.523.105-.21.052-.392-.026-.55-.079-.157-.706-1.702-.968-2.33-.255-.612-.516-.53-.706-.54-.183-.01-.392-.01-.602-.01-.21 0-.55.079-.838.392-.288.314-1.1 1.074-1.1 2.618s1.126 3.036 1.283 3.245c.157.21 2.213 3.376 5.36 4.656 2.16.877 2.943.957 3.993.81 1.18-.166 3.322-1.357 3.793-2.67.47-1.313.47-2.438.33-2.67-.14-.233-.513-.37-.827-.525z"/></svg>
                     Send Screenshot on WhatsApp
