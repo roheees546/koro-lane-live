@@ -27,7 +27,6 @@ export default function Home() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   
   const [checkoutStep, setCheckoutStep] = useState(1); 
-  const [currentImageIdx, setCurrentImageIdx] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   
   // 📝 Form Data
@@ -154,7 +153,6 @@ export default function Home() {
 
   const handleCardClick = (product: any) => {
     setSelectedProduct(product);
-    setCurrentImageIdx(0); 
     setIsDetailsOpen(true);
   };
 
@@ -310,67 +308,78 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 🚀 NEW: PREMIUM ABOUT US & SUPPORT FOOTER */}
+      {/* 🚀 NEW: 3-BLOCK PREMIUM FOOTER */}
       <footer className="bg-[#050505] border-t border-gray-900 pt-20 pb-10 px-6 mt-10">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto space-y-8">
           
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-black uppercase tracking-tight text-white mb-2">About <span className="text-[#00e599]">Us</span></h2>
-            <div className="w-16 h-1 bg-[#00e599] mx-auto rounded-full"></div>
-          </div>
-
-          <div className="prose prose-invert prose-p:text-sm prose-p:text-gray-400 prose-p:leading-relaxed mx-auto mb-16">
-            <p><strong>KoRoLane started with a simple conversation.</strong></p>
-            <p>One evening, we were talking about fashion and future plans. My partner said, <em>"Rohit, I want to build our own clothing brand. We should buy clothes in bulk, create our own designs, and sell them."</em></p>
-            <p>That one conversation sparked our curiosity.</p>
-            <p>We started exploring Instagram to understand how people were selling fashion online. As we scrolled through hundreds of thrift pages and surplus clothing stores, we realized something surprising—there were thousands of independent sellers already doing an amazing job.</p>
-            <p><strong>But we also noticed a bigger problem.</strong></p>
-            <p>For sellers, reaching the right customers was difficult. Most depended entirely on Instagram, where managing orders, inventory, payments, and customer trust wasn't easy.</p>
-            <p>For customers, finding genuine thrift and surplus clothing was equally challenging. Every page had a different process, product details were often incomplete, and there was no single place to discover trusted sellers.</p>
-            <p><strong>That's when our idea changed.</strong></p>
-            <p>Instead of creating just another clothing brand, we decided to build something that could help everyone.</p>
-            <p>KoRoLane was born as a marketplace where thrift and surplus fashion sellers can grow their business, and buyers can discover unique, affordable pieces from trusted stores—all in one place.</p>
-            <p>We believe great clothes deserve a second chance, and passionate sellers deserve a platform that works for them.</p>
-            <p><strong>This is just the beginning.</strong></p>
-            <p>We're building KoRoLane one step at a time with a simple mission:<br/>
-            <span className="text-[#00e599] font-bold">To make thrift and surplus fashion easier to buy, easier to sell, and accessible to everyone.</span></p>
-          </div>
-
-          {/* CONTACT SUPPORT BOX */}
-          <div className="bg-[#0a0a0c] border border-gray-800 rounded-2xl p-8 text-center max-w-2xl mx-auto shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-[#00e599] opacity-50"></div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-white mb-6">Need Support or Want to Join?</h3>
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
-              
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#003320] flex items-center justify-center text-[#00e599]">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                </div>
-                <div className="text-left">
-                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Email Us</p>
-                  <a href="mailto:rohees546@gmail.com" className="text-sm font-medium text-gray-300 hover:text-[#00e599] transition">rohees546@gmail.com</a>
-                </div>
-              </div>
-
-              <div className="hidden sm:block w-px h-10 bg-gray-800"></div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#003320] flex items-center justify-center text-[#00e599]">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                </div>
-                <div className="text-left">
-                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Call / WhatsApp</p>
-                  <a href="tel:9027434335" className="text-sm font-medium text-gray-300 hover:text-[#00e599] transition">+91 90274 34335</a>
-                </div>
-              </div>
-
+          {/* BLOCK 1: THE JOURNEY (Full Width) */}
+          <div className="bg-[#0a0a0c] border border-gray-800 rounded-2xl p-8 relative overflow-hidden shadow-2xl">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-800 via-gray-600 to-gray-800"></div>
+            <h2 className="text-xl font-black uppercase tracking-tight text-white mb-6 flex items-center gap-2">
+               <span className="text-gray-500">📖</span> The Journey
+            </h2>
+            <div className="space-y-4 text-xs text-gray-400 leading-relaxed">
+              <p><strong>KoRoLane started with a simple conversation.</strong></p>
+              <p>One evening, we were talking about fashion and future plans. My partner said, <em>"Rohit, I want to build our own clothing brand. We should buy clothes in bulk, create our own designs, and sell them."</em> That one conversation sparked our curiosity.</p>
+              <p>We started exploring Instagram to understand how people were selling fashion online. As we scrolled through hundreds of thrift pages and surplus clothing stores, we realized something surprising—there were thousands of independent sellers already doing an amazing job.</p>
+              <p><strong>But we also noticed a bigger problem.</strong></p>
+              <p>For sellers, reaching the right customers was difficult. Most depended entirely on Instagram, where managing orders, inventory, payments, and customer trust wasn't easy. For customers, finding genuine thrift and surplus clothing was equally challenging. Every page had a different process, product details were often incomplete, and there was no single place to discover trusted sellers.</p>
+              <p><strong>That's when our idea changed.</strong></p>
+              <p>Instead of creating just another clothing brand, we decided to build something that could help everyone. We believe great clothes deserve a second chance, and passionate sellers deserve a platform that works for them.</p>
             </div>
           </div>
-          
-          <div className="text-center mt-10">
-            <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">© 2024 Koro Lane. All Rights Reserved.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            {/* BLOCK 2: ABOUT US (Left) */}
+            <div className="bg-[#0a0a0c] border border-gray-800 rounded-2xl p-8 relative overflow-hidden shadow-2xl flex flex-col justify-center">
+               <div className="absolute top-0 left-0 w-full h-1 bg-[#00e599] opacity-30"></div>
+               <h2 className="text-xl font-black uppercase tracking-tight text-white mb-4 flex items-center gap-2">
+                 <span className="w-2 h-2 rounded-full bg-[#00e599] animate-pulse"></span> About Us
+               </h2>
+               <p className="text-xs text-gray-400 leading-relaxed mb-4">
+                 KoRoLane is an underground marketplace where thrift and surplus fashion sellers can grow their business, and buyers can discover unique, affordable 1-of-1 pieces from trusted stores—all in one place.
+               </p>
+               <p className="text-[10px] text-[#00e599] font-bold uppercase tracking-widest leading-relaxed">
+                 Mission: To make thrift and surplus fashion easier to buy, easier to sell, and accessible to everyone.
+               </p>
+            </div>
+
+            {/* BLOCK 3: CONTACT SUPPORT (Right) */}
+            <div className="bg-[#0a0a0c] border border-gray-800 rounded-2xl p-8 relative overflow-hidden shadow-2xl flex flex-col justify-center">
+              <div className="absolute top-0 left-0 w-full h-1 bg-[#00e599] opacity-80"></div>
+              <h3 className="text-xl font-black uppercase tracking-tight text-white mb-6 flex items-center gap-2">
+                <span className="text-[#00e599]">🎧</span> Support
+              </h3>
+              
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#003320] flex items-center justify-center text-[#00e599] shrink-0">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Email Us</p>
+                    <a href="mailto:rohees546@gmail.com" className="text-sm font-medium text-gray-300 hover:text-[#00e599] transition break-all">rohees546@gmail.com</a>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#003320] flex items-center justify-center text-[#00e599] shrink-0">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Call / WhatsApp</p>
+                    <a href="tel:9027434335" className="text-sm font-medium text-gray-300 hover:text-[#00e599] transition">+91 90274 34335</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
+          <div className="text-center mt-10 pt-8 border-t border-gray-900">
+            <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">© 2026 Koro Lane. All Rights Reserved.</p>
+          </div>
         </div>
       </footer>
 
@@ -412,23 +421,33 @@ export default function Home() {
         </div>
       )}
 
-      {/* --- PRODUCT DETAILS MODAL --- */}
+      {/* --- 🔥 UPGRADED PRODUCT DETAILS MODAL (SWIPEABLE) --- */}
       {isDetailsOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setIsDetailsOpen(false)}>
           <div className="bg-[#0f0f11] border border-gray-800 rounded-2xl w-full max-w-lg overflow-hidden relative flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setIsDetailsOpen(false)} className="absolute top-4 right-4 z-20 bg-black/50 p-2 rounded-full text-gray-300 hover:text-white"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-            <div className="w-full aspect-square bg-[#050505] relative">
-              <img src={selectedProduct.image_urls?.[currentImageIdx] || selectedProduct.image_url} className="w-full h-full object-contain" alt="Product View" />
+            
+            {/* Native Scroll-Snap Gallery Container */}
+            <div className="w-full aspect-square bg-[#050505] relative flex overflow-x-auto snap-x snap-mandatory hide-scrollbar scroll-smooth">
+              {selectedProduct.image_urls && selectedProduct.image_urls.length > 0 ? (
+                selectedProduct.image_urls.map((img: string, idx: number) => (
+                  <div key={idx} className="w-full h-full flex-shrink-0 snap-center relative">
+                    <img src={img} className="w-full h-full object-contain" alt={`Product View ${idx}`} />
+                    {/* Floating Counter Badge */}
+                    {selectedProduct.image_urls.length > 1 && (
+                      <div className="absolute top-4 left-4 bg-black/80 border border-gray-800 text-white text-[9px] font-black tracking-widest px-2.5 py-1 rounded-md backdrop-blur-md uppercase">
+                        {idx + 1} / {selectedProduct.image_urls.length}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="w-full h-full flex-shrink-0 snap-center relative">
+                   <img src={selectedProduct.image_url} className="w-full h-full object-contain" alt="Product View" />
+                </div>
+              )}
             </div>
-            {(selectedProduct.image_urls && selectedProduct.image_urls.length > 1) && (
-              <div className="flex gap-2 p-3 bg-[#151518] overflow-x-auto hide-scrollbar border-b border-gray-900">
-                {selectedProduct.image_urls.map((img: string, idx: number) => (
-                  <button key={idx} onClick={() => setCurrentImageIdx(idx)} className={`shrink-0 w-16 h-20 rounded-md overflow-hidden border-2 transition ${currentImageIdx === idx ? 'border-[#00e599]' : 'border-transparent opacity-50 hover:opacity-100'}`}>
-                    <img src={img} className="w-full h-full object-cover" alt={`Thumb ${idx}`} />
-                  </button>
-                ))}
-              </div>
-            )}
+
             <div className="p-6 overflow-y-auto">
               <Link href={`/store/${selectedProduct.dealer_id}`} className="text-[10px] text-[#00e599] uppercase font-bold tracking-widest mb-2 flex items-center gap-1 hover:underline w-max">
                 SELLER: {selectedProduct.profiles?.store_name || "VERIFIED DEALER"} <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
