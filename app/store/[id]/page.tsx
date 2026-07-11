@@ -36,8 +36,10 @@ export default function MiniStorePage() {
       </div>
 
       <div className="p-6 flex-grow max-w-6xl mx-auto w-full pt-20">
+        
         {/* 🏪 DEALER IDENTITY HEADER */}
         <header className="mb-14 flex flex-col items-center text-center">
+          
           {/* Store Logo/Avatar */}
           <div className="w-20 h-20 bg-[#003320] border-2 border-[#00e599] rounded-full flex items-center justify-center overflow-hidden shadow-[0_0_25px_rgba(0,229,153,0.15)] mb-4">
             {storeProfile?.logo_url ? (
@@ -48,9 +50,39 @@ export default function MiniStorePage() {
           </div>
           
           <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight">{storeProfile?.store_name || "Loading Store..."}</h1>
-          <div className="mt-3 inline-flex items-center gap-2 bg-[#003320]/40 border border-[#00e599]/30 px-3 py-1 rounded-full shadow-[0_0_10px_rgba(0,229,153,0.1)]">
-            <span className="w-1.5 h-1.5 bg-[#00e599] rounded-full animate-pulse"></span>
-            <p className="text-[#00e599] font-bold uppercase tracking-widest text-[9px]">Verified Dealer</p>
+          
+          <div className="mt-5 flex flex-col items-center gap-3">
+            {/* Verified Badge */}
+            <div className="inline-flex items-center gap-2 bg-[#003320]/40 border border-[#00e599]/30 px-3 py-1 rounded-full shadow-[0_0_10px_rgba(0,229,153,0.1)]">
+              <span className="w-1.5 h-1.5 bg-[#00e599] rounded-full animate-pulse"></span>
+              <p className="text-[#00e599] font-bold uppercase tracking-widest text-[9px]">Verified Dealer</p>
+            </div>
+
+            {/* 📍 ADDRESS & 📸 INSTAGRAM ROW */}
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-1">
+              
+              {/* Address Pill */}
+              {storeProfile?.store_address && (
+                <div className="flex items-center gap-1.5 text-gray-400 text-[10px] uppercase font-bold tracking-widest bg-[#0a0a0c] px-3 py-1.5 rounded-lg border border-gray-800">
+                  <span className="text-red-500 text-sm">📍</span>
+                  <span className="truncate max-w-[200px]">{storeProfile.store_address}</span>
+                </div>
+              )}
+              
+              {/* Instagram Pill (Clickable) - FIXED NAME to storeProfile.instagram */}
+              {storeProfile?.instagram && (
+                <a 
+                  href={`https://instagram.com/${storeProfile.instagram.replace('@', '')}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center gap-1.5 text-gray-400 hover:text-pink-500 transition text-[10px] uppercase font-bold tracking-widest bg-[#0a0a0c] px-3 py-1.5 rounded-lg border border-gray-800 hover:border-pink-500/50 shadow-sm"
+                >
+                  <span className="text-pink-500 text-sm">📸</span>
+                  @{storeProfile.instagram.replace('@', '')}
+                </a>
+              )}
+              
+            </div>
           </div>
         </header>
 
