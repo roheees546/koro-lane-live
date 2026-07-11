@@ -5,6 +5,12 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
 export default function AdminDashboard() {
+  // 🔐 Security Gate State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [authError, setAuthError] = useState(false);
+  const ADMIN_PASSCODE = "Mcmafia9219"; // The secret key
+
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -19,9 +25,23 @@ export default function AdminDashboard() {
     pendingPickups: 0
   });
 
+  // Only fetch data if authenticated
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    if (isAuthenticated) {
+      fetchOrders();
+    }
+  }, [isAuthenticated]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === ADMIN_PASSCODE) {
+      setIsAuthenticated(true);
+      setAuthError(false);
+    } else {
+      setAuthError(true);
+      setPasswordInput("");
+    }
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -103,17 +123,63 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-[#00e599] text-xs font-bold uppercase tracking-widest">Entering God Mode...</div>;
+  // ----------------------------------------------------
+  // 🛡️ THE SECURITY LOCK SCREEN
+  // ----------------------------------------------------
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 selection:bg-[#00e599] selection:text-black">
+        <div className="bg-[#0a0a0c] border border-gray-900 p-8 rounded-2xl w-full max-w-sm text-center shadow-2xl relative overflow-hidden">
+          {/* Subtle neon glow on top */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-red-600 opacity-80"></div>
+          
+          <h1 className="text-xl font-black tracking-tighter text-white mb-2 flex items-center justify-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+            RESTRICTED <span className="text-red-500">AREA</span>
+          </h1>
+          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-8">Koro Lane Administrative Access Only</p>
+          
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <input 
+                type="password" 
+                autoFocus
+                required
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="ENTER SECURE PIN" 
+                className={`w-full bg-[#121214] border ${authError ? 'border-red-500' : 'border-gray-800'} rounded-xl text-center text-white px-4 py-3 text-sm outline-none focus:border-red-500 tracking-[0.2em] font-mono transition`}
+              />
+              {authError && <p className="text-red-500 text-[9px] font-bold uppercase tracking-widest mt-2 animate-bounce">Access Denied</p>}
+            </div>
+            
+            <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-xl uppercase tracking-widest text-[10px] transition shadow-[0_0_15px_rgba(220,38,38,0.3)]">
+              Unlock God Mode
+            </button>
+          </form>
+          
+          <Link href="/" className="inline-block mt-6 text-[9px] text-gray-600 font-bold uppercase tracking-widest hover:text-white transition">
+            Return to Marketplace
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // 🌟 THE ACTUAL GOD MODE (Only visible if authenticated)
+  // ----------------------------------------------------
+  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-[#00e599] text-xs font-bold uppercase tracking-widest">Loading Network Data...</div>;
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans pb-20">
+    <div className="min-h-screen bg-black text-white font-sans pb-20 selection:bg-[#00e599] selection:text-black">
       
       <nav className="flex justify-between items-center px-6 py-4 border-b border-gray-900 bg-[#0a0a0c] sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
           <h1 className="text-xl font-black tracking-tighter text-white">KORO LANE <span className="text-[#00e599]">ADMIN</span></h1>
         </div>
-        <Link href="/" className="text-gray-500 text-xs font-bold uppercase hover:text-white transition">Exit God Mode</Link>
+        <button onClick={() => setIsAuthenticated(false)} className="text-gray-500 text-[10px] font-bold uppercase hover:text-red-500 transition">Lock Session</button>
       </nav>
 
       <main className="px-6 py-8 max-w-7xl mx-auto">
@@ -201,7 +267,7 @@ export default function AdminDashboard() {
                         <span className="text-[10px] text-gray-600 font-bold uppercase tracking-widest text-center w-full py-1.5">-</span>
                       )}
                       
-                      {/* 🔥 NEW: VIEW DETAILS BUTTON */}
+                      {/* 🔥 VIEW DETAILS BUTTON */}
                       <button onClick={() => setSelectedOrder(order)} className="bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition w-full border border-gray-700">
                         Full Details 📋
                       </button>
