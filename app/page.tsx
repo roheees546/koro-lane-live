@@ -26,6 +26,10 @@ export default function Home() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   
+  // 🔥 NEW STATES FOR UI ENHANCEMENTS
+  const [isStoryExpanded, setIsStoryExpanded] = useState(false); // Journey Read More Toggle
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null); // Full Screen Image Viewer
+  
   const [checkoutStep, setCheckoutStep] = useState(1); 
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -308,24 +312,37 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 🚀 NEW: 3-BLOCK PREMIUM FOOTER */}
+      {/* 🚀 3-BLOCK PREMIUM FOOTER */}
       <footer className="bg-[#050505] border-t border-gray-900 pt-20 pb-10 px-6 mt-10">
         <div className="max-w-5xl mx-auto space-y-8">
           
-          {/* BLOCK 1: THE JOURNEY (Full Width) */}
+          {/* BLOCK 1: THE JOURNEY (Read More Toggle) */}
           <div className="bg-[#0a0a0c] border border-gray-800 rounded-2xl p-8 relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-800 via-gray-600 to-gray-800"></div>
             <h2 className="text-xl font-black uppercase tracking-tight text-white mb-6 flex items-center gap-2">
                <span className="text-gray-500">📖</span> The Journey
             </h2>
-            <div className="space-y-4 text-xs text-gray-400 leading-relaxed">
+            <div className="space-y-4 text-xs text-gray-400 leading-relaxed transition-all duration-500">
               <p><strong>KoRoLane started with a simple conversation.</strong></p>
               <p>One evening, we were talking about fashion and future plans. My partner said, <em>"Rohit, I want to build our own clothing brand. We should buy clothes in bulk, create our own designs, and sell them."</em> That one conversation sparked our curiosity.</p>
-              <p>We started exploring Instagram to understand how people were selling fashion online. As we scrolled through hundreds of thrift pages and surplus clothing stores, we realized something surprising—there were thousands of independent sellers already doing an amazing job.</p>
-              <p><strong>But we also noticed a bigger problem.</strong></p>
-              <p>For sellers, reaching the right customers was difficult. Most depended entirely on Instagram, where managing orders, inventory, payments, and customer trust wasn't easy. For customers, finding genuine thrift and surplus clothing was equally challenging. Every page had a different process, product details were often incomplete, and there was no single place to discover trusted sellers.</p>
-              <p><strong>That's when our idea changed.</strong></p>
-              <p>Instead of creating just another clothing brand, we decided to build something that could help everyone. We believe great clothes deserve a second chance, and passionate sellers deserve a platform that works for them.</p>
+              
+              {isStoryExpanded ? (
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <p>We started exploring Instagram to understand how people were selling fashion online. As we scrolled through hundreds of thrift pages and surplus clothing stores, we realized something surprising—there were thousands of independent sellers already doing an amazing job.</p>
+                  <p><strong>But we also noticed a bigger problem.</strong></p>
+                  <p>For sellers, reaching the right customers was difficult. Most depended entirely on Instagram, where managing orders, inventory, payments, and customer trust wasn't easy. For customers, finding genuine thrift and surplus clothing was equally challenging. Every page had a different process, product details were often incomplete, and there was no single place to discover trusted sellers.</p>
+                  <p><strong>That's when our idea changed.</strong></p>
+                  <p>Instead of creating just another clothing brand, we decided to build something that could help everyone. We believe great clothes deserve a second chance, and passionate sellers deserve a platform that works for them.</p>
+                  
+                  <button onClick={() => setIsStoryExpanded(false)} className="mt-4 inline-flex items-center gap-2 text-gray-400 text-[10px] font-black uppercase tracking-widest border border-gray-800 px-4 py-2 rounded-lg hover:text-white transition">
+                    Show Less <svg className="w-3 h-3 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setIsStoryExpanded(true)} className="mt-2 inline-flex items-center gap-2 text-[#00e599] text-[10px] font-black uppercase tracking-widest border border-[#00e599]/30 px-4 py-2 rounded-lg hover:bg-[#00e599]/10 transition shadow-[0_0_15px_rgba(0,229,153,0.1)]">
+                  Read Full Story <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+              )}
             </div>
           </div>
 
@@ -355,7 +372,7 @@ export default function Home() {
               <div className="flex flex-col gap-5">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-[#003320] flex items-center justify-center text-[#00e599] shrink-0">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 00-2-2H5a2 2 0 00-2-2v10a2 2 0 002 2z"></path></svg>
                   </div>
                   <div>
                     <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Email Us</p>
@@ -421,29 +438,42 @@ export default function Home() {
         </div>
       )}
 
-      {/* --- 🔥 UPGRADED PRODUCT DETAILS MODAL (SWIPEABLE) --- */}
+      {/* --- 🔥 UPGRADED PRODUCT DETAILS MODAL (LARGER & SWIPEABLE) --- */}
       {isDetailsOpen && selectedProduct && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setIsDetailsOpen(false)}>
-          <div className="bg-[#0f0f11] border border-gray-800 rounded-2xl w-full max-w-lg overflow-hidden relative flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setIsDetailsOpen(false)} className="absolute top-4 right-4 z-20 bg-black/50 p-2 rounded-full text-gray-300 hover:text-white"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6" onClick={() => setIsDetailsOpen(false)}>
+          <div className="bg-[#0f0f11] border border-gray-800 rounded-2xl w-full max-w-xl overflow-hidden relative flex flex-col max-h-[90vh] sm:max-h-[95vh] shadow-[0_0_50px_rgba(0,0,0,0.8)]" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setIsDetailsOpen(false)} className="absolute top-4 right-4 z-20 bg-black/60 p-2.5 rounded-full text-gray-300 hover:text-white backdrop-blur-sm border border-gray-700/50 transition"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             
-            {/* Native Scroll-Snap Gallery Container */}
-            <div className="w-full aspect-square bg-[#050505] relative flex overflow-x-auto snap-x snap-mandatory hide-scrollbar scroll-smooth">
+            {/* Native Scroll-Snap Gallery Container - MADE TALLER & LARGER */}
+            <div className="w-full h-[55vh] sm:h-[60vh] max-h-[600px] bg-[#050505] relative flex overflow-x-auto snap-x snap-mandatory hide-scrollbar scroll-smooth">
               {selectedProduct.image_urls && selectedProduct.image_urls.length > 0 ? (
                 selectedProduct.image_urls.map((img: string, idx: number) => (
-                  <div key={idx} className="w-full h-full flex-shrink-0 snap-center relative">
+                  <div key={idx} className="w-full h-full flex-shrink-0 snap-center relative cursor-zoom-in group" onClick={() => setFullScreenImage(img)}>
                     <img src={img} className="w-full h-full object-contain" alt={`Product View ${idx}`} />
+                    
+                    {/* Expand Icon Hint */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center pointer-events-none">
+                      <div className="bg-black/50 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition backdrop-blur-md">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                      </div>
+                    </div>
+
                     {/* Floating Counter Badge */}
                     {selectedProduct.image_urls.length > 1 && (
-                      <div className="absolute top-4 left-4 bg-black/80 border border-gray-800 text-white text-[9px] font-black tracking-widest px-2.5 py-1 rounded-md backdrop-blur-md uppercase">
+                      <div className="absolute top-5 left-5 bg-black/80 border border-gray-800 text-white text-[10px] font-black tracking-widest px-3 py-1.5 rounded-md backdrop-blur-md uppercase shadow-lg">
                         {idx + 1} / {selectedProduct.image_urls.length}
                       </div>
                     )}
                   </div>
                 ))
               ) : (
-                <div className="w-full h-full flex-shrink-0 snap-center relative">
+                <div className="w-full h-full flex-shrink-0 snap-center relative cursor-zoom-in group" onClick={() => setFullScreenImage(selectedProduct.image_url)}>
                    <img src={selectedProduct.image_url} className="w-full h-full object-contain" alt="Product View" />
+                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center pointer-events-none">
+                      <div className="bg-black/50 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition backdrop-blur-md">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                      </div>
+                    </div>
                 </div>
               )}
             </div>
@@ -452,8 +482,8 @@ export default function Home() {
               <Link href={`/store/${selectedProduct.dealer_id}`} className="text-[10px] text-[#00e599] uppercase font-bold tracking-widest mb-2 flex items-center gap-1 hover:underline w-max">
                 SELLER: {selectedProduct.profiles?.store_name || "VERIFIED DEALER"} <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
               </Link>
-              <h2 className="text-xl font-black uppercase mb-1">{selectedProduct.title}</h2>
-              <p className="text-2xl font-black text-[#00e599] mb-4">₹{selectedProduct.price.toLocaleString('en-IN')}</p>
+              <h2 className="text-xl sm:text-2xl font-black uppercase mb-1">{selectedProduct.title}</h2>
+              <p className="text-2xl sm:text-3xl font-black text-[#00e599] mb-4">₹{selectedProduct.price.toLocaleString('en-IN')}</p>
               
               <div className="mb-5">
                 <h3 className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-2">Description</h3>
@@ -466,9 +496,19 @@ export default function Home() {
                 <div className="flex items-center gap-2"><span className="bg-yellow-500/10 text-yellow-500 p-1.5 rounded-lg"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span><div><p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">No C.O.D</p><p className="text-[8px] text-gray-500 uppercase mt-0.5">Prepaid Only</p></div></div>
               </div>
               
-              <button onClick={(e) => handleBuyNowClick(e, selectedProduct)} className="w-full bg-[#00e599] text-black font-black py-4 rounded-xl uppercase tracking-widest text-sm hover:bg-[#00c580] transition shadow-[0_0_20px_rgba(0,229,153,0.3)]">PROCEED TO SECURE CHECKOUT 💳</button>
+              <button onClick={(e) => handleBuyNowClick(e, selectedProduct)} className="w-full bg-[#00e599] text-black font-black py-4 rounded-xl uppercase tracking-widest text-sm sm:text-base hover:bg-[#00c580] transition shadow-[0_0_20px_rgba(0,229,153,0.3)]">PROCEED TO SECURE CHECKOUT 💳</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* --- 📸 FULL SCREEN IMAGE VIEWER --- */}
+      {fullScreenImage && (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex items-center justify-center p-2 sm:p-8 animate-in fade-in duration-200" onClick={() => setFullScreenImage(null)}>
+          <button className="absolute top-6 right-6 z-[110] bg-white/10 hover:bg-white/20 border border-white/20 p-3 rounded-full text-white transition backdrop-blur-md" onClick={() => setFullScreenImage(null)}>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+          <img src={fullScreenImage} className="w-full h-full object-contain cursor-zoom-out" alt="Full Screen Zoom" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
 
