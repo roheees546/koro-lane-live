@@ -12,7 +12,7 @@ export default function ProfilePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [storeName, setStoreName] = useState("");
-  const [bio, setBio] = useState(""); // 🔥 NEW: Bio State
+  const [bio, setBio] = useState(""); 
   const [phone, setPhone] = useState("");
   const [upiId, setUpiId] = useState("");
   const [address, setAddress] = useState("");
@@ -22,16 +22,13 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  
-  // Image Upload State
-  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // 🔗 Naya State: Link Copier ke liye
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
 
   useEffect(() => {
-    setOrigin(window.location.origin); // Set base URL dynamically
+    setOrigin(window.location.origin); 
     fetchProfileData();
   }, []);
 
@@ -53,47 +50,14 @@ export default function ProfilePage() {
 
     if (profile) {
       setStoreName(profile.store_name || "");
-      setBio(profile.bio || ""); // 🔥 NEW: Fetch Bio
+      setBio(profile.bio || ""); 
       setPhone(profile.phone || "");
       setUpiId(profile.upi_id || "");
       setAddress(profile.store_address || profile.address || ""); 
-      setLogoUrl(profile.logo_url || profile.store_logo || ""); // Handled both column names just in case
+      setLogoUrl(profile.logo_url || profile.store_logo || ""); 
       setInstagram(profile.instagram || "");
     }
     setLoading(false);
-  };
-
-  // 🔥 THE MAGIC: Image Upload from Gallery
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploadingLogo(true);
-      if (!e.target.files || e.target.files.length === 0) {
-        throw new Error("You must select an image to upload.");
-      }
-
-      const file = e.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}-${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      // Uploading to Supabase 'store_logos' bucket
-      const { error: uploadError } = await supabase.storage
-        .from('store_logos')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Getting Public URL
-      const { data } = supabase.storage.from('store_logos').getPublicUrl(filePath);
-      
-      setLogoUrl(data.publicUrl);
-      alert("Logo uploaded successfully! ✅");
-
-    } catch (error: any) {
-      alert("Error uploading image: " + error.message);
-    } finally {
-      setUploadingLogo(false);
-    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -104,13 +68,11 @@ export default function ProfilePage() {
       .from("profiles")
       .update({
         store_name: storeName,
-        bio: bio, // 🔥 NEW: Save Bio
+        bio: bio, 
         phone: phone,
         upi_id: upiId,
         store_address: address, 
         address: address,       
-        logo_url: logoUrl,
-        store_logo: logoUrl, // Keeping both synced
         instagram: instagram
       })
       .eq("id", userId);
@@ -136,7 +98,7 @@ export default function ProfilePage() {
   // 🚀 FIXED: Logout redirecting to Homepage
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push("/"); // Direct throw to main feed
+    router.push("/"); 
   };
 
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-[#00e599] font-bold tracking-widest text-xs uppercase">Loading Profile...</div>;
@@ -146,7 +108,7 @@ export default function ProfilePage() {
       
       <h1 className="text-2xl font-black text-[#00e599] mb-6 tracking-tight">Profile & Brand</h1>
 
-   {/* 🟢 TOP CARD: STORE IDENTITY (NOW CLICKABLE FOR PREVIEW) */}
+      {/* 🟢 TOP CARD: STORE IDENTITY (NOW CLICKABLE FOR PREVIEW) */}
       <Link href={userId ? `/store/${userId}` : "#"} className="bg-[#0a0a0c] border border-gray-900 rounded-2xl p-4 flex items-center gap-4 mb-6 hover:border-[#00e599]/50 transition group cursor-pointer relative overflow-hidden block">
         
         {/* Chota sa 'Preview Store' text jo hover karne pe dikhega */}
@@ -211,39 +173,12 @@ export default function ProfilePage() {
             /* --- EDIT MODE FORM --- */
             <form onSubmit={handleSave} className="space-y-4">
               
-              {/* 📸 NEW: UPLOAD LOGO BUTTON */}
-              <div>
-                <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5">Store Logo</label>
-                <div className="flex items-center gap-4">
-                  {logoUrl && (
-                    <img src={logoUrl} alt="Preview" className="w-12 h-12 rounded-full border border-gray-800 object-cover shrink-0" />
-                  )}
-                  <label className="cursor-pointer bg-[#121214] hover:bg-gray-800 border border-gray-800 rounded-lg text-white px-4 py-2.5 text-xs font-bold transition flex items-center gap-2">
-                    {uploadingLogo ? (
-                      <span className="animate-pulse">Uploading...</span>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        Choose From Gallery
-                      </>
-                    )}
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleLogoUpload} 
-                      disabled={uploadingLogo}
-                      className="hidden" 
-                    />
-                  </label>
-                </div>
-              </div>
-
               <div>
                 <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5">Store / Brand Name *</label>
                 <input type="text" required value={storeName} onChange={(e) => setStoreName(e.target.value)} className="w-full bg-[#121214] border border-gray-800 rounded-lg text-white px-3 py-2 text-sm outline-none focus:border-[#00e599]" placeholder="e.g. Rare Kicks India" />
               </div>
 
-              {/* 🔥 NEW: BIO FIELD */}
+              {/* 🔥 BIO FIELD */}
               <div>
                 <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5">Store Bio / Description</label>
                 <textarea rows={3} value={bio} onChange={(e) => setBio(e.target.value)} className="w-full bg-[#121214] border border-gray-800 rounded-lg text-white px-3 py-2 text-sm outline-none focus:border-[#00e599] resize-none" placeholder="Tell buyers about your collection..."></textarea>
@@ -275,7 +210,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="pt-2">
-                <button type="submit" disabled={saving || uploadingLogo} className="w-full bg-[#00e599] text-black font-black py-3 rounded-lg uppercase tracking-widest text-[10px] hover:bg-[#00c580] transition shadow-[0_0_15px_rgba(0,229,153,0.2)] disabled:opacity-70">
+                <button type="submit" disabled={saving} className="w-full bg-[#00e599] text-black font-black py-3 rounded-lg uppercase tracking-widest text-[10px] hover:bg-[#00c580] transition shadow-[0_0_15px_rgba(0,229,153,0.2)] disabled:opacity-70">
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
@@ -284,7 +219,7 @@ export default function ProfilePage() {
             /* --- VIEW MODE --- */
             <div className="space-y-5">
               
-              {/* 🔥 NEW: BIO DISPLAY */}
+              {/* 🔥 BIO DISPLAY */}
               <div className="flex items-start gap-3">
                 <svg className="w-4 h-4 text-gray-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <div>
