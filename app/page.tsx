@@ -27,8 +27,8 @@ export default function Home() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   
   // 🔥 NEW STATES FOR UI ENHANCEMENTS
-  const [isStoryExpanded, setIsStoryExpanded] = useState(false); // Journey Read More Toggle
-  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null); // Full Screen Image Viewer
+  const [isStoryExpanded, setIsStoryExpanded] = useState(false); 
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null); 
   
   const [checkoutStep, setCheckoutStep] = useState(1); 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -193,7 +193,7 @@ export default function Home() {
           price: selectedProduct.price,
           status: 'pending',
           payment_status: 'Pending WhatsApp Confirmation',
-          size: '1-of-1',
+          size: selectedProduct.size || '1-of-1',
           qty: 1
         }]);
       if (orderError) throw orderError;
@@ -294,7 +294,7 @@ export default function Home() {
                     BY {product.profiles?.store_name || "VERIFIED DEALER"} <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                   </Link>
                   <h4 className="text-[11px] font-bold uppercase line-clamp-2 text-gray-200">{product.title}</h4>
-                  <p className="text-[9px] text-gray-500 mt-1 italic">1-of-1 Condition</p>
+                  <p className="text-[9px] text-gray-500 mt-1 italic">{product.size || '1-of-1'}</p>
                 </div>
                 <div className="flex justify-between items-center mt-4">
                   <span className="text-sm font-black text-white">₹{product.price.toLocaleString('en-IN')}</span>
@@ -429,25 +429,29 @@ export default function Home() {
         </div>
       )}
 
-      {/* --- 🔥 UPGRADED PRODUCT DETAILS MODAL (LARGER & SWIPEABLE) --- */}
+      {/* --- 🔥 UPGRADED PRODUCT DETAILS MODAL --- */}
       {isDetailsOpen && selectedProduct && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6" onClick={() => setIsDetailsOpen(false)}>
-          <div className="bg-[#0f0f11] border border-gray-800 rounded-2xl w-full max-w-xl overflow-hidden relative flex flex-col max-h-[90vh] sm:max-h-[95vh] shadow-[0_0_50px_rgba(0,0,0,0.8)]" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setIsDetailsOpen(false)} className="absolute top-4 right-4 z-20 bg-black/60 p-2.5 rounded-full text-gray-300 hover:text-white backdrop-blur-sm border border-gray-700/50 transition"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-6" onClick={() => setIsDetailsOpen(false)}>
+          
+          {/* Main Modal Container - Added overflow-y-auto here so the whole screen scrolls! */}
+          <div className="bg-[#0f0f11] sm:border border-gray-800 sm:rounded-2xl rounded-t-2xl w-full max-w-xl overflow-y-auto relative flex flex-col max-h-[90vh] sm:max-h-[95vh] shadow-[0_0_50px_rgba(0,0,0,0.8)] custom-scrollbar" onClick={(e) => e.stopPropagation()}>
             
-            {/* Native Scroll-Snap Gallery Container */}
-            <div className="w-full h-[55vh] sm:h-[60vh] max-h-[600px] bg-[#050505] relative flex overflow-x-auto snap-x snap-mandatory hide-scrollbar scroll-smooth">
+            {/* Close Button - Sticking to the top right of the screen on mobile, inside modal on desktop */}
+            <button onClick={() => setIsDetailsOpen(false)} className="absolute top-4 right-4 z-20 bg-black/60 p-2.5 rounded-full text-gray-300 hover:text-white backdrop-blur-sm border border-gray-700/50 transition fixed sm:absolute">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            
+            {/* Image Gallery Container - Made it flex-shrink-0 so it doesn't get crushed */}
+            <div className="w-full h-[60vh] min-h-[400px] max-h-[600px] bg-[#050505] relative flex overflow-x-auto snap-x snap-mandatory hide-scrollbar scroll-smooth flex-shrink-0">
               {selectedProduct.image_urls && selectedProduct.image_urls.length > 0 ? (
                 selectedProduct.image_urls.map((img: string, idx: number) => (
                   <div key={idx} className="w-full h-full flex-shrink-0 snap-center relative cursor-zoom-in group" onClick={() => setFullScreenImage(img)}>
                     <img src={img} className="w-full h-full object-contain" alt={`Product View ${idx}`} />
-                    
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center pointer-events-none">
                       <div className="bg-black/50 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition backdrop-blur-md">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
                       </div>
                     </div>
-
                     {selectedProduct.image_urls.length > 1 && (
                       <div className="absolute top-5 left-5 bg-black/80 border border-gray-800 text-white text-[10px] font-black tracking-widest px-3 py-1.5 rounded-md backdrop-blur-md uppercase shadow-lg">
                         {idx + 1} / {selectedProduct.image_urls.length}
@@ -467,12 +471,32 @@ export default function Home() {
               )}
             </div>
 
-            <div className="p-6 overflow-y-auto">
-              <Link href={`/store/${selectedProduct.dealer_id}`} className="text-[10px] text-[#00e599] uppercase font-bold tracking-widest mb-2 flex items-center gap-1 hover:underline w-max">
-                SELLER: {selectedProduct.profiles?.store_name || "VERIFIED DEALER"} <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-              </Link>
-              <h2 className="text-xl sm:text-2xl font-black uppercase mb-1">{selectedProduct.title}</h2>
-              <p className="text-2xl sm:text-3xl font-black text-[#00e599] mb-4">₹{selectedProduct.price.toLocaleString('en-IN')}</p>
+            {/* 🔥 DESCRIPTION SECTION */}
+            <div className="p-6 bg-[#0f0f11]">
+              
+              {/* Go to Store Banner */}
+              <div className="flex justify-between items-center mb-3">
+                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">
+                  SELLER: <strong className="text-white">{selectedProduct.profiles?.store_name || "VERIFIED DEALER"}</strong>
+                </p>
+                <Link href={`/store/${selectedProduct.dealer_id}`} onClick={(e) => e.stopPropagation()} className="bg-[#003320] text-[#00e599] border border-[#00e599]/30 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-[#00e599] hover:text-black transition shadow-[0_0_10px_rgba(0,229,153,0.1)] flex items-center gap-1">
+                  View Shop <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </Link>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black uppercase mb-3 text-white">{selectedProduct.title}</h2>
+              
+              {/* Size & Price Container */}
+              <div className="flex items-end gap-3 mb-6">
+                <div className="bg-[#1a1a1c] border border-gray-800 rounded-lg px-4 py-2 flex flex-col items-center justify-center min-w-[70px]">
+                  <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Size</span>
+                  <span className="text-lg font-black text-white">{selectedProduct.size || 'L'}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Price</span>
+                  <p className="text-3xl font-black text-[#00e599] leading-none">₹{selectedProduct.price.toLocaleString('en-IN')}</p>
+                </div>
+              </div>
               
               <div className="mb-5">
                 <h3 className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-2">Description</h3>
@@ -603,7 +627,7 @@ export default function Home() {
           </div>
         </div>
       )}
-      <style dangerouslySetInnerHTML={{__html: `.hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}} />
+      <style dangerouslySetInnerHTML={{__html: `.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; } .hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}} />
     </div>
   );
 }

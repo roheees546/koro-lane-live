@@ -40,18 +40,26 @@ export default function MiniStorePage() {
         {/* 🏪 DEALER IDENTITY HEADER */}
         <header className="mb-14 flex flex-col items-center text-center">
           
-          {/* Store Logo/Avatar */}
-          <div className="w-20 h-20 bg-[#003320] border-2 border-[#00e599] rounded-full flex items-center justify-center overflow-hidden shadow-[0_0_25px_rgba(0,229,153,0.15)] mb-4">
-            {storeProfile?.logo_url ? (
-              <img src={storeProfile.logo_url} alt="Store Logo" className="w-full h-full object-cover" />
+          {/* 🔥 STORE LOGO: Using custom logo if uploaded */}
+          <div className="w-24 h-24 sm:w-28 sm:h-28 bg-[#0a0a0c] border-4 border-[#00e599] rounded-full flex items-center justify-center overflow-hidden shadow-[0_0_30px_rgba(0,229,153,0.2)] mb-5">
+            {storeProfile?.store_logo ? (
+              <img src={storeProfile.store_logo} alt="Store Logo" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-3xl font-black text-[#00e599] uppercase">{storeProfile?.store_name ? storeProfile.store_name.charAt(0) : "S"}</span>
+              <span className="text-4xl font-black text-[#00e599] uppercase">{storeProfile?.store_name ? storeProfile.store_name.charAt(0) : "S"}</span>
             )}
           </div>
           
-          <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight">{storeProfile?.store_name || "Loading Store..."}</h1>
+          {/* 🔥 BOLD STORE NAME */}
+          <h1 className="text-4xl sm:text-6xl font-black uppercase tracking-tight text-white">{storeProfile?.store_name || "Loading Store..."}</h1>
           
-          <div className="mt-5 flex flex-col items-center gap-3">
+          {/* 🔥 STORE BIO */}
+          {storeProfile?.bio && (
+            <p className="text-xs sm:text-sm text-gray-400 font-medium tracking-wide max-w-xl leading-relaxed mt-4 px-4">
+              {storeProfile.bio}
+            </p>
+          )}
+          
+          <div className="mt-6 flex flex-col items-center gap-3">
             {/* Verified Badge */}
             <div className="inline-flex items-center gap-2 bg-[#003320]/40 border border-[#00e599]/30 px-3 py-1 rounded-full shadow-[0_0_10px_rgba(0,229,153,0.1)]">
               <span className="w-1.5 h-1.5 bg-[#00e599] rounded-full animate-pulse"></span>
@@ -69,7 +77,7 @@ export default function MiniStorePage() {
                 </div>
               )}
               
-              {/* Instagram Pill (Clickable) - FIXED NAME to storeProfile.instagram */}
+              {/* Instagram Pill (Clickable) */}
               {storeProfile?.instagram && (
                 <a 
                   href={`https://instagram.com/${storeProfile.instagram.replace('@', '')}`} 
@@ -89,7 +97,7 @@ export default function MiniStorePage() {
         {/* 👕 PRODUCT GRID (Premium Look) */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {storeProducts.length > 0 ? storeProducts.map((p) => (
-            <div key={p.id} className="bg-[#0a0a0c] border border-gray-900 rounded-xl overflow-hidden cursor-pointer hover:border-[#00e599]/50 transition group flex flex-col relative">
+            <Link href="/" key={p.id} className="bg-[#0a0a0c] border border-gray-900 rounded-xl overflow-hidden cursor-pointer hover:border-[#00e599]/50 transition group flex flex-col relative block">
               {p.is_sold && (
                  <div className="absolute inset-0 bg-black/70 z-10 flex items-center justify-center backdrop-blur-sm">
                    <span className="bg-red-600/20 text-red-500 text-[10px] font-black uppercase px-3 py-1 tracking-widest rotate-12 border border-red-500/50 rounded shadow-[0_0_15px_rgba(239,68,68,0.3)]">SOLD OUT</span>
@@ -101,15 +109,14 @@ export default function MiniStorePage() {
               <div className="p-3 flex flex-col flex-grow justify-between">
                 <div>
                   <h4 className="text-[11px] font-bold uppercase line-clamp-2 text-gray-200">{p.title}</h4>
-                  <p className="text-[9px] text-gray-500 mt-1 italic">1-of-1 Condition</p>
+                  <p className="text-[9px] text-gray-500 mt-1 italic">{p.size || '1-of-1'}</p>
                 </div>
                 <div className="mt-3 flex justify-between items-end">
                   <span className="text-sm font-black text-white">₹{p.price.toLocaleString('en-IN')}</span>
-                  {/* Dummy Buy Button for visual appeal */}
-                  <span className="text-[#00e599] text-[8px] font-black uppercase tracking-widest border border-[#00e599]/30 px-2 py-1 rounded">View</span>
+                  <span className="text-[#00e599] text-[8px] font-black uppercase tracking-widest border border-[#00e599]/30 px-2 py-1 rounded group-hover:bg-[#00e599] group-hover:text-black transition">Buy</span>
                 </div>
               </div>
-            </div>
+            </Link>
           )) : (
             <div className="col-span-full text-center py-10 border border-dashed border-gray-800 rounded-xl">
               <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">No active drops right now.</p>

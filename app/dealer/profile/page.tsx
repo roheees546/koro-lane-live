@@ -12,6 +12,7 @@ export default function ProfilePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [storeName, setStoreName] = useState("");
+  const [bio, setBio] = useState(""); // 🔥 NEW: Bio State
   const [phone, setPhone] = useState("");
   const [upiId, setUpiId] = useState("");
   const [address, setAddress] = useState("");
@@ -52,10 +53,11 @@ export default function ProfilePage() {
 
     if (profile) {
       setStoreName(profile.store_name || "");
+      setBio(profile.bio || ""); // 🔥 NEW: Fetch Bio
       setPhone(profile.phone || "");
       setUpiId(profile.upi_id || "");
       setAddress(profile.store_address || profile.address || ""); 
-      setLogoUrl(profile.logo_url || "");
+      setLogoUrl(profile.logo_url || profile.store_logo || ""); // Handled both column names just in case
       setInstagram(profile.instagram || "");
     }
     setLoading(false);
@@ -102,11 +104,13 @@ export default function ProfilePage() {
       .from("profiles")
       .update({
         store_name: storeName,
+        bio: bio, // 🔥 NEW: Save Bio
         phone: phone,
         upi_id: upiId,
         store_address: address, 
         address: address,       
         logo_url: logoUrl,
+        store_logo: logoUrl, // Keeping both synced
         instagram: instagram
       })
       .eq("id", userId);
@@ -212,7 +216,7 @@ export default function ProfilePage() {
                 <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5">Store Logo</label>
                 <div className="flex items-center gap-4">
                   {logoUrl && (
-                    <img src={logoUrl} alt="Preview" className="w-12 h-12 rounded-full border border-gray-800 object-cover" />
+                    <img src={logoUrl} alt="Preview" className="w-12 h-12 rounded-full border border-gray-800 object-cover shrink-0" />
                   )}
                   <label className="cursor-pointer bg-[#121214] hover:bg-gray-800 border border-gray-800 rounded-lg text-white px-4 py-2.5 text-xs font-bold transition flex items-center gap-2">
                     {uploadingLogo ? (
@@ -237,6 +241,12 @@ export default function ProfilePage() {
               <div>
                 <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5">Store / Brand Name *</label>
                 <input type="text" required value={storeName} onChange={(e) => setStoreName(e.target.value)} className="w-full bg-[#121214] border border-gray-800 rounded-lg text-white px-3 py-2 text-sm outline-none focus:border-[#00e599]" placeholder="e.g. Rare Kicks India" />
+              </div>
+
+              {/* 🔥 NEW: BIO FIELD */}
+              <div>
+                <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5">Store Bio / Description</label>
+                <textarea rows={3} value={bio} onChange={(e) => setBio(e.target.value)} className="w-full bg-[#121214] border border-gray-800 rounded-lg text-white px-3 py-2 text-sm outline-none focus:border-[#00e599] resize-none" placeholder="Tell buyers about your collection..."></textarea>
               </div>
 
               <div>
@@ -274,8 +284,17 @@ export default function ProfilePage() {
             /* --- VIEW MODE --- */
             <div className="space-y-5">
               
+              {/* 🔥 NEW: BIO DISPLAY */}
               <div className="flex items-start gap-3">
-                <svg className="w-4 h-4 text-gray-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                <svg className="w-4 h-4 text-gray-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-0.5">Store Bio</p>
+                  <p className="text-sm font-medium text-gray-300 leading-relaxed">{bio || <span className="text-gray-600 italic">Not added</span>}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <svg className="w-4 h-4 text-gray-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 00-2-2H5a2 2 0 00-2-2v10a2 2 0 002 2z"></path></svg>
                 <div>
                   <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-0.5">Support Email</p>
                   <p className="text-sm font-medium">{email}</p>

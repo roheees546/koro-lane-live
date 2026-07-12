@@ -13,18 +13,22 @@ export default function DealerDashboard() {
   // Dashboard Data
   const [storeName, setStoreName] = useState("");
   const [storeAddress, setStoreAddress] = useState("");
+  const [storeLogo, setStoreLogo] = useState<string | null>(null); // Added for logo
   const [stats, setStats] = useState({ todaySale: 0, pending: 0, totalSales: 0, liveStock: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false); // Notifications State
 
   // Add Product Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [itemName, setItemName] = useState("");
   const [itemPrice, setItemPrice] = useState("");
   const [itemCategory, setItemCategory] = useState("Top"); 
+  const [itemSize, setItemSize] = useState("L"); // Added Size State
   const [itemDesc, setItemDesc] = useState("");
   
   const [imageFiles, setImageFiles] = useState<File[]>([]); 
   const [isAdding, setIsAdding] = useState(false);
+  const [isLogoUploading, setIsLogoUploading] = useState(false); // Added for Logo upload
 
   useEffect(() => {
     fetchDashboardData();
@@ -45,6 +49,7 @@ export default function DealerDashboard() {
     }
     setStoreName(profile.store_name || "KOROLANE User");
     setStoreAddress(profile.store_address || "Address not set");
+    setStoreLogo(profile.store_logo || null); // Load logo if exists
 
     const { data: inventory } = await supabase.from("products").select("*").eq("dealer_id", session.user.id).order("created_at", { ascending: false });
     const liveStockCount = inventory ? inventory.length : 0;
@@ -68,11 +73,8 @@ export default function DealerDashboard() {
       
       const today = new Date().toDateString();
       orders.forEach(order => {
-        // 🔥 UPDATE: Check for new WhatsApp Confirmation Status or Paid status
         if ((order.payment_status === "Verified" || order.payment_status === "Pending WhatsApp Confirmation") && order.status !== "packed") pendingCount++;
-        
         const orderDate = new Date(order.created_at).toDateString();
-        // Today total only if not cancelled
         if (orderDate === today && order.status !== "cancelled") todayTotal += order.price;
       });
     }
@@ -86,26 +88,53 @@ export default function DealerDashboard() {
     setLoading(false);
   };
 
-  // 🔥 UPDATE: Handle Packing Item (Seller's Job)
   const handlePackItem = async (orderId: string) => {
     if(!confirm("Have you securely packed this item for Koro Lane Admin pickup?")) return;
 
     try {
       const { error } = await supabase
         .from('orders')
-        .update({ status: 'packed' }) // Seller ka kaam khatam
+        .update({ status: 'packed' }) 
         .eq('id', orderId);
 
       if (error) throw error;
       
       alert("Awesome! Koro Lane Admin will pick this up soon. 🚀");
-      fetchDashboardData(); // Refresh Data
+      fetchDashboardData(); 
     } catch (error: any) {
       alert("Error updating order: " + error.message);
     }
   };
 
-  // 📦 MULTI-IMAGE ADD PRODUCT ENGINE 
+  // 🔥 NEW: Store Logo Upload Handler
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !userId) return;
+    setIsLogoUploading(true);
+    
+    try {
+      const file = e.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${userId}-${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage.from('product_images').upload(fileName, file);
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage.from('product_images').getPublicUrl(fileName);
+      const newLogoUrl = publicUrlData.publicUrl;
+
+      // Update profile
+      const { error: updateError } = await supabase.from('profiles').update({ store_logo: newLogoUrl }).eq('id', userId);
+      if (updateError) throw updateError;
+
+      setStoreLogo(newLogoUrl);
+      alert("Store Logo updated successfully! ✨");
+    } catch (error: any) {
+      alert("Logo upload failed: " + error.message);
+    } finally {
+      setIsLogoUploading(false);
+    }
+  };
+
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAdding(true);
@@ -139,6 +168,7 @@ export default function DealerDashboard() {
         title: itemName,
         price: parseFloat(itemPrice),
         category: itemCategory,
+        size: itemSize, // Added size field
         description: itemDesc,
         image_url: uploadedUrls[0] || "", 
         image_urls: uploadedUrls 
@@ -150,6 +180,7 @@ export default function DealerDashboard() {
       setItemName("");
       setItemPrice("");
       setItemCategory("Top");
+      setItemSize("L");
       setItemDesc("");
       setImageFiles([]); 
       fetchDashboardData(); 
@@ -164,23 +195,61 @@ export default function DealerDashboard() {
   return (
     <div className="min-h-screen bg-black text-white font-sans pb-24">
       
-      {/* HEADER */}
-      <header className="px-5 pt-6 pb-4">
-        <div className="flex justify-between items-start mb-2">
+      {/* HEADER WITH LOGO UPLOAD & NOTIFICATIONS FIX */}
+      <header className="px-5 pt-6 pb-4 flex justify-between items-start mb-2">
+        <div className="flex items-center gap-4">
+          
+          {/* 📸 Custom Store Logo / Camera Icon */}
+          <div className="relative group cursor-pointer">
+             <div className="w-16 h-16 rounded-full bg-gray-900 border-2 border-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+               {isLogoUploading ? (
+                  <span className="w-4 h-4 rounded-full border-2 border-[#00e599] border-t-transparent animate-spin"></span>
+               ) : storeLogo ? (
+                  <img src={storeLogo} alt="Store Logo" className="w-full h-full object-cover" />
+               ) : (
+                 <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+               )}
+             </div>
+             <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleLogoUpload} disabled={isLogoUploading} />
+             <div className="absolute -bottom-1 -right-1 bg-[#00e599] text-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-black pointer-events-none shadow-md">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+             </div>
+          </div>
+
           <div>
             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{storeName}</p>
-            <h1 className="text-2xl font-bold flex items-center gap-2 mt-1">
-              Hello, {storeName.split(" ")[0]}! 👋
-              <span className="bg-[#00e599] text-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">On</span>
-            </h1>
+            {/* Removed 'On' Button as requested */}
+            <h1 className="text-2xl font-bold mt-0.5 truncate max-w-[180px]">Hello, {storeName.split(" ")[0]}!</h1>
             <p className="text-xs text-gray-400 mt-1 flex items-center gap-2">
               {storeAddress} <Link href="/dealer/profile" className="text-[#00e599] hover:underline">Edit</Link>
             </p>
           </div>
-          <button className="bg-[#111114] border border-gray-800 p-2 rounded-lg relative hover:border-gray-600 transition">
+        </div>
+
+        {/* 🔔 Working Notifications Button */}
+        <div className="relative">
+          <button onClick={() => setIsNotificationOpen(!isNotificationOpen)} className="bg-[#111114] border border-gray-800 p-2.5 rounded-xl relative hover:border-gray-600 transition">
             <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-            {stats.pending > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-black"></span>}
+            {stats.pending > 0 && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-[#111114] animate-pulse"></span>}
           </button>
+          
+          {/* Notification Dropdown */}
+          {isNotificationOpen && (
+            <div className="absolute right-0 top-12 w-64 bg-[#121214] border border-gray-800 rounded-xl shadow-2xl z-50 p-4 animate-in fade-in slide-in-from-top-2">
+               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-800 pb-2 mb-3">Notifications</h3>
+               {stats.pending > 0 ? (
+                 <div className="bg-orange-500/10 border border-orange-500/20 p-3 rounded-lg flex items-start gap-3">
+                   <span className="text-orange-500 mt-0.5">📦</span>
+                   <div>
+                     <p className="text-sm font-bold text-white mb-1">Action Needed!</p>
+                     <p className="text-xs text-gray-300">You have {stats.pending} order(s) waiting to be packed.</p>
+                   </div>
+                 </div>
+               ) : (
+                 <p className="text-xs text-gray-500 text-center py-2">No new notifications.</p>
+               )}
+            </div>
+          )}
         </div>
       </header>
 
@@ -257,7 +326,7 @@ export default function DealerDashboard() {
                      </span>
                   ) : order.payment_status === "Pending WhatsApp Confirmation" || order.payment_status === "Verified" ? (
                     <>
-                      <span className="text-yellow-500 text-[8px] uppercase tracking-wider font-bold text-right">Payment Under Review</span>
+                      <span className="text-orange-500 text-[8px] uppercase tracking-wider font-bold text-right text-center">Verify & Pack</span>
                       <button onClick={() => handlePackItem(order.id)} className="bg-[#00e599] text-black hover:bg-[#00c580] text-[10px] uppercase tracking-wider font-black px-4 py-2 rounded-lg transition shadow-[0_0_10px_rgba(0,229,153,0.3)]">
                         Pack Item 📦
                       </button>
@@ -292,7 +361,7 @@ export default function DealerDashboard() {
         </Link>
       </div>
 
-      {/* --- 🛠️ ADD PRODUCT MODAL --- */}
+      {/* --- 🛠️ UPGRADED ADD PRODUCT MODAL (SIZE, MULTI-IMAGE + HELP TEXT) --- */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#121214] border border-gray-800 rounded-2xl w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
@@ -307,12 +376,24 @@ export default function DealerDashboard() {
                 <input required type="text" value={itemName} onChange={(e) => setItemName(e.target.value)} className="w-full bg-[#09090b] border border-gray-800 rounded-lg text-white px-3 py-2 text-sm outline-none focus:border-[#00e599]" placeholder="e.g. Vintage Combat Jacket" />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-1">
                   <label className="block text-[10px] text-gray-400 uppercase mb-1">Price (₹)</label>
                   <input required type="number" value={itemPrice} onChange={(e) => setItemPrice(e.target.value)} className="w-full bg-[#09090b] border border-gray-800 rounded-lg text-white px-3 py-2 text-sm outline-none focus:border-[#00e599]" placeholder="1299" />
                 </div>
-                <div>
+                <div className="col-span-1">
+                  <label className="block text-[10px] text-gray-400 uppercase mb-1">Size</label>
+                  <select value={itemSize} onChange={(e) => setItemSize(e.target.value)} className="w-full bg-[#09090b] border border-gray-800 rounded-lg text-white px-3 py-2 text-sm outline-none focus:border-[#00e599]">
+                    <option value="XS">XS</option>
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                    <option value="XXL">XXL</option>
+                    <option value="Free Size">Free Size</option>
+                  </select>
+                </div>
+                <div className="col-span-1">
                   <label className="block text-[10px] text-gray-400 uppercase mb-1">Category</label>
                   <select value={itemCategory} onChange={(e) => setItemCategory(e.target.value)} className="w-full bg-[#09090b] border border-gray-800 rounded-lg text-white px-3 py-2 text-sm outline-none focus:border-[#00e599]">
                     <option value="Top">Top</option>
@@ -321,25 +402,36 @@ export default function DealerDashboard() {
                 </div>
               </div>
 
+              {/* Enhanced Photo Upload with Guidance */}
               <div>
-                <label className="block text-[10px] text-gray-400 uppercase mb-2">Item Photos (Select up to 4)</label>
-                <input 
-                  required
-                  type="file" 
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => {
-                    if (e.target.files) {
-                      setImageFiles(Array.from(e.target.files));
-                    }
-                  }}
-                  className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#003320] file:text-[#00e599] hover:file:bg-[#00e599] hover:file:text-black cursor-pointer border border-gray-800 rounded-lg p-2 bg-[#09090b]" 
-                />
+                <label className="block text-[10px] text-gray-400 uppercase mb-1">Item Photos</label>
+                <div className="bg-[#09090b] border border-gray-800 border-dashed rounded-lg p-4 text-center">
+                  <input 
+                    required
+                    type="file" 
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        // Limiting to 4 files max
+                        const filesArray = Array.from(e.target.files).slice(0, 4);
+                        setImageFiles(filesArray);
+                      }
+                    }}
+                    className="hidden" 
+                    id="image-upload"
+                  />
+                  <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center justify-center">
+                    <svg className="w-8 h-8 text-[#00e599] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span className="text-xs font-bold text-white mb-1">Tap to select images (Max 4)</span>
+                    <span className="text-[9px] text-gray-500">Please crop/edit your photos in your phone gallery before selecting them here.</span>
+                  </label>
+                </div>
                 
                 {imageFiles.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {imageFiles.map((file, idx) => (
-                      <span key={idx} className="bg-[#003320] text-[#00e599] text-[9px] px-2 py-1 rounded border border-[#00e599]/30 truncate max-w-[120px]">
+                      <span key={idx} className="bg-[#003320] text-[#00e599] text-[9px] px-2 py-1 rounded border border-[#00e599]/30 truncate max-w-[100px] flex items-center gap-1">
                         📸 {file.name}
                       </span>
                     ))}
@@ -352,8 +444,10 @@ export default function DealerDashboard() {
                 <textarea rows={3} required value={itemDesc} onChange={(e) => setItemDesc(e.target.value)} className="w-full bg-[#09090b] border border-gray-800 rounded-lg text-white px-3 py-2 text-sm outline-none focus:border-[#00e599] resize-none" placeholder="Condition, fit, details..."></textarea>
               </div>
               
-              <button type="submit" disabled={isAdding} className="w-full mt-4 bg-[#00e599] text-black font-bold py-3 rounded-lg uppercase tracking-widest text-sm hover:bg-[#00c580] transition shadow-[0_0_15px_rgba(0,229,153,0.3)]">
-                {isAdding ? "Uploading Images & Saving..." : "Add Product"}
+              <button type="submit" disabled={isAdding} className="w-full mt-4 bg-[#00e599] text-black font-bold py-3 rounded-lg uppercase tracking-widest text-sm hover:bg-[#00c580] transition shadow-[0_0_15px_rgba(0,229,153,0.3)] disabled:opacity-70 flex items-center justify-center gap-2">
+                {isAdding ? (
+                  <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span> Uploading...</>
+                ) : "Add Product"}
               </button>
             </form>
           </div>
