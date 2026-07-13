@@ -185,11 +185,16 @@ export default function Home() {
     setIsProcessing(true);
 
     try {
+      // 🔥 THE FIX: Saving Mobile, Address and Pincode to the database properly
       const { error: orderError } = await supabase.from('orders').insert([{
           dealer_id: selectedProduct.dealer_id,
           product_id: selectedProduct.id, 
           product_name: selectedProduct.title,
           customer_name: formData.fullName,
+          customer_phone: formData.mobile, // Added
+          customer_alt_phone: formData.altMobile, // Added
+          customer_address: formData.address, // Added
+          customer_pincode: formData.pincode, // Added
           price: selectedProduct.price,
           status: 'pending',
           payment_status: 'Pending WhatsApp Confirmation',
@@ -598,9 +603,9 @@ export default function Home() {
                     <p className="text-[8px] text-gray-500 uppercase font-bold tracking-widest mt-2">(Opens GPay, PhonePe, Paytm on Mobile)</p>
                   </div>
 
-                  {/* WhatsApp Connect Button */}
+                  {/* 🔥 FIXED WhatsApp Connect Button with Customer Name */}
                   <a 
-                    href={`https://wa.me/919027434335?text=Hi Rohit, I am paying ₹${selectedProduct.price} for the ${selectedProduct.title}.`} 
+                    href={`https://wa.me/919027434335?text=Hi Rohit, I am ${formData.fullName}. I have paid ₹${selectedProduct.price} for the ${selectedProduct.title}. Please check.`} 
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className="mt-4 w-full flex items-center justify-center gap-2 bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 px-4 py-3 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#25D366] hover:text-black transition"
