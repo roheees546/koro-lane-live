@@ -149,15 +149,15 @@ export default function Home() {
   return (
     <div className="bg-black text-white w-full">
       
-      {/* 🚀 SMART APP HEADER */}
+      {/* 🚀 SMART APP HEADER (CLEANED) */}
       <header className="px-5 py-4 flex justify-between items-center sticky top-0 bg-black/90 backdrop-blur z-30">
         <h1 className="text-xl font-black tracking-tighter flex items-center gap-2">
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
           KORO<span className="text-[#00e599]">LANE</span>
         </h1>
-        <Link href="/shop" className="bg-[#121214] text-gray-400 border border-gray-800 hover:border-[#00e599] hover:text-[#00e599] transition px-3 py-2 rounded-lg text-[10px] font-bold flex items-center gap-2 w-40">
+        {/* Route changed to /search as per plan */}
+        <Link href="/search" className="bg-[#121214] text-gray-400 border border-gray-800 hover:border-[#00e599] hover:text-[#00e599] transition px-3 py-2 rounded-lg text-[10px] font-bold flex items-center gap-2 w-44">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          Search rare styles...
+          Search drops & sellers...
         </Link>
       </header>
 
@@ -180,7 +180,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 FEATURED SELLERS (Mockup UI implementation) */}
+      {/* 🚀 FEATURED SELLERS (Kept for new seller onboarding visibility) */}
       <section className="pt-2 pb-6">
         <div className="flex justify-between items-center px-5 mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
@@ -208,20 +208,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
-
-      {/* 🚀 SELL BANNER */}
-      <section className="px-5 mb-8">
-        <Link href="/login" className="block bg-black border border-gray-800 hover:border-[#00e599]/50 transition rounded-2xl p-5 relative overflow-hidden group">
-          <div className="relative z-10 w-2/3">
-            <h3 className="text-xs font-black uppercase text-white mb-1">Want to sell on Koro Lane?</h3>
-            <p className="text-[9px] text-gray-400 mb-3">Join as a seller and start reaching fashion lovers.</p>
-            <span className="inline-flex items-center gap-1 text-[9px] text-[#00e599] border border-[#00e599]/30 px-3 py-1.5 rounded-lg uppercase font-bold tracking-widest group-hover:bg-[#00e599]/10">
-              Become a Seller <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-            </span>
-          </div>
-          <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-16 h-16 text-[#00e599]/20 group-hover:text-[#00e599]/40 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-        </Link>
       </section>
 
       {/* 🚀 LATEST DROPS (Horizontal Scroll) */}
@@ -261,22 +247,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 STYLE FEED PROMO */}
-      <section className="px-5 mb-10">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
-             <span className="text-[#00e599]">📸</span> STYLE FEED
-          </h3>
-          <span className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest">Coming Soon</span>
-        </div>
-        <div className="bg-[#121214] border border-gray-800 rounded-2xl p-6 flex flex-col items-center text-center">
-          <svg className="w-12 h-12 text-gray-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-          <h4 className="text-xs font-bold text-white mb-1">Be the first to upload your style!</h4>
-          <p className="text-[10px] text-gray-500 mb-4 max-w-[250px]">Buy any item and share your look with the community.</p>
-          <Link href="/shop" className="text-[9px] bg-[#003320] text-[#00e599] border border-[#00e599]/30 font-bold uppercase tracking-widest px-4 py-2 rounded-lg">Explore Marketplace</Link>
-        </div>
-      </section>
-
       {/* 🚀 WHY KORO LANE */}
       <section className="px-5 pb-10">
         <h3 className="text-xs font-black uppercase tracking-widest text-white mb-4 flex items-center gap-2">
@@ -301,8 +271,7 @@ export default function Home() {
         </div>
       </section>
 
-
-      {/* --- ALL EXISTING MODALS (Auth, Product Details, Secure Checkout) REMAIN HERE UNTOUCHED (as sent in your code) --- */}
+      {/* --- ALL EXISTING MODALS (Auth, Product Details, Secure Checkout) REMAIN HERE UNTOUCHED --- */}
       
       {/* 🛡️ SECURE AUTH MODAL */}
       {isAuthModalOpen && (
