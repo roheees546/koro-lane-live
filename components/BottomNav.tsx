@@ -3,32 +3,16 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [showRoleModal, setShowRoleModal] = useState(false);
 
-  // Dynamic Terminal Routing Logic
-  const handleTerminalClick = async (e: React.MouseEvent) => {
+  // 🔥 FAST UI: Seedha popup kholo, no wait time!
+  const handleTerminalClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      alert("Please login first to access your Terminal.");
-      return;
-    }
-
-    const { data: profile } = await supabase.from('profiles').select('role, store_name').eq('id', session.user.id).single();
-
-    // If user has a store, they are technically a Buyer + Seller. Show selection modal.
-    if (profile?.store_name || profile?.role === 'dealer') {
-      setShowRoleModal(true);
-    } else {
-      // Pure Buyer
-      router.push('/scout');
-    }
+    setShowRoleModal(true);
   };
 
   return (
@@ -47,7 +31,7 @@ export default function BottomNav() {
           <span className="text-[9px] font-bold uppercase tracking-widest">Shop</span>
         </Link>
 
-        {/* 3. FEED / COMMUNITY (Replaced + and Wishlist) */}
+        {/* 3. FEED / COMMUNITY */}
         <Link href="/feed" className={`flex flex-col items-center gap-1.5 w-16 ${pathname === '/feed' ? 'text-[#00e599]' : 'text-gray-500 hover:text-gray-300'}`}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
           <span className="text-[9px] font-bold uppercase tracking-widest">Feed</span>

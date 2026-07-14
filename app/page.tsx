@@ -186,7 +186,7 @@ export default function Home() {
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
             <span className="text-[#00e599]">🏪</span> FEATURED SELLERS
           </h3>
-          <Link href="/shop" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View all</Link>
+          <Link href="/sellers" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View all</Link>
         </div>
         
         <div className="px-5">
