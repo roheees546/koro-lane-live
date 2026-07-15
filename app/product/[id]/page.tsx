@@ -78,7 +78,7 @@ export default function ProductDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans flex flex-col relative selection:bg-[#00e599] selection:text-black pb-28">
+    <div className="min-h-screen bg-[#050505] text-white font-sans flex flex-col relative selection:bg-[#00e599] selection:text-black pb-40">
       
       {/* 🚀 FLOATING TOP NAV */}
       <header className="fixed top-0 left-0 w-full px-5 py-4 flex justify-between items-center z-40 pointer-events-none">
@@ -144,7 +144,7 @@ export default function ProductDetailPage() {
       </div>
 
       {/* 🚀 STICKY BOTTOM ACTION BAR (BUY NOW) */}
-      <div className="fixed bottom-0 left-0 w-full bg-[#0a0a0c]/90 backdrop-blur-lg border-t border-gray-800 z-40 p-4 pb-6 sm:pb-4">
+      <div className="fixed bottom-[72px] left-0 w-full bg-[#0a0a0c]/90 backdrop-blur-lg border-t border-gray-800 z-30 p-4">
         <div className="max-w-xl mx-auto flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Total Price</span>
