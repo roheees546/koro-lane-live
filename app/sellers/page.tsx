@@ -36,8 +36,6 @@ export default function SellersPage() {
         // 3. Map products to their respective dealers
         const enhancedDealers = dealers.map(dealer => {
           const sellerProducts = products?.filter(p => p.dealer_id === dealer.id) || [];
-          
-          // Get the latest product image for the background vibe
           const latestProduct = sellerProducts[0];
           const bgImage = latestProduct?.image_urls?.[0] || latestProduct?.image_url || null;
 
@@ -48,7 +46,20 @@ export default function SellersPage() {
           };
         });
 
-        setSellers(enhancedDealers);
+        // 🔥 SMART FILTER: Remove duplicate/dummy copies automatically
+        // Agar ek hi naam ke multiple store hain, toh usko rakhega jisme products zyada hain.
+        const uniqueSellersMap = new Map();
+        enhancedDealers.forEach(dealer => {
+          const storeName = (dealer.store_name || "VERIFIED DEALER").toLowerCase().trim();
+          
+          if (!uniqueSellersMap.has(storeName) || uniqueSellersMap.get(storeName).productCount < dealer.productCount) {
+            uniqueSellersMap.set(storeName, dealer);
+          }
+        });
+
+        // Convert Map back to array
+        const finalSellers = Array.from(uniqueSellersMap.values());
+        setSellers(finalSellers);
       } else {
         setSellers([]);
       }
@@ -74,7 +85,7 @@ export default function SellersPage() {
         </div>
         <p className="text-[10px] text-gray-500 font-medium ml-12">Trusted sellers. Quality thrift.</p>
         
-        {/* Top Filters (Cleaned Up) */}
+        {/* Top Filters */}
         <div className="flex justify-between items-center mt-3 ml-1">
           <div className="flex gap-2">
             <span className="bg-[#003320]/30 border border-[#00e599]/30 text-[#00e599] text-[9px] font-bold px-3 py-1.5 rounded-full">All Sellers</span>
@@ -146,13 +157,13 @@ export default function SellersPage() {
                     {seller.address || 'Dehradun, Uttarakhand'}
                   </p>
                   
-                  {/* Stats Divider (Cleaned - Only Products Count) */}
+                  {/* Stats Divider (FIXED GAP) */}
                   <div className="mt-4 w-full border-t border-gray-800/80 pt-3 flex justify-center items-center">
-                    <div className="flex items-center gap-1.5 bg-[#0a0a0c]/50 px-3 py-1 rounded-full border border-gray-800">
+                    <div className="flex items-center gap-2 bg-[#0a0a0c]/80 px-3 py-1.5 rounded-full border border-gray-800">
                       <svg className="w-3.5 h-3.5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-                      <div className="flex flex-col items-start leading-none">
-                        <span className="text-[10px] font-black text-white">{seller.productCount}</span>
-                        <span className="text-[6px] text-gray-500 uppercase tracking-widest">Active Drops</span>
+                      <div className="flex flex-col items-start justify-center">
+                        <span className="text-[11px] font-black text-white leading-none mb-[2px]">{seller.productCount}</span>
+                        <span className="text-[6px] text-gray-400 uppercase tracking-widest leading-none">Active Drops</span>
                       </div>
                     </div>
                   </div>
