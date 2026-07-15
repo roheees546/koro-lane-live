@@ -74,11 +74,10 @@ export default function SellersPage() {
         </div>
         <p className="text-[10px] text-gray-500 font-medium ml-12">Trusted sellers. Quality thrift.</p>
         
-        {/* Top Filters (Static for UI aesthetics) */}
+        {/* Top Filters (Cleaned Up) */}
         <div className="flex justify-between items-center mt-3 ml-1">
           <div className="flex gap-2">
-            <span className="border border-[#00e599] text-[#00e599] text-[9px] font-bold px-3 py-1.5 rounded-full">All Sellers</span>
-            <span className="border border-gray-800 text-gray-400 text-[9px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1">Top Rated <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg></span>
+            <span className="bg-[#003320]/30 border border-[#00e599]/30 text-[#00e599] text-[9px] font-bold px-3 py-1.5 rounded-full">All Sellers</span>
           </div>
           <span className="bg-[#121214] text-gray-300 text-[9px] font-bold px-3 py-1.5 rounded-full border border-gray-800 flex items-center gap-1">
             <svg className="w-3 h-3 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg> {sellers.length} Sellers
@@ -102,7 +101,7 @@ export default function SellersPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {sellers.map((seller) => (
-              <Link href={`/store/${seller.id}`} key={seller.id} className="bg-[#0a0a0c] border border-gray-800 rounded-2xl flex flex-col relative overflow-hidden group block hover:border-gray-600 transition">
+              <Link href={`/store/${seller.id}`} key={seller.id} className="bg-[#0a0a0c] border border-gray-800 rounded-2xl flex flex-col relative overflow-hidden group block hover:border-[#00e599]/50 transition shadow-lg">
                 
                 {/* Background Image with Dark Fade */}
                 <div className="absolute inset-0 z-0 pointer-events-none">
@@ -115,7 +114,7 @@ export default function SellersPage() {
                 </div>
 
                 {/* Heart Icon (Top Right) */}
-                <button onClick={(e) => e.preventDefault()} className="absolute top-3 right-3 z-20 text-gray-400 hover:text-white transition">
+                <button onClick={(e) => e.preventDefault()} className="absolute top-3 right-3 z-20 text-gray-400 hover:text-[#00e599] transition">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
                 </button>
 
@@ -123,7 +122,7 @@ export default function SellersPage() {
                 <div className="p-3 flex flex-col items-center w-full z-10 pt-6">
                   
                   {/* Seller DP */}
-                  <div className="w-14 h-14 bg-black border-2 border-gray-800 rounded-full flex items-center justify-center shrink-0 overflow-hidden shadow-lg mb-2 relative">
+                  <div className="w-14 h-14 bg-black border-2 border-gray-800 rounded-full flex items-center justify-center shrink-0 overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.8)] mb-2 relative group-hover:border-[#00e599]/50 transition">
                     {seller.avatar_url ? (
                       <img src={seller.avatar_url} alt={seller.store_name} className="w-full h-full object-cover" />
                     ) : (
@@ -134,12 +133,12 @@ export default function SellersPage() {
                   </div>
 
                   {/* Verified Badge */}
-                  <div className="bg-[#003320] border border-[#00e599]/30 text-[#00e599] text-[6px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest mb-1.5 flex items-center gap-0.5">
+                  <div className="bg-[#003320] border border-[#00e599]/30 text-[#00e599] text-[6px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest mb-1.5 flex items-center gap-0.5 shadow-sm">
                     VERIFIED <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                   </div>
                   
                   {/* Store Name & Address */}
-                  <h4 className="text-sm font-black text-white w-full truncate text-center">
+                  <h4 className="text-sm font-black text-white w-full truncate text-center group-hover:text-[#00e599] transition">
                     {seller.store_name || "VERIFIED DEALER"}
                   </h4>
                   <p className="text-[8px] text-gray-400 mt-1 flex items-center justify-center gap-0.5 w-full truncate px-2">
@@ -147,26 +146,19 @@ export default function SellersPage() {
                     {seller.address || 'Dehradun, Uttarakhand'}
                   </p>
                   
-                  {/* Stats Divider */}
-                  <div className="mt-4 w-full border-t border-gray-800/80 pt-3 flex justify-between items-center px-1">
-                    {/* Rating */}
-                    <div className="flex items-center gap-1">
-                      <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                      <span className="text-[10px] font-bold text-white">5.0</span>
-                      <span className="text-[7px] text-gray-500">(12 reviews)</span>
-                    </div>
-                    {/* Product Count */}
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                  {/* Stats Divider (Cleaned - Only Products Count) */}
+                  <div className="mt-4 w-full border-t border-gray-800/80 pt-3 flex justify-center items-center">
+                    <div className="flex items-center gap-1.5 bg-[#0a0a0c]/50 px-3 py-1 rounded-full border border-gray-800">
+                      <svg className="w-3.5 h-3.5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                       <div className="flex flex-col items-start leading-none">
                         <span className="text-[10px] font-black text-white">{seller.productCount}</span>
-                        <span className="text-[6px] text-gray-500 uppercase tracking-widest">Products</span>
+                        <span className="text-[6px] text-gray-500 uppercase tracking-widest">Active Drops</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Visit Store Button */}
-                  <div className="w-full mt-4 border border-[#00e599]/30 text-[#00e599] rounded-lg py-2 text-[9px] uppercase font-bold tracking-widest text-center group-hover:bg-[#00e599]/10 transition flex items-center justify-center gap-1">
+                  <div className="w-full mt-4 border border-gray-800 text-gray-300 rounded-lg py-2.5 text-[9px] uppercase font-bold tracking-widest text-center group-hover:bg-[#00e599]/10 group-hover:border-[#00e599]/40 group-hover:text-[#00e599] transition flex items-center justify-center gap-1">
                     Visit Store →
                   </div>
                 </div>
