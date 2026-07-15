@@ -71,9 +71,14 @@ export default function ProductDetailPage() {
   const deliveryCharge = 40;
   const totalPrice = itemPrice + deliveryCharge;
 
+  // Dynamic Tomorrow Date
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const deliveryDate = tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
   // WhatsApp Message Logic
   const handleWhatsAppRedirect = () => {
-    const message = `Hi, I just paid ₹${totalPrice} for ${product.title} (ID: ${product.id}).\n\nDelivery Details:\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}, ${formData.pincode}\n\nPlease verify my payment screenshot attached.`;
+    const message = `Hi, I just paid ₹${totalPrice} for ${product.title} (ID: ${product.id}).\n\nDelivery Details:\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}, Pincode: ${formData.pincode}\n\nPlease verify my payment screenshot attached.`;
     window.location.href = `https://wa.me/919027434335?text=${encodeURIComponent(message)}`;
   };
 
@@ -94,7 +99,7 @@ export default function ProductDetailPage() {
         </button>
       </header>
 
-      {/* 🚀 PRODUCT CONTENT (Image, Info, etc.) */}
+      {/* 🚀 PRODUCT CONTENT */}
       <div className="relative w-full aspect-[4/5] bg-[#121214] max-w-xl mx-auto">
         {product.is_sold && (
           <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-sm">
@@ -161,120 +166,195 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* 🚀 THE MASTERPIECE CHECKOUT MODAL */}
+      {/* 🚀 THE MASTERPIECE CHECKOUT MODAL (Zomato/Myntra Style) */}
       {isCheckoutOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/80 backdrop-blur-sm p-0 sm:p-5">
-          <div className="bg-[#050505] w-full sm:max-w-md h-[90vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl border border-gray-800 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-full duration-300">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-sm">
+          <div className="bg-[#050505] w-full sm:max-w-3xl h-[95vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl border border-gray-800 shadow-2xl flex flex-col relative overflow-hidden animate-in slide-in-from-bottom-full duration-300">
             
-            {/* Modal Header */}
-            <div className="p-5 border-b border-gray-800 flex justify-between items-center bg-[#0a0a0c]">
+            {/* 🔴 Modal Header Fixed */}
+            <div className="p-5 border-b border-gray-900 flex justify-between items-center bg-[#0a0a0c] shrink-0">
               <div>
-                <h2 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-2">Secure Checkout <svg className="w-4 h-4 text-[#00e599]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg></h2>
+                <h2 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-2">
+                  Secure Checkout <svg className="w-4 h-4 text-[#00e599]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                </h2>
                 <p className="text-[10px] text-[#00e599] font-bold tracking-widest uppercase mt-1">Step {checkoutStep} of 2</p>
               </div>
-              <button onClick={() => {setIsCheckoutOpen(false); setCheckoutStep(1);}} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-900 text-gray-400 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+              <button onClick={() => {setIsCheckoutOpen(false); setCheckoutStep(1);}} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-900 text-gray-400 hover:text-white transition">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar pb-24">
+            {/* 🔴 Modal Body Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar pb-32">
               
-              {/* Product Snippet */}
-              <div className="bg-[#121214] border border-gray-800 rounded-xl p-3 flex gap-4 mb-5">
-                <img src={images[0]} alt={product.title} className="w-16 h-16 object-cover rounded-lg border border-gray-800" />
-                <div className="flex flex-col justify-center">
-                  <h3 className="text-xs font-bold text-gray-200 uppercase tracking-widest mb-1">{product.title}</h3>
-                  <span className="text-sm font-black text-[#00e599]">₹{itemPrice.toLocaleString('en-IN')}</span>
-                  <span className="text-[8px] mt-1 text-gray-500 border border-gray-700 w-fit px-2 py-0.5 rounded uppercase">1-of-1 Piece</span>
-                </div>
-              </div>
-
-              {/* STEP 1: FORM & SUMMARY */}
               {checkoutStep === 1 && (
-                <div className="space-y-5 animate-in fade-in">
+                <div className="animate-in fade-in space-y-5">
                   
+                  {/* Top Bar: Product & Seller Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Product */}
+                    <div className="bg-[#121214] border border-gray-800 rounded-xl p-3 flex gap-4">
+                      <img src={images[0]} alt={product.title} className="w-16 h-20 object-cover rounded-md border border-gray-800 shrink-0" />
+                      <div className="flex flex-col justify-center">
+                        <h3 className="font-bold text-xs uppercase text-gray-100 line-clamp-1">{product.title}</h3>
+                        <p className="text-[#00e599] font-black text-base mt-1">₹{itemPrice.toLocaleString('en-IN')}</p>
+                        <span className="inline-block mt-1.5 border border-gray-700 text-gray-400 text-[8px] uppercase font-bold px-2 py-1 rounded w-max">1-OF-1 PIECE</span>
+                      </div>
+                    </div>
+                    {/* Seller */}
+                    {seller && (
+                      <div className="bg-[#121214] border border-gray-800 rounded-xl p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-black border border-gray-800 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+                            {seller.avatar_url ? <img src={seller.avatar_url} className="w-full h-full object-cover" /> : <span className="text-[#00e599] font-black">{seller.store_name?.charAt(0)}</span>}
+                          </div>
+                          <div>
+                            <h4 className="font-black text-white uppercase text-xs flex items-center gap-1">{seller.store_name} <svg className="w-3 h-3 text-[#00e599]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg></h4>
+                            <p className="text-[9px] text-yellow-500 font-bold mt-0.5">★ 5.0 <span className="text-gray-500">(Top Rated)</span></p>
+                          </div>
+                        </div>
+                        <Link href={`/store/${seller.id}`} className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest border border-[#00e599]/30 px-2 py-1.5 rounded hover:bg-[#00e599]/10 transition">Visit Store →</Link>
+                      </div>
+                    )}
+                  </div>
+
                   {/* FOMO Timer */}
-                  <div className="bg-[#003320]/20 border border-[#00e599]/30 rounded-lg p-3 flex items-center justify-between">
+                  <div className="bg-[#003320]/20 border border-[#00e599]/30 rounded-lg p-3.5 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-gray-300">
                       <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                       <span className="text-[10px] font-bold uppercase tracking-widest">Only 1 piece reserved for you</span>
                     </div>
-                    <span className="text-sm font-black text-[#00e599]">{formatTime(timeLeft)}</span>
+                    <span className="text-base font-black text-[#00e599]">{formatTime(timeLeft)}</span>
                   </div>
 
-                  {/* Form */}
-                  <div className="space-y-3">
-                    <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Delivery Details</h3>
-                    <input type="text" placeholder="Your Full Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-[#121214] border border-gray-800 rounded-lg px-4 py-3 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#00e599]" />
-                    <input type="tel" placeholder="Mobile No. *" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full bg-[#121214] border border-gray-800 rounded-lg px-4 py-3 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#00e599]" />
-                    <textarea placeholder="Full Delivery Address *" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} rows={2} className="w-full bg-[#121214] border border-gray-800 rounded-lg px-4 py-3 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#00e599]" />
-                    <input type="text" placeholder="Pincode *" value={formData.pincode} onChange={(e) => setFormData({...formData, pincode: e.target.value})} className="w-full bg-[#121214] border border-gray-800 rounded-lg px-4 py-3 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#00e599]" />
-                  </div>
-
-                  {/* Order Summary */}
-                  <div className="bg-[#121214] border border-gray-800 rounded-xl p-4">
-                    <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Order Summary</h3>
-                    <div className="flex justify-between text-xs text-gray-400 mb-2"><span>Item Price</span><span>₹{itemPrice}</span></div>
-                    <div className="flex justify-between text-xs text-gray-400 mb-2"><span>Delivery Charge</span><span>₹{deliveryCharge}</span></div>
-                    <div className="flex justify-between text-xs text-gray-400 mb-3 pb-3 border-b border-gray-800"><span>Platform Fee</span><span>₹0</span></div>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm font-black text-white uppercase tracking-widest">Total</p>
-                        <p className="text-[8px] text-gray-500 uppercase mt-0.5">Inclusive of all taxes</p>
+                  {/* Two Column Layout (Form vs Summary) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    
+                    {/* Left Col: Form & Delivery Info */}
+                    <div className="space-y-5">
+                      {/* DELIVER TO FORM */}
+                      <div className="bg-[#121214] border border-gray-800 rounded-xl p-5">
+                        <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-3">
+                          <h3 className="text-xs font-black uppercase text-white flex items-center gap-2">
+                            <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            DELIVER TO
+                          </h3>
+                        </div>
+                        <div className="space-y-3">
+                          <input type="text" placeholder="Full Name *" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-[#09090b] border border-gray-800 rounded-lg text-white px-4 py-3 text-xs outline-none focus:border-[#00e599] transition" />
+                          <input type="tel" placeholder="Mobile Number *" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-[#09090b] border border-gray-800 rounded-lg text-white px-4 py-3 text-xs outline-none focus:border-[#00e599] transition" />
+                          <textarea placeholder="Delivery Address *" rows={2} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-[#09090b] border border-gray-800 rounded-lg text-white px-4 py-3 text-xs outline-none focus:border-[#00e599] transition resize-none" />
+                          <input type="text" placeholder="Pincode *" value={formData.pincode} onChange={e => setFormData({...formData, pincode: e.target.value})} className="w-full bg-[#09090b] border border-gray-800 rounded-lg text-white px-4 py-3 text-xs outline-none focus:border-[#00e599] transition" />
+                        </div>
                       </div>
-                      <span className="text-xl font-black text-[#00e599]">₹{totalPrice}</span>
-                    </div>
-                  </div>
 
-                  {/* Trust Badges */}
-                  <div className="flex justify-center gap-4 py-2 border-t border-gray-900 text-gray-500">
-                    <span className="text-[8px] font-bold uppercase tracking-widest flex items-center gap-1"><svg className="w-3 h-3 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 100% Authentic</span>
-                    <span className="text-[8px] font-bold uppercase tracking-widest flex items-center gap-1"><svg className="w-3 h-3 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg> Safe & Secure</span>
+                      {/* DELIVERY SPEED */}
+                      <div className="bg-[#121214] border border-gray-800 rounded-xl p-5 flex justify-between items-start">
+                        <div>
+                          <h3 className="text-xs font-black uppercase text-white flex items-center gap-2 mb-2">
+                            <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                            DELIVERY
+                          </h3>
+                          <p className="text-[11px] font-bold text-[#00e599]">Tomorrow, {deliveryDate}</p>
+                          <p className="text-[9px] text-gray-500 mt-1">Order within 2h 45m to get it by tomorrow</p>
+                        </div>
+                        <span className="bg-[#003320] text-[#00e599] text-[9px] font-black uppercase px-2 py-1 rounded flex items-center gap-1">⚡ FAST</span>
+                      </div>
+                    </div>
+
+                    {/* Right Col: Summary & Trust */}
+                    <div className="space-y-5">
+                      {/* ORDER SUMMARY */}
+                      <div className="bg-[#121214] border border-gray-800 rounded-xl p-5">
+                        <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-4">Order Summary</h3>
+                        <div className="flex justify-between text-xs text-gray-300 mb-3"><span>Item Price</span><span>₹{itemPrice}</span></div>
+                        <div className="flex justify-between text-xs text-gray-300 mb-3"><span>Delivery Charge</span><span>₹{deliveryCharge}</span></div>
+                        <div className="flex justify-between text-xs text-gray-300 mb-4 pb-4 border-b border-gray-800"><span>Platform Fee ⓘ</span><span>₹0</span></div>
+                        
+                        <div className="flex justify-between items-center mb-5">
+                          <div>
+                            <p className="text-sm font-black text-white uppercase tracking-widest">TOTAL</p>
+                            <p className="text-[8px] text-gray-500 uppercase mt-0.5">Inclusive of all taxes</p>
+                          </div>
+                          <span className="text-2xl font-black text-[#00e599]">₹{totalPrice}</span>
+                        </div>
+                        
+                        <div className="bg-[#003320]/20 border border-[#00e599]/30 p-2.5 rounded-lg flex items-center justify-center gap-2">
+                          <svg className="w-3.5 h-3.5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                          <span className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest">No hidden charges</span>
+                        </div>
+                      </div>
+
+                      {/* TRUST BADGES */}
+                      <div className="bg-[#121214] border border-gray-800 rounded-xl p-5 space-y-4">
+                        <div className="flex gap-3">
+                          <svg className="w-5 h-5 text-[#00e599] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                          <div><p className="text-xs font-bold text-white">Secure Payment</p><p className="text-[9px] text-gray-500 mt-0.5">Your payment is 100% safe & protected</p></div>
+                        </div>
+                        <div className="flex gap-3">
+                          <svg className="w-5 h-5 text-[#00e599] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path></svg>
+                          <div><p className="text-xs font-bold text-white">Verified Sellers</p><p className="text-[9px] text-gray-500 mt-0.5">All items sourced from top dealers</p></div>
+                        </div>
+                        <div className="flex gap-3">
+                          <svg className="w-5 h-5 text-[#00e599] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                          <div><p className="text-xs font-bold text-white">Quality Checked</p><p className="text-[9px] text-gray-500 mt-0.5">100% authentic archive pieces</p></div>
+                        </div>
+                      </div>
+                    </div>
+                    
                   </div>
                 </div>
               )}
 
-              {/* STEP 2: PAYMENT */}
+              {/* STEP 2: PAYMENT (QR) */}
               {checkoutStep === 2 && (
-                <div className="space-y-6 animate-in fade-in text-center flex flex-col items-center pt-2">
-                  <div className="bg-white p-2 rounded-2xl w-48 h-48 border-4 border-[#00e599] shadow-[0_0_30px_rgba(0,229,153,0.2)]">
-                    {/* APNA NAYA QR YAHAN AAYEGA */}
+                <div className="animate-in fade-in flex flex-col items-center pt-2 max-w-sm mx-auto">
+                  <div className="bg-white p-2.5 rounded-2xl w-56 h-56 border-4 border-[#00e599] shadow-[0_0_40px_rgba(0,229,153,0.2)] mb-5">
                     <img src="/paytm-qr.jpg" alt="Payment QR" className="w-full h-full object-contain rounded-xl" />
                   </div>
                   
-                  <div>
+                  <div className="text-center mb-6">
                     <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">UPI ID: <span className="text-white">paytm.s30za19@pty</span></p>
-                    <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mt-1">Name: <span className="text-white">Rohit Singh Rana</span></p>
+                    <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mt-1.5">Name: <span className="text-white">Rohit Singh Rana</span></p>
                   </div>
 
-                  <div className="text-center bg-[#121214] w-full border border-gray-800 rounded-xl py-3">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Amount to Pay</p>
-                    <p className="text-3xl font-black text-[#00e599]">₹{totalPrice}</p>
+                  <div className="text-center bg-[#121214] w-full border border-gray-800 rounded-xl py-4 mb-6">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Total Payable</p>
+                    <p className="text-4xl font-black text-[#00e599]">₹{totalPrice}</p>
                   </div>
 
-                  <div className="w-full space-y-3">
-                    <a href={`upi://pay?pa=paytm.s30za19@pty&pn=Rohit%20Singh%20Rana&am=${totalPrice}&cu=INR`} className="w-full block bg-[#121214] border border-[#00e599]/50 text-[#00e599] font-black uppercase tracking-widest text-[10px] py-4 rounded-xl hover:bg-[#00e599]/10 transition text-center flex items-center justify-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Pay Directly via UPI App
-                    </a>
-                  </div>
-                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Scan the QR or click the button above to pay securely.</p>
+                  <a href={`upi://pay?pa=paytm.s30za19@pty&pn=Rohit%20Singh%20Rana&am=${totalPrice}&cu=INR`} className="w-full block bg-[#003320]/30 border border-[#00e599]/50 text-[#00e599] font-black uppercase tracking-widest text-[11px] py-4 rounded-xl hover:bg-[#00e599]/20 transition text-center flex items-center justify-center gap-2 mb-3">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Pay Directly via UPI App
+                  </a>
+                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest text-center">Scan the QR or click above to pay securely.</p>
                 </div>
               )}
             </div>
 
-            {/* Modal Bottom Fixed Action Bar */}
-            <div className="absolute bottom-0 left-0 w-full p-5 bg-[#0a0a0c] border-t border-gray-900">
+            {/* 🔴 Modal Bottom Fixed Action Bar */}
+            <div className="absolute bottom-0 left-0 w-full p-4 sm:p-5 bg-[#0a0a0c] border-t border-gray-900 z-50">
               {checkoutStep === 1 ? (
-                <button 
-                  onClick={() => {
-                    if (!formData.name || !formData.phone || !formData.address) return alert("Please fill details!");
-                    setCheckoutStep(2);
-                  }} 
-                  className="w-full bg-[#00e599] text-black font-black uppercase tracking-widest py-4 rounded-xl shadow-[0_0_20px_rgba(0,229,153,0.3)] hover:bg-emerald-400 transition flex items-center justify-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                  Pay ₹{totalPrice} Securely
-                </button>
+                <div className="max-w-2xl mx-auto">
+                  <div className="flex justify-center gap-6 mb-3 text-gray-500">
+                    <span className="text-[8px] font-bold uppercase tracking-widest flex items-center gap-1"><svg className="w-3 h-3 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 100% Authentic</span>
+                    <span className="text-[8px] font-bold uppercase tracking-widest flex items-center gap-1"><svg className="w-3 h-3 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg> Safe & Secure</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      if (!formData.name || !formData.phone || !formData.address || !formData.pincode) return alert("Please fill all delivery details! 🚚");
+                      setCheckoutStep(2);
+                    }} 
+                    className="w-full bg-[#00e599] text-black font-black py-3.5 sm:py-4 rounded-xl shadow-[0_0_20px_rgba(0,229,153,0.3)] hover:bg-emerald-400 transition flex flex-col items-center justify-center gap-0.5 active:scale-95"
+                  >
+                    <div className="flex items-center gap-2 text-sm uppercase tracking-widest">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                      Pay ₹{totalPrice} Securely
+                    </div>
+                    <span className="text-[8px] font-bold tracking-widest opacity-80 uppercase">You will be redirected to secure payment</span>
+                  </button>
+                </div>
               ) : (
-                <div className="flex gap-3">
+                <div className="flex gap-3 max-w-sm mx-auto">
                   <button onClick={() => setCheckoutStep(1)} className="flex-1 bg-[#121214] border border-gray-800 text-white font-black uppercase tracking-widest text-[10px] py-4 rounded-xl hover:bg-gray-900 transition">Back</button>
                   <button onClick={handleWhatsAppRedirect} className="flex-[2] bg-[#00e599] text-black font-black uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-[0_0_20px_rgba(0,229,153,0.3)] hover:bg-emerald-400 transition flex items-center justify-center gap-2">
                     I Have Paid <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
@@ -282,11 +362,12 @@ export default function ProductDetailPage() {
                 </div>
               )}
             </div>
+            
           </div>
         </div>
       )}
 
-      <style dangerouslySetInnerHTML={{__html: `.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #121214; border-radius: 4px; }`}} />
+      <style dangerouslySetInnerHTML={{__html: `.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #1a1a1c; border-radius: 4px; }`}} />
     </div>
   );
 }
