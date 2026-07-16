@@ -53,17 +53,29 @@ export default function ShopPage() {
     router.push(`/product/${id}`);
   };
 
-  // 🔥 THE MAGIC ENGINE: Filtering logic
+  // 🔥 THE MAGIC ENGINE 2.0: Super Smart Filtering logic
   const filteredProducts = products.filter((p) => {
-    // 1. Category Filter Match
-    const matchesCategory = 
-      activeCategory === "All" || 
-      (p.category && p.category.toLowerCase() === activeCategory.toLowerCase());
+    // 1. Category Filter Match (Smart plural/singular detection)
+    let matchesCategory = false;
+    if (activeCategory === "All") {
+      matchesCategory = true;
+    } else {
+      const dbCat = (p.category || "").toLowerCase();
+      const uiCat = activeCategory.toLowerCase();
+      // Remove 's' from UI category to match database (Tops -> top, Bottoms -> bottom)
+      const baseUiCat = uiCat.endsWith('s') ? uiCat.slice(0, -1) : uiCat; 
+      
+      // Check if DB category matches the base UI category
+      if (dbCat && (dbCat.includes(baseUiCat) || uiCat.includes(dbCat))) {
+        matchesCategory = true;
+      }
+    }
     
-    // 2. Search Query Match (Checks Title OR Seller Name)
+    // 2. Search Query Match (Checks Title OR Seller Name safely)
+    const searchLower = searchQuery.toLowerCase();
     const matchesSearch = 
-      p.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      p.profiles?.store_name?.toLowerCase().includes(searchQuery.toLowerCase());
+      (p.title && p.title.toLowerCase().includes(searchLower)) || 
+      (p.profiles?.store_name && p.profiles.store_name.toLowerCase().includes(searchLower));
       
     return matchesCategory && matchesSearch;
   });
@@ -86,7 +98,7 @@ export default function ShopPage() {
         </h1>
       </header>
 
-      {/* 🚀 SEARCH BAR (Now fully functional!) */}
+      {/* 🚀 SEARCH BAR */}
       <div className="px-5 mt-1">
         <div className="bg-[#121214] border border-gray-800 rounded-xl px-4 py-3 flex items-center gap-3">
           <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -105,7 +117,7 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* 🚀 CATEGORY PILLS (Now filtering data!) */}
+      {/* 🚀 CATEGORY PILLS */}
       <div className="mt-4 px-5">
         <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
           {categories.map((cat) => (
