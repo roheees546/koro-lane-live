@@ -20,9 +20,8 @@ export default function Home() {
   const [authPassword, setAuthPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Modal states removed! Only keeping selected product for Auth redirect
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null); 
 
   useEffect(() => {
     fetchProducts();
@@ -40,7 +39,6 @@ export default function Home() {
 
   const fetchProducts = async () => {
     try {
-      // 🔥 NEW: Fetching latest drops (even if sold out, so we can show FOMO badges)
       let { data: prods, error } = await supabase
         .from("products")
         .select(`*, profiles(store_name)`)
@@ -48,7 +46,6 @@ export default function Home() {
         .limit(8);
 
       if (prods) {
-        // Find which items are currently ON HOLD (pending order)
         const { data: pendingOrders } = await supabase
           .from("orders")
           .select("product_id")
@@ -56,7 +53,6 @@ export default function Home() {
 
         const pendingIds = pendingOrders?.map(o => o.product_id) || [];
 
-        // Attach isOnHold flag to products
         const enrichedProds = prods.map(p => ({
           ...p,
           isOnHold: p.is_sold && pendingIds.includes(p.id)
@@ -99,9 +95,9 @@ export default function Home() {
     if (error) alert(error.message); else alert("Reset link sent! Check your email. 🚀");
   };
 
+  // 🔥 UPDATE: Card click now directly routes to the Product Page! No more old modal!
   const handleCardClick = (product: any) => { 
-    setSelectedProduct(product); 
-    setIsDetailsOpen(true); 
+    router.push(`/product/${product.id}`); 
   };
 
   const handleBuyNowClick = (e: any, product: any) => {
@@ -180,6 +176,7 @@ export default function Home() {
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
              <span className="text-[#00e599]">⚡</span> LATEST DROPS
           </h3>
+          {/* 🔥 UPDATE: View all link now points to /shop */}
           <Link href="/shop" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View all</Link>
         </div>
         
@@ -192,7 +189,6 @@ export default function Home() {
               <div className="relative aspect-[4/5] bg-gray-900">
                 <span className="absolute top-2 left-2 bg-[#003320] text-[#00e599] text-[7px] font-bold px-1.5 py-0.5 rounded z-10 uppercase tracking-widest">{product.category || 'TOP'}</span>
                 
-                {/* 🔥 FOMO BADGES LOGIC */}
                 {product.isOnHold ? (
                   <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
                     <div className="bg-yellow-600 text-black text-[9px] font-black uppercase px-3 py-1 tracking-widest shadow-xl rotate-[-12deg] rounded-sm">ON HOLD ⏳</div>
@@ -213,7 +209,6 @@ export default function Home() {
                 <div className="mt-2">
                   <span className="text-xs font-black text-white block mb-2">₹{product.price.toLocaleString('en-IN')}</span>
                   
-                  {/* 🔥 DYNAMIC BUY BUTTON */}
                   <button 
                     onClick={(e) => {
                       if(product.is_sold) {
@@ -257,7 +252,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ALL MODALS REMAIN UNCHANGED BELOW */}
+      {/* 🛡️ SECURE AUTH MODAL */}
       {isAuthModalOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#121214] border border-gray-800 rounded-2xl w-full max-w-sm p-8 relative">
@@ -291,93 +286,6 @@ export default function Home() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {isDetailsOpen && selectedProduct && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-6" onClick={() => setIsDetailsOpen(false)}>
-          <div className="bg-[#0f0f11] sm:border border-gray-800 sm:rounded-2xl rounded-t-2xl w-full max-w-[450px] overflow-y-auto relative flex flex-col max-h-[90vh] sm:max-h-[95vh] shadow-[0_0_50px_rgba(0,0,0,0.8)] custom-scrollbar" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setIsDetailsOpen(false)} className="absolute top-4 right-4 z-20 bg-black/60 p-2.5 rounded-full text-gray-300 hover:text-white backdrop-blur-sm border border-gray-700/50 transition fixed sm:absolute">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-            
-            <div className="w-full h-[60vh] min-h-[400px] max-h-[600px] bg-[#050505] relative flex overflow-x-auto snap-x snap-mandatory hide-scrollbar scroll-smooth flex-shrink-0">
-              {selectedProduct.image_urls && selectedProduct.image_urls.length > 0 ? (
-                selectedProduct.image_urls.map((img: string, idx: number) => (
-                  <div key={idx} className="w-full h-full flex-shrink-0 snap-center relative cursor-zoom-in group" onClick={() => setFullScreenImage(img)}>
-                    <img src={img} className="w-full h-full object-contain" alt={`Product View ${idx}`} />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center pointer-events-none">
-                      <div className="bg-black/50 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition backdrop-blur-md">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="w-full h-full flex-shrink-0 snap-center relative cursor-zoom-in group" onClick={() => setFullScreenImage(selectedProduct.image_url)}>
-                   <img src={selectedProduct.image_url} className="w-full h-full object-contain" alt="Product View" />
-                </div>
-              )}
-            </div>
-
-            <div className="p-6 bg-[#0f0f11]">
-              <div className="flex justify-between items-center mb-3">
-                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">
-                  SELLER: <strong className="text-white">{selectedProduct.profiles?.store_name || "VERIFIED DEALER"}</strong>
-                </p>
-                <Link href={`/store/${selectedProduct.dealer_id}`} onClick={(e) => e.stopPropagation()} className="bg-[#003320] text-[#00e599] border border-[#00e599]/30 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-[#00e599] hover:text-black transition shadow-[0_0_10px_rgba(0,229,153,0.1)] flex items-center gap-1">
-                  View Shop <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                </Link>
-              </div>
-
-              <h2 className="text-xl font-black uppercase mb-3 text-white">{selectedProduct.title}</h2>
-              
-              <div className="flex items-end gap-3 mb-6">
-                <div className="bg-[#1a1a1c] border border-gray-800 rounded-lg px-4 py-2 flex flex-col items-center justify-center min-w-[70px]">
-                  <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Size</span>
-                  <span className="text-lg font-black text-white">{selectedProduct.size || 'L'}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[8px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Price</span>
-                  <p className="text-3xl font-black text-[#00e599] leading-none">₹{selectedProduct.price.toLocaleString('en-IN')}</p>
-                </div>
-              </div>
-              
-              <div className="mb-5">
-                <h3 className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-2">Description</h3>
-                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{selectedProduct.description}</p>
-              </div>
-              
-              <div className="flex justify-between items-center bg-[#151518] border border-gray-800 rounded-xl p-3 mb-6">
-                <div className="flex items-center gap-2"><span className="bg-red-500/10 text-red-500 p-1.5 rounded-lg"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span><div><p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">No Returns</p></div></div>
-                <div className="h-6 w-px bg-gray-700"></div>
-                <div className="flex items-center gap-2"><span className="bg-yellow-500/10 text-yellow-500 p-1.5 rounded-lg"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span><div><p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">No C.O.D</p></div></div>
-              </div>
-              
-              <button 
-                onClick={(e) => {
-                  if(selectedProduct.is_sold) {
-                    e.stopPropagation();
-                    router.push(`/product/${selectedProduct.id}`);
-                  } else {
-                    handleBuyNowClick(e, selectedProduct);
-                  }
-                }} 
-                className={`w-full font-black py-4 rounded-xl uppercase tracking-widest text-sm transition shadow-[0_0_20px_rgba(0,229,153,0.3)] ${selectedProduct.isOnHold ? 'bg-yellow-500 text-black shadow-[0_0_20px_rgba(234,179,8,0.3)]' : selectedProduct.is_sold ? 'bg-red-600 text-white shadow-none' : 'bg-[#00e599] text-black hover:bg-[#00c580]'}`}
-              >
-                {selectedProduct.isOnHold ? 'VIEW HELD ITEM ⏳' : selectedProduct.is_sold ? 'VIEW SOLD ITEM 🚫' : 'PROCEED TO SECURE CHECKOUT 💳'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {fullScreenImage && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex items-center justify-center p-2 sm:p-8 animate-in fade-in duration-200" onClick={() => setFullScreenImage(null)}>
-          <button className="absolute top-6 right-6 z-[110] bg-white/10 hover:bg-white/20 border border-white/20 p-3 rounded-full text-white transition backdrop-blur-md" onClick={() => setFullScreenImage(null)}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-          </button>
-          <img src={fullScreenImage} className="w-full h-full object-contain cursor-zoom-out" alt="Full Screen Zoom" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
       
