@@ -39,15 +39,32 @@ export default function MiniStorePage() {
         const { data: profile } = await supabase.from("profiles").select("*").eq("id", storeId).single();
         if (profile) setStoreProfile(profile);
 
-        // 3. Fetch Store Products
-        const { data: prods } = await supabase.from("products").select("*").eq("dealer_id", storeId).eq("is_sold", false).order('created_at', { ascending: false });
-        if (prods) setStoreProducts(prods);
+        // 3. 🔥 Fetch Store Products (REMOVED is_sold filter to show ON HOLD & SOLD items)
+        const { data: prods } = await supabase.from("products").select("*").eq("dealer_id", storeId).order('created_at', { ascending: false });
+        
+        if (prods) {
+          // Find which items are currently ON HOLD (pending order)
+          const { data: pendingOrders } = await supabase
+            .from("orders")
+            .select("product_id")
+            .eq("status", "pending");
 
-        // 4. Fetch Followers Count (Log kitne log is store ko follow kar rahe hain)
+          const pendingIds = pendingOrders?.map(o => o.product_id) || [];
+
+          // Attach isOnHold flag to products
+          const enrichedProds = prods.map(p => ({
+            ...p,
+            isOnHold: p.is_sold && pendingIds.includes(p.id)
+          }));
+          
+          setStoreProducts(enrichedProds);
+        }
+
+        // 4. Fetch Followers Count
         const { count: followersData } = await supabase.from("follows").select("*", { count: 'exact', head: true }).eq('following_id', storeId);
         setFollowersCount(followersData || 0);
 
-        // 5. Fetch Following Count (Ye store kitne logo ko follow kar raha hai)
+        // 5. Fetch Following Count
         const { count: followingData } = await supabase.from("follows").select("*", { count: 'exact', head: true }).eq('follower_id', storeId);
         setFollowingCount(followingData || 0);
 
@@ -73,7 +90,6 @@ export default function MiniStorePage() {
       return;
     }
     
-    // Prevent following yourself (optional but good logic)
     if (currentUser.id === storeId) {
       alert("You cannot follow your own store.");
       return;
@@ -82,12 +98,10 @@ export default function MiniStorePage() {
     setFollowLoading(true);
     try {
       if (isFollowing) {
-        // Unfollow
         await supabase.from("follows").delete().eq('follower_id', currentUser.id).eq('following_id', storeId);
         setIsFollowing(false);
         setFollowersCount((prev) => prev - 1);
       } else {
-        // Follow
         await supabase.from("follows").insert({ follower_id: currentUser.id, following_id: storeId });
         setIsFollowing(true);
         setFollowersCount((prev) => prev + 1);
@@ -324,14 +338,26 @@ export default function MiniStorePage() {
                   <Link href={`/product/${p.id}`} key={p.id} className="group relative rounded-xl overflow-hidden bg-[#0a0a0c] border border-gray-900 cursor-pointer block">
                     <div className="relative aspect-[4/5] bg-gray-900">
                       <img src={p.image_urls?.[0] || p.image_url} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                      
+                      {/* 🔥 ON HOLD / SOLD OUT BADGES HERE */}
+                      {p.isOnHold ? (
+                        <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
+                          <div className="bg-yellow-600 text-black text-[9px] font-black uppercase px-3 py-1 tracking-widest shadow-xl rotate-[-12deg] rounded-sm">ON HOLD ⏳</div>
+                        </div>
+                      ) : p.is_sold ? (
+                        <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
+                          <div className="bg-red-600 text-white text-[9px] font-black uppercase px-3 py-1 tracking-widest shadow-xl rotate-[-12deg] rounded-sm">SOLD OUT</div>
+                        </div>
+                      ) : null}
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10"></div>
                     </div>
-                    {isNew && (
+                    {isNew && !p.is_sold && (
                       <div className="absolute top-2 left-2 z-10">
                         <span className="bg-[#00e599]/20 text-[#00e599] border border-[#00e599]/30 text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded shadow-sm">NEW</span>
                       </div>
                     )}
-                    <button onClick={(e) => {e.preventDefault();}} className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md text-white hover:text-red-500 transition border border-white/10">
+                    <button onClick={(e) => {e.preventDefault();}} className="absolute top-2 right-2 z-20 w-7 h-7 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md text-white hover:text-red-500 transition border border-white/10">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
                     </button>
                     <div className="absolute bottom-0 left-0 w-full p-3 flex flex-col z-20">
@@ -339,14 +365,18 @@ export default function MiniStorePage() {
                       <p className="text-[8px] text-gray-300 font-medium tracking-wide shadow-black drop-shadow-md mb-2">{p.size ? `Size: ${p.size}` : 'Free Size'}</p>
                       <div className="flex justify-between items-center mt-1">
                         <span className="text-[13px] font-black text-[#00e599] shadow-black drop-shadow-md">₹{p.price.toLocaleString('en-IN')}</span>
-                        <div className="border border-white/20 hover:border-[#00e599] hover:bg-[#00e599]/10 text-white group-hover:text-[#00e599] text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded transition backdrop-blur-md">Buy Now</div>
+                        
+                        {/* 🔥 DYNAMIC CARD BUTTON */}
+                        <div className={`border text-[8px] font-bold uppercase tracking-widest px-3 py-1.5 rounded transition backdrop-blur-md ${p.isOnHold ? 'border-yellow-500/50 text-yellow-500 bg-yellow-500/10' : p.is_sold ? 'border-red-500/50 text-red-500 bg-red-500/10' : 'border-white/20 hover:border-[#00e599] hover:bg-[#00e599]/10 text-white group-hover:text-[#00e599]'}`}>
+                          {p.isOnHold ? 'ON HOLD' : p.is_sold ? 'SOLD' : 'BUY NOW'}
+                        </div>
                       </div>
                     </div>
                   </Link>
                 );
               }) : (
                 <div className="col-span-2 text-center py-16 border border-dashed border-gray-800 rounded-xl bg-[#0a0a0c]">
-                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">No active drops right now.</p>
+                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">No drops available.</p>
                 </div>
               )}
             </div>
