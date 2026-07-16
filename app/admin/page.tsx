@@ -45,7 +45,6 @@ export default function AdminDashboard() {
 
   const fetchOrders = async () => {
     setLoading(true);
-    // 🔥 UPDATE: `phone` bhi fetch kar rahe hain Dealer ka `profiles` table se
     const { data, error } = await supabase
       .from("orders")
       .select(`
@@ -87,17 +86,21 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
+  // 🔥 UPDATE: VERIFY PAYMENT (Changes status to 'processing' -> turns "ON HOLD" into "SOLD OUT")
   const handleVerifyPayment = async (orderId: string) => {
     const confirmVerify = confirm("Kya sach mein customer ne WhatsApp par payment screenshot bhej diya hai?");
     if (!confirmVerify) return;
 
     const { error } = await supabase
       .from("orders")
-      .update({ payment_status: "Verified" })
+      .update({ 
+        payment_status: "Verified",
+        status: "processing" // 👈 YE LINE APP PAR ITEM KO PERMANENT SOLD OUT KAREGI
+      })
       .eq("id", orderId);
 
     if (!error) {
-      alert("Payment Verified! Dealer can now pack this item. ✅");
+      alert("Payment Verified! Item is now permanently SOLD OUT. ✅");
       fetchOrders(); 
       if(selectedOrder && selectedOrder.id === orderId) setSelectedOrder(null);
     } else {
@@ -105,7 +108,26 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🔥 NEW POWER: REJECT FAKE ORDER & RESTORE ITEM
+  // 🔥 NEW ADMIN ACTION: MARK PACKED
+  const handleMarkPacked = async (orderId: string) => {
+    const confirmPack = confirm("Kya yeh item pack ho chuka hai pickup ke liye?");
+    if (!confirmPack) return;
+
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "packed" })
+      .eq("id", orderId);
+
+    if (!error) {
+      alert("Item Marked as Packed! 📦");
+      fetchOrders();
+      if(selectedOrder && selectedOrder.id === orderId) setSelectedOrder(null);
+    } else {
+      alert("Error updating status!");
+    }
+  };
+
+  // ♻️ REJECT FAKE ORDER & RESTORE ITEM
   const handleRejectOrder = async (orderId: string, productId: string) => {
     const confirmReject = confirm("🚨 FAKE ORDER ALERT! Kya sach me order delete karke item ko wapas Live karna hai?");
     if (!confirmReject) return;
@@ -139,7 +161,7 @@ export default function AdminDashboard() {
   };
 
   const handleDispatch = async (orderId: string) => {
-    const confirmDispatch = confirm("Kya tumne yeh item Dealer se pick-up karke Customer ko dispatch kar diya hai?");
+    const confirmDispatch = confirm("Kya tumne yeh item pick-up karke Customer ko dispatch kar diya hai?");
     if (!confirmDispatch) return;
 
     const { error } = await supabase
@@ -163,7 +185,6 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 selection:bg-[#00e599] selection:text-black">
         <div className="bg-[#0a0a0c] border border-gray-900 p-8 rounded-2xl w-full max-w-sm text-center shadow-2xl relative overflow-hidden">
-          {/* Subtle neon glow on top */}
           <div className="absolute top-0 left-0 w-full h-1 bg-red-600 opacity-80"></div>
           
           <h1 className="text-xl font-black tracking-tighter text-white mb-2 flex items-center justify-center gap-2">
@@ -291,12 +312,15 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4 text-right flex flex-col gap-2 items-end">
                       
-                      {/* 🔥 NEW UI: Split actions for Pending Orders */}
+                      {/* 🔥 NEW UI: Admin Actions */}
                       {order.payment_status === "Pending WhatsApp Confirmation" ? (
                         <div className="flex flex-col gap-1.5 w-full">
                           <button onClick={() => handleVerifyPayment(order.id)} className="bg-yellow-500 text-black hover:bg-yellow-400 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition w-full shadow-[0_0_10px_rgba(234,179,8,0.2)]">Verify Pay ✅</button>
                           <button onClick={() => handleRejectOrder(order.id, order.product_id)} className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-black border border-red-500/20 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition w-full">Reject Fake ♻️</button>
                         </div>
+                      ) : order.status === "processing" ? (
+                        // 🔥 Add Mark Packed feature directly to Admin panel
+                        <button onClick={() => handleMarkPacked(order.id)} className="bg-blue-500/10 text-blue-500 border border-blue-500/30 hover:bg-blue-500 hover:text-black px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition w-full">Mark Packed 📦</button>
                       ) : order.status === "packed" ? (
                         <button onClick={() => handleDispatch(order.id)} className="bg-[#00e599] text-black hover:bg-[#00c580] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition w-full shadow-[0_0_10px_rgba(0,229,153,0.3)]">Dispatch 🚚</button>
                       ) : order.status === "dispatched" ? (
@@ -305,7 +329,7 @@ export default function AdminDashboard() {
                         <span className="text-[10px] text-gray-600 font-bold uppercase tracking-widest text-center w-full py-1.5">-</span>
                       )}
                       
-                      {/* 🔥 VIEW DETAILS BUTTON */}
+                      {/* VIEW DETAILS BUTTON */}
                       <button onClick={() => setSelectedOrder(order)} className="bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition w-full border border-gray-700 mt-1">
                         Full Details 📋
                       </button>
@@ -323,7 +347,6 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#121214] border border-gray-800 rounded-2xl w-full max-w-2xl overflow-hidden relative shadow-[0_0_40px_rgba(0,0,0,0.8)]">
             
-            {/* Modal Header */}
             <div className="bg-[#0a0a0c] border-b border-gray-800 px-6 py-4 flex justify-between items-center">
               <div>
                 <h2 className="text-[#00e599] font-black uppercase tracking-widest text-sm flex items-center gap-2">
@@ -336,10 +359,8 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* Modal Body: Two Columns for Pick & Drop */}
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {/* 🏢 SELLER (PICKUP POINT) */}
               <div className="bg-[#003320]/10 border border-[#00e599]/20 rounded-xl p-5">
                 <h3 className="text-[10px] text-[#00e599] font-black uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-[#00e599]/20 pb-2">
                   🏪 Pick-Up (Seller)
@@ -366,7 +387,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* 🏡 CUSTOMER (DROP-OFF POINT) */}
               <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-5">
                 <h3 className="text-[10px] text-orange-500 font-black uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-orange-500/20 pb-2">
                   📍 Drop-Off (Customer)
@@ -396,7 +416,6 @@ export default function AdminDashboard() {
 
             </div>
 
-            {/* Modal Footer actions */}
             <div className="bg-[#0a0a0c] border-t border-gray-800 p-4 flex justify-between items-center gap-4 flex-wrap">
                <div className="flex items-center gap-2">
                  <span className="text-[9px] text-gray-500 uppercase font-bold tracking-widest">Payment:</span>
@@ -410,6 +429,20 @@ export default function AdminDashboard() {
                  {selectedOrder.payment_status === 'Pending WhatsApp Confirmation' && (
                    <button onClick={() => handleRejectOrder(selectedOrder.id, selectedOrder.product_id)} className="bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-black font-black uppercase tracking-widest text-[9px] px-4 py-2 rounded-lg transition">
                      Reject Fake ♻️
+                   </button>
+                 )}
+
+                 {/* Verify Pay right inside modal */}
+                 {selectedOrder.payment_status === 'Pending WhatsApp Confirmation' && (
+                   <button onClick={() => handleVerifyPayment(selectedOrder.id)} className="bg-yellow-500 text-black hover:bg-yellow-400 font-black uppercase tracking-widest text-[9px] px-4 py-2 rounded-lg transition">
+                     Verify Pay ✅
+                   </button>
+                 )}
+
+                 {/* New Mark Packed inside Modal */}
+                 {selectedOrder.status === 'processing' && (
+                   <button onClick={() => handleMarkPacked(selectedOrder.id)} className="bg-blue-500/10 text-blue-500 border border-blue-500/30 hover:bg-blue-500 hover:text-black font-black uppercase tracking-widest text-[10px] px-4 py-2 rounded-lg transition">
+                     Mark Packed 📦
                    </button>
                  )}
 

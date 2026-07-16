@@ -12,6 +12,7 @@ export default function ProductDetailPage() {
   
   const [product, setProduct] = useState<any>(null);
   const [seller, setSeller] = useState<any>(null);
+  const [pendingOrder, setPendingOrder] = useState<any>(null); // 🔥 NEW: Track if it's on hold
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -19,9 +20,9 @@ export default function ProductDetailPage() {
   // Checkout States
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState(1);
-  const [timeLeft, setTimeLeft] = useState(588); // 09:48 in seconds
+  const [timeLeft, setTimeLeft] = useState(565); 
   const [formData, setFormData] = useState({ name: '', phone: '', address: '', pincode: '' });
-  const [isProcessing, setIsProcessing] = useState(false); 
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // FOMO Timer Logic
   useEffect(() => {
@@ -40,12 +41,22 @@ export default function ProductDetailPage() {
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
+        // 1. Fetch Product
         const { data: prodData, error: prodError } = await supabase.from("products").select("*").eq("id", productId).single();
         if (prodError) throw prodError;
+        
         if (prodData) {
           setProduct(prodData);
+          
+          // 2. Fetch Seller
           const { data: sellerData } = await supabase.from("profiles").select("*").eq("id", prodData.dealer_id).single();
           if (sellerData) setSeller(sellerData);
+
+          // 3. 🔥 Fetch if there is a pending order for this product (ON HOLD CHECK)
+          if (prodData.is_sold) {
+            const { data: orderData } = await supabase.from("orders").select("*").eq("product_id", prodData.id).eq("status", "pending").maybeSingle();
+            if (orderData) setPendingOrder(orderData);
+          }
         }
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -62,7 +73,7 @@ export default function ProductDetailPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Database Logic Restored!
+  // Database Order Logic
   const handlePaymentConfirm = async () => {
     setIsProcessing(true);
     try {
@@ -117,7 +128,17 @@ export default function ProductDetailPage() {
       </header>
 
       <div className="relative w-full aspect-[4/5] bg-[#121214] max-w-xl mx-auto">
-        {product.is_sold && <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-sm"><div className="bg-red-600 border-2 border-black text-white text-3xl font-black uppercase px-6 py-2 tracking-widest rotate-[-15deg] shadow-2xl">SOLD OUT</div></div>}
+        {/* 🔥 DYNAMIC ON HOLD / SOLD OUT BADGE */}
+        {product.is_sold && (
+          <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-sm">
+            {pendingOrder ? (
+              <div className="bg-yellow-600 border-2 border-black text-white text-2xl font-black uppercase px-6 py-2 tracking-widest rotate-[-15deg] shadow-2xl">ON HOLD ⏳</div>
+            ) : (
+              <div className="bg-red-600 border-2 border-black text-white text-3xl font-black uppercase px-6 py-2 tracking-widest rotate-[-15deg] shadow-2xl">SOLD OUT</div>
+            )}
+          </div>
+        )}
+        
         {images.length > 0 ? <img src={images[activeImage]} alt={product.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-700 font-bold uppercase">No Image Available</div>}
         {images.length > 1 && (
           <div className="absolute bottom-4 left-0 w-full flex justify-center gap-2 z-10">
@@ -178,23 +199,23 @@ export default function ProductDetailPage() {
             <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Total Price</span>
             <span className="text-lg font-black text-white">₹{totalPrice.toLocaleString('en-IN')}</span>
           </div>
+          
+          {/* 🔥 DYNAMIC BUTTON TEXT (Buy Now / On Hold / Out of Stock) */}
           <button 
             disabled={product.is_sold}
             onClick={() => setIsCheckoutOpen(true)}
             className={`flex-1 font-black uppercase tracking-widest py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95 ${product.is_sold ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-[#00e599] text-black hover:bg-emerald-400 shadow-[0_0_20px_rgba(0,229,153,0.3)]'}`}
           >
-            {product.is_sold ? 'Out of Stock' : 'Buy Now'}
+            {product.is_sold ? (pendingOrder ? 'On Hold ⏳' : 'Out of Stock') : 'Buy Now'}
             {!product.is_sold && <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>}
           </button>
         </div>
       </div>
 
-      {/* 🚀 IMAGE #2 EXACT MATCH CHECKOUT MODAL WITH FORM INPUTS */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-sm">
           <div className="bg-[#050505] w-full sm:max-w-lg h-[95vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl border border-gray-800 shadow-2xl flex flex-col relative overflow-hidden animate-in slide-in-from-bottom-full duration-300">
             
-            {/* Modal Header */}
             <div className="p-5 border-b border-gray-900 flex justify-between items-center bg-[#0a0a0c] shrink-0">
               <div>
                 <h2 className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-2">
@@ -209,9 +230,7 @@ export default function ProductDetailPage() {
               {checkoutStep === 1 && (
                 <div className="animate-in fade-in space-y-3">
                   
-                  {/* Top Bar: Product & Seller side-by-side */}
                   <div className="grid grid-cols-2 gap-3">
-                    {/* Product Card */}
                     <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex gap-3">
                       <img src={images[0]} alt={product.title} className="w-12 h-16 object-cover rounded-md border border-gray-800 shrink-0" />
                       <div className="flex flex-col justify-center">
@@ -220,7 +239,6 @@ export default function ProductDetailPage() {
                         <span className="inline-block mt-1.5 border border-gray-700 text-gray-400 text-[8px] uppercase font-bold px-2 py-0.5 rounded w-max tracking-widest">1-OF-1 PIECE</span>
                       </div>
                     </div>
-                    {/* Seller Card Top */}
                     {seller && (
                       <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -236,7 +254,6 @@ export default function ProductDetailPage() {
                     )}
                   </div>
 
-                  {/* FOMO Timer */}
                   <div className="border border-[#00e599]/30 bg-[#001f14]/40 rounded-xl p-3 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-gray-300">
                       <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -245,7 +262,6 @@ export default function ProductDetailPage() {
                     <span className="text-base font-black text-[#00e599]">{formatTime(timeLeft)}</span>
                   </div>
 
-                  {/* DELIVER TO: Working Form */}
                   <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-4 mt-2">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-[11px] font-bold uppercase text-white flex items-center gap-2">
@@ -261,7 +277,6 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* Delivery Speed Block */}
                   <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-4 flex justify-between items-start">
                     <div>
                       <h3 className="text-[11px] font-bold uppercase text-white flex items-center gap-2 mb-1.5">
@@ -274,7 +289,6 @@ export default function ProductDetailPage() {
                     <span className="bg-[#003320]/40 text-[#00e599] text-[9px] font-black uppercase px-2 py-1 rounded flex items-center gap-1 border border-[#00e599]/20">⚡ FAST</span>
                   </div>
 
-                  {/* Trust & Stats Blocks */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex items-center gap-2">
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
@@ -286,7 +300,6 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* Order Summary Block */}
                   <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-4">
                     <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Order Summary</h3>
                     <div className="flex justify-between text-xs text-gray-300 mb-2.5"><span>Item Price</span><span>₹{itemPrice}</span></div>
@@ -298,7 +311,6 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* Trust Badges Details */}
                   <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-4 space-y-4">
                     <div className="flex gap-3 items-center">
                       <svg className="w-5 h-5 text-[#00e599] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
@@ -333,7 +345,6 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Sticky Bottom Bar (Exact match to Image 2) */}
             <div className="absolute bottom-0 left-0 w-full bg-[#050505] border-t border-gray-900 z-50">
               {checkoutStep === 1 ? (
                 <div className="w-full">
