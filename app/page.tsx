@@ -4,25 +4,22 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import WishlistButton from "../components/WishlistButton"; // 🔥 NEW: Wishlist Engine
+import WishlistButton from "../components/WishlistButton"; 
 
 export default function Home() {
   const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // 🔐 Role & Auth States
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // 🚀 Premium Auth Modal States
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
-  // 🖼️ Details Modal States
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null); 
@@ -43,20 +40,30 @@ export default function Home() {
 
   const fetchProducts = async () => {
     try {
-      // 🔥 NEW: Performance Limit (Only 6 items for Discovery Home)
+      // 🔥 NEW: Fetching latest drops (even if sold out, so we can show FOMO badges)
       let { data: prods, error } = await supabase
         .from("products")
         .select(`*, profiles(store_name)`)
-        .eq("is_sold", false)
         .order("created_at", { ascending: false })
-        .limit(6);
+        .limit(8);
 
-      if (error) {
-        const fallback = await supabase.from("products").select("*").eq("is_sold", false).order("created_at", { ascending: false }).limit(6);
-        prods = fallback.data;
+      if (prods) {
+        // Find which items are currently ON HOLD (pending order)
+        const { data: pendingOrders } = await supabase
+          .from("orders")
+          .select("product_id")
+          .eq("status", "pending");
+
+        const pendingIds = pendingOrders?.map(o => o.product_id) || [];
+
+        // Attach isOnHold flag to products
+        const enrichedProds = prods.map(p => ({
+          ...p,
+          isOnHold: p.is_sold && pendingIds.includes(p.id)
+        }));
+
+        setProducts(enrichedProds);
       }
-
-      if (prods) setProducts(prods);
     } catch (err) {
       console.error(err);
     } finally {
@@ -80,7 +87,6 @@ export default function Home() {
       setIsAuthModalOpen(false);
       setAuthEmail(""); setAuthPassword("");
 
-      // If they were trying to buy a product before logging in, send them to the product page now
       if (selectedProduct) { 
           router.push(`/product/${selectedProduct.id}`);
       }
@@ -100,7 +106,6 @@ export default function Home() {
 
   const handleBuyNowClick = (e: any, product: any) => {
     e.stopPropagation(); 
-    // If not logged in, ask to login first. Otherwise, send straight to product page.
     if(!isLoggedIn) { 
         setSelectedProduct(product); 
         setAuthMode('signup'); 
@@ -115,25 +120,21 @@ export default function Home() {
   return (
     <div className="bg-black text-white w-full pb-20">
       
-      {/* 🚀 SMART APP HEADER (CLEANED) */}
       <header className="px-5 py-4 flex justify-between items-center sticky top-0 bg-black/90 backdrop-blur z-30">
         <h1 className="text-xl font-black tracking-tighter flex items-center gap-2">
           KORO<span className="text-[#00e599]">LANE</span>
         </h1>
-        {/* Route changed to /search as per plan */}
         <Link href="/search" className="bg-[#121214] text-gray-400 border border-gray-800 hover:border-[#00e599] hover:text-[#00e599] transition px-3 py-2 rounded-lg text-[10px] font-bold flex items-center gap-2 w-44">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           Search drops & sellers...
         </Link>
       </header>
 
-      {/* 🚀 DISCOVERY BANNER */}
       <section className="px-5 pt-4 pb-6">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-[#00e599]">📍</span>
           <p className="text-[10px] font-bold text-[#00e599] uppercase tracking-widest">DEHRADUN LIVE <span className="text-gray-500 lowercase ml-1">Next day delivery in Dehradun</span></p>
         </div>
-
         <div className="bg-[#003320]/20 border border-[#00e599]/20 p-5 rounded-2xl flex items-center justify-between shadow-[0_0_15px_rgba(0,229,153,0.05)]">
           <div>
             <div className="w-8 h-8 bg-[#00e599]/10 rounded-full flex items-center justify-center mb-2">
@@ -146,7 +147,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 FEATURED SELLERS */}
       <section className="pt-2 pb-6">
         <div className="flex justify-between items-center px-5 mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
@@ -175,7 +175,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 LATEST DROPS */}
       <section className="pb-8">
         <div className="flex justify-between items-center px-5 mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
@@ -192,6 +191,18 @@ export default function Home() {
               
               <div className="relative aspect-[4/5] bg-gray-900">
                 <span className="absolute top-2 left-2 bg-[#003320] text-[#00e599] text-[7px] font-bold px-1.5 py-0.5 rounded z-10 uppercase tracking-widest">{product.category || 'TOP'}</span>
+                
+                {/* 🔥 FOMO BADGES LOGIC */}
+                {product.isOnHold ? (
+                  <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
+                    <div className="bg-yellow-600 text-black text-[9px] font-black uppercase px-3 py-1 tracking-widest shadow-xl rotate-[-12deg] rounded-sm">ON HOLD ⏳</div>
+                  </div>
+                ) : product.is_sold ? (
+                  <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
+                    <div className="bg-red-600 text-white text-[9px] font-black uppercase px-3 py-1 tracking-widest shadow-xl rotate-[-12deg] rounded-sm">SOLD OUT</div>
+                  </div>
+                ) : null}
+
                 <img src={product.image_urls?.[0] || product.image_url} alt={product.title} className="w-full h-full object-cover" />
               </div>
               <div className="p-3 flex flex-col flex-grow justify-between bg-gradient-to-t from-black to-[#0a0a0c]">
@@ -201,8 +212,20 @@ export default function Home() {
                 </div>
                 <div className="mt-2">
                   <span className="text-xs font-black text-white block mb-2">₹{product.price.toLocaleString('en-IN')}</span>
-                  <button onClick={(e) => handleBuyNowClick(e, product)} className="w-full bg-[#00e599]/10 text-[#00e599] hover:bg-[#00e599] hover:text-black border border-[#00e599]/20 text-[8px] font-black uppercase py-1.5 rounded transition">
-                    Buy Now
+                  
+                  {/* 🔥 DYNAMIC BUY BUTTON */}
+                  <button 
+                    onClick={(e) => {
+                      if(product.is_sold) {
+                        e.stopPropagation();
+                        router.push(`/product/${product.id}`); 
+                      } else {
+                        handleBuyNowClick(e, product);
+                      }
+                    }} 
+                    className={`w-full text-[8px] font-black uppercase py-1.5 rounded transition ${product.isOnHold ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : product.is_sold ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-[#00e599]/10 text-[#00e599] hover:bg-[#00e599] hover:text-black border border-[#00e599]/20'}`}
+                  >
+                    {product.isOnHold ? 'On Hold ⏳' : product.is_sold ? 'Sold Out 🚫' : 'Buy Now'}
                   </button>
                 </div>
               </div>
@@ -211,7 +234,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 WHY KORO LANE */}
       <section className="px-5 pb-10">
         <h3 className="text-xs font-black uppercase tracking-widest text-white mb-4 flex items-center gap-2">
            <span className="text-[#00e599]">🛡️</span> WHY KORO LANE?
@@ -235,7 +257,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🛡️ SECURE AUTH MODAL */}
+      {/* ALL MODALS REMAIN UNCHANGED BELOW */}
       {isAuthModalOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#121214] border border-gray-800 rounded-2xl w-full max-w-sm p-8 relative">
@@ -272,7 +294,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* 🔥 UPGRADED PRODUCT DETAILS MODAL (Re-routed to actual Product Page) */}
       {isDetailsOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-6" onClick={() => setIsDetailsOpen(false)}>
           <div className="bg-[#0f0f11] sm:border border-gray-800 sm:rounded-2xl rounded-t-2xl w-full max-w-[450px] overflow-y-auto relative flex flex-col max-h-[90vh] sm:max-h-[95vh] shadow-[0_0_50px_rgba(0,0,0,0.8)] custom-scrollbar" onClick={(e) => e.stopPropagation()}>
@@ -333,14 +354,24 @@ export default function Home() {
                 <div className="flex items-center gap-2"><span className="bg-yellow-500/10 text-yellow-500 p-1.5 rounded-lg"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span><div><p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">No C.O.D</p></div></div>
               </div>
               
-              {/* THIS BUTTON NOW ROUTES TO THE PRODUCT PAGE FOR CHECKOUT */}
-              <button onClick={(e) => handleBuyNowClick(e, selectedProduct)} className="w-full bg-[#00e599] text-black font-black py-4 rounded-xl uppercase tracking-widest text-sm hover:bg-[#00c580] transition shadow-[0_0_20px_rgba(0,229,153,0.3)]">PROCEED TO SECURE CHECKOUT 💳</button>
+              <button 
+                onClick={(e) => {
+                  if(selectedProduct.is_sold) {
+                    e.stopPropagation();
+                    router.push(`/product/${selectedProduct.id}`);
+                  } else {
+                    handleBuyNowClick(e, selectedProduct);
+                  }
+                }} 
+                className={`w-full font-black py-4 rounded-xl uppercase tracking-widest text-sm transition shadow-[0_0_20px_rgba(0,229,153,0.3)] ${selectedProduct.isOnHold ? 'bg-yellow-500 text-black shadow-[0_0_20px_rgba(234,179,8,0.3)]' : selectedProduct.is_sold ? 'bg-red-600 text-white shadow-none' : 'bg-[#00e599] text-black hover:bg-[#00c580]'}`}
+              >
+                {selectedProduct.isOnHold ? 'VIEW HELD ITEM ⏳' : selectedProduct.is_sold ? 'VIEW SOLD ITEM 🚫' : 'PROCEED TO SECURE CHECKOUT 💳'}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 📸 FULL SCREEN IMAGE VIEWER */}
       {fullScreenImage && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex items-center justify-center p-2 sm:p-8 animate-in fade-in duration-200" onClick={() => setFullScreenImage(null)}>
           <button className="absolute top-6 right-6 z-[110] bg-white/10 hover:bg-white/20 border border-white/20 p-3 rounded-full text-white transition backdrop-blur-md" onClick={() => setFullScreenImage(null)}>
@@ -350,7 +381,6 @@ export default function Home() {
         </div>
       )}
       
-      {/* Hide Scrollbars Global style for horizontal lists */}
       <style dangerouslySetInnerHTML={{__html: `.hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}} />
     </div>
   );
