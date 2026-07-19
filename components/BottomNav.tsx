@@ -10,7 +10,7 @@ export default function BottomNav() {
   const [showRoleModal, setShowRoleModal] = useState(false);
 
   // 🔥 FAST UI: Seedha popup kholo, no wait time!
-  const handleTerminalClick = (e: React.MouseEvent) => {
+  const handleProfileClick = (e: React.MouseEvent) => {
     e.preventDefault();
     setShowRoleModal(true);
   };
@@ -37,10 +37,10 @@ export default function BottomNav() {
           <span className="text-[9px] font-bold uppercase tracking-widest">Feed</span>
         </Link>
 
-        {/* 4. TERMINAL */}
-        <button onClick={handleTerminalClick} className={`flex flex-col items-center gap-1.5 w-16 ${pathname === '/scout' || pathname === '/dealer' ? 'text-[#00e599]' : 'text-gray-500 hover:text-gray-300'}`}>
+        {/* 4. PROFILE (Updated from Terminal) */}
+        <button onClick={handleProfileClick} className={`flex flex-col items-center gap-1.5 w-16 ${pathname === '/scout' || pathname === '/dealer' ? 'text-[#00e599]' : 'text-gray-500 hover:text-gray-300'}`}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-          <span className="text-[9px] font-bold uppercase tracking-widest">Terminal</span>
+          <span className="text-[9px] font-bold uppercase tracking-widest">Profile</span>
         </button>
 
       </nav>
@@ -49,12 +49,12 @@ export default function BottomNav() {
       {showRoleModal && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-6" onClick={() => setShowRoleModal(false)}>
           <div className="bg-[#121214] border border-gray-800 rounded-2xl w-full max-w-sm p-6 relative" onClick={e => e.stopPropagation()}>
-            <h3 className="text-[#00e599] font-black uppercase tracking-widest text-sm mb-6 text-center">Select Terminal</h3>
+            <h3 className="text-[#00e599] font-black uppercase tracking-widest text-sm mb-6 text-center">Select Profile</h3>
             <div className="space-y-4">
               <button onClick={() => { setShowRoleModal(false); router.push('/scout'); }} className="w-full bg-[#0a0a0c] border border-gray-800 hover:border-[#00e599] p-4 rounded-xl flex items-center justify-between group transition">
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🧑‍🚀</span>
-                  <span className="text-xs font-bold uppercase tracking-widest text-gray-300 group-hover:text-white">Buyer Terminal</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-gray-300 group-hover:text-white">Buyer Profile</span>
                 </div>
                 <svg className="w-4 h-4 text-gray-600 group-hover:text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
               </button>
@@ -62,7 +62,7 @@ export default function BottomNav() {
               <button onClick={() => { setShowRoleModal(false); router.push('/dealer'); }} className="w-full bg-[#003320]/20 border border-[#00e599]/30 hover:bg-[#003320]/50 p-4 rounded-xl flex items-center justify-between group transition">
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🏪</span>
-                  <span className="text-xs font-bold uppercase tracking-widest text-[#00e599]">Seller Terminal</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#00e599]">Seller Profile</span>
                 </div>
                 <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
               </button>

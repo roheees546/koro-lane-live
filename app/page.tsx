@@ -20,7 +20,6 @@ export default function Home() {
   const [authPassword, setAuthPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Modal states removed! Only keeping selected product for Auth redirect
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   useEffect(() => {
@@ -95,7 +94,6 @@ export default function Home() {
     if (error) alert(error.message); else alert("Reset link sent! Check your email. 🚀");
   };
 
-  // 🔥 UPDATE: Card click now directly routes to the Product Page! No more old modal!
   const handleCardClick = (product: any) => { 
     router.push(`/product/${product.id}`); 
   };
@@ -114,23 +112,38 @@ export default function Home() {
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-[#00e599] font-bold tracking-widest text-xs uppercase">Loading Platform...</div>;
 
   return (
-    <div className="bg-black text-white w-full pb-20">
+    <div className="bg-black text-white w-full pb-24 min-h-screen">
       
-      <header className="px-5 py-4 flex justify-between items-center sticky top-0 bg-black/90 backdrop-blur z-30">
-        <h1 className="text-xl font-black tracking-tighter flex items-center gap-2">
-          KORO<span className="text-[#00e599]">LANE</span>
-        </h1>
-        <Link href="/search" className="bg-[#121214] text-gray-400 border border-gray-800 hover:border-[#00e599] hover:text-[#00e599] transition px-3 py-2 rounded-lg text-[10px] font-bold flex items-center gap-2 w-44">
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      {/* 🚀 REDESIGNED HEADER (Points 1 & 5) */}
+      <header className="px-5 pt-4 pb-3 sticky top-0 bg-black/90 backdrop-blur-md z-40 border-b border-gray-900">
+        <div className="flex justify-between items-center mb-3">
+          <h1 className="text-xl font-black tracking-tighter flex items-center gap-2">
+            KORO<span className="text-[#00e599]">LANE</span>
+          </h1>
+          <div className="flex items-center gap-4">
+            <Link href="/wishlist" className="text-gray-300 hover:text-white transition">
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+            </Link>
+            <button className="relative text-gray-300 hover:text-white transition">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+              <span className="absolute top-0 right-0.5 w-2 h-2 bg-[#00e599] rounded-full border border-black"></span>
+            </button>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-1.5 mb-3">
+          <span className="text-[#00e599] text-[10px]">📍</span>
+          <p className="text-[10px] font-bold text-gray-300 tracking-widest lowercase">Dehradun next day delivery</p>
+        </div>
+
+        <Link href="/search" className="bg-[#121214] w-full text-gray-400 border border-gray-800 hover:border-gray-600 transition px-4 py-2.5 rounded-xl text-xs flex items-center gap-2">
+          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           Search drops & sellers...
         </Link>
       </header>
 
-      <section className="px-5 pt-4 pb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-[#00e599]">📍</span>
-          <p className="text-[10px] font-bold text-[#00e599] uppercase tracking-widest">DEHRADUN LIVE <span className="text-gray-500 lowercase ml-1">Next day delivery in Dehradun</span></p>
-        </div>
+      {/* VERIFIED SELLERS BANNER */}
+      <section className="px-5 pt-5 pb-6">
         <div className="bg-[#003320]/20 border border-[#00e599]/20 p-5 rounded-2xl flex items-center justify-between shadow-[0_0_15px_rgba(0,229,153,0.05)]">
           <div>
             <div className="w-8 h-8 bg-[#00e599]/10 rounded-full flex items-center justify-center mb-2">
@@ -143,6 +156,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 🚀 FEATURED SELLERS (Point 2 - Now a slider!) */}
       <section className="pt-2 pb-6">
         <div className="flex justify-between items-center px-5 mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
@@ -151,8 +165,9 @@ export default function Home() {
           <Link href="/sellers" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View all</Link>
         </div>
         
-        <div className="px-5">
-          <Link href={`/store/03bc76a4-84c4-4d89-bf83-6cc89b52a7c4`} className="bg-[#121214] border border-gray-800 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-600 transition">
+        <div className="flex overflow-x-auto hide-scrollbar px-5 gap-4 snap-x snap-mandatory pb-2">
+          {/* Seller 1 */}
+          <Link href={`/store/03bc76a4-84c4-4d89-bf83-6cc89b52a7c4`} className="w-[280px] shrink-0 snap-start bg-[#121214] border border-gray-800 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-600 transition">
             <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#003320]/20 to-transparent pointer-events-none"></div>
             <div className="w-16 h-16 bg-black border border-gray-700 rounded-full flex items-center justify-center shrink-0">
               <span className="text-[10px] font-black text-white text-center leading-tight">GET<br/>NOW</span>
@@ -168,6 +183,21 @@ export default function Home() {
               </div>
             </div>
           </Link>
+
+          {/* Dummy Seller 2 (To show slider effect) */}
+          <Link href={`/store/frido`} className="w-[280px] shrink-0 snap-start bg-[#121214] border border-gray-800 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-600 transition">
+            <div className="w-16 h-16 bg-black border border-gray-700 rounded-full flex items-center justify-center shrink-0">
+              <span className="text-[10px] font-black text-white text-center leading-tight">FRIDO</span>
+            </div>
+            <div>
+              <span className="bg-gray-800 text-gray-300 text-[7px] font-bold px-2 py-0.5 rounded uppercase tracking-widest mb-1 inline-block">Verified</span>
+              <h4 className="text-sm font-black text-white flex items-center gap-1">Frido.in <svg className="w-3 h-3 text-[#00e599]" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></h4>
+              <p className="text-[9px] text-gray-500 mt-0.5">Dehradun, Uttarakhand</p>
+              <div className="mt-2 flex gap-2 items-center">
+                <span className="text-[9px] text-yellow-500 font-bold">★ 4.9 <span className="text-gray-500">(8)</span></span>
+              </div>
+            </div>
+          </Link>
         </div>
       </section>
 
@@ -176,7 +206,6 @@ export default function Home() {
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
              <span className="text-[#00e599]">⚡</span> LATEST DROPS
           </h3>
-          {/* 🔥 UPDATE: View all link now points to /shop */}
           <Link href="/shop" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View all</Link>
         </div>
         
@@ -229,6 +258,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 🚀 WHY KORO LANE (Points 4 & 6 - Free Delivery Truck) */}
       <section className="px-5 pb-10">
         <h3 className="text-xs font-black uppercase tracking-widest text-white mb-4 flex items-center gap-2">
            <span className="text-[#00e599]">🛡️</span> WHY KORO LANE?
@@ -244,9 +274,13 @@ export default function Home() {
             <h5 className="text-[9px] font-bold text-white mb-1">Single Pieces</h5>
             <p className="text-[8px] text-gray-500">One-of-a-kind finds</p>
           </div>
+          
+          {/* 🔥 NEW TRUCK ICON */}
           <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex flex-col items-center text-center">
-            <svg className="w-6 h-6 text-[#00e599] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-            <h5 className="text-[9px] font-bold text-white mb-1">Easy Delivery</h5>
+            <svg className="w-6 h-6 text-[#00e599] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"></path>
+            </svg>
+            <h5 className="text-[9px] font-bold text-white mb-1">Free Delivery</h5>
             <p className="text-[8px] text-gray-500">Fast in Dehradun</p>
           </div>
         </div>

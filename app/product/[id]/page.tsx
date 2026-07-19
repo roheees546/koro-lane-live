@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import WishlistButton from "@/components/WishlistButton"; // 🔥 Fixed Import Path
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -12,7 +13,7 @@ export default function ProductDetailPage() {
   
   const [product, setProduct] = useState<any>(null);
   const [seller, setSeller] = useState<any>(null);
-  const [pendingOrder, setPendingOrder] = useState<any>(null); // 🔥 NEW: Track if it's on hold
+  const [pendingOrder, setPendingOrder] = useState<any>(null); 
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -41,18 +42,15 @@ export default function ProductDetailPage() {
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
-        // 1. Fetch Product
         const { data: prodData, error: prodError } = await supabase.from("products").select("*").eq("id", productId).single();
         if (prodError) throw prodError;
         
         if (prodData) {
           setProduct(prodData);
           
-          // 2. Fetch Seller
           const { data: sellerData } = await supabase.from("profiles").select("*").eq("id", prodData.dealer_id).single();
           if (sellerData) setSeller(sellerData);
 
-          // 3. 🔥 Fetch if there is a pending order for this product (ON HOLD CHECK)
           if (prodData.is_sold) {
             const { data: orderData } = await supabase.from("orders").select("*").eq("product_id", prodData.id).eq("status", "pending").maybeSingle();
             if (orderData) setPendingOrder(orderData);
@@ -73,7 +71,6 @@ export default function ProductDetailPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Database Order Logic
   const handlePaymentConfirm = async () => {
     setIsProcessing(true);
     try {
@@ -120,15 +117,29 @@ export default function ProductDetailPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans flex flex-col relative selection:bg-[#00e599] selection:text-black pb-40">
       
+      {/* 🚀 FIXED HEADER WITH BACK, SHARE, AND WISHLIST BUTTONS */}
       <header className="fixed top-0 left-0 w-full px-5 py-4 flex justify-between items-center z-40 pointer-events-none">
-        <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:text-[#00e599] transition pointer-events-auto"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg></button>
-        <button onClick={handleShare} className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:text-[#00e599] transition pointer-events-auto">
-          {copied ? <svg className="w-5 h-5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg> : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>}
+        <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:text-[#00e599] transition pointer-events-auto">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
         </button>
+        
+        <div className="flex gap-3 pointer-events-auto">
+          {/* 🔥 WISHLIST (HEART) BUTTON */}
+          <div className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:text-[#00e599] transition">
+            <WishlistButton 
+              productId={product.id} 
+              onRequireAuth={() => alert("Please login from the Home page first to save items to your wishlist!")} 
+            />
+          </div>
+
+          {/* SHARE BUTTON */}
+          <button onClick={handleShare} className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:text-[#00e599] transition">
+            {copied ? <svg className="w-5 h-5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg> : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>}
+          </button>
+        </div>
       </header>
 
       <div className="relative w-full aspect-[4/5] bg-[#121214] max-w-xl mx-auto">
-        {/* 🔥 DYNAMIC ON HOLD / SOLD OUT BADGE */}
         {product.is_sold && (
           <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-sm">
             {pendingOrder ? (
@@ -200,7 +211,6 @@ export default function ProductDetailPage() {
             <span className="text-lg font-black text-white">₹{totalPrice.toLocaleString('en-IN')}</span>
           </div>
           
-          {/* 🔥 DYNAMIC BUTTON TEXT (Buy Now / On Hold / Out of Stock) */}
           <button 
             disabled={product.is_sold}
             onClick={() => setIsCheckoutOpen(true)}
