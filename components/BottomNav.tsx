@@ -44,8 +44,8 @@ export default function BottomNav() {
     e.preventDefault();
     
     if (!isLoggedIn) {
-      // 1. Not logged in -> Send to Universal Login Page
-      router.push('/login');
+      // 1. Not logged in -> Show Modal First to choose Buyer or Seller
+      setShowRoleModal(true);
     } else {
       // 2. Logged in -> Direct Route based on user role
       if (userRole === 'dealer') {
@@ -89,13 +89,15 @@ export default function BottomNav() {
 
       </nav>
 
-      {/* BACKUP: DUAL ROLE SELECTION MODAL (Only shows if role is missing) */}
+      {/* 🔥 DUAL ROLE SELECTION MODAL (Updated for Smart Login Flow) */}
       {showRoleModal && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-6" onClick={() => setShowRoleModal(false)}>
           <div className="bg-[#121214] border border-gray-800 rounded-2xl w-full max-w-sm p-6 relative" onClick={e => e.stopPropagation()}>
             <h3 className="text-[#00e599] font-black uppercase tracking-widest text-sm mb-6 text-center">Select Profile</h3>
             <div className="space-y-4">
-              <button onClick={() => { setShowRoleModal(false); router.push('/scout'); }} className="w-full bg-[#0a0a0c] border border-gray-800 hover:border-[#00e599] p-4 rounded-xl flex items-center justify-between group transition">
+              
+              {/* Buyer Route */}
+              <button onClick={() => { setShowRoleModal(false); router.push(isLoggedIn ? '/scout' : '/login?role=buyer'); }} className="w-full bg-[#0a0a0c] border border-gray-800 hover:border-[#00e599] p-4 rounded-xl flex items-center justify-between group transition">
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🧑‍🚀</span>
                   <span className="text-xs font-bold uppercase tracking-widest text-gray-300 group-hover:text-white">Buyer Profile</span>
@@ -103,7 +105,8 @@ export default function BottomNav() {
                 <svg className="w-4 h-4 text-gray-600 group-hover:text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
               </button>
               
-              <button onClick={() => { setShowRoleModal(false); router.push('/dealer'); }} className="w-full bg-[#003320]/20 border border-[#00e599]/30 hover:bg-[#003320]/50 p-4 rounded-xl flex items-center justify-between group transition">
+              {/* Seller Route */}
+              <button onClick={() => { setShowRoleModal(false); router.push(isLoggedIn ? '/dealer' : '/login?role=seller'); }} className="w-full bg-[#003320]/20 border border-[#00e599]/30 hover:bg-[#003320]/50 p-4 rounded-xl flex items-center justify-between group transition">
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🏪</span>
                   <span className="text-xs font-bold uppercase tracking-widest text-[#00e599]">Seller Profile</span>
