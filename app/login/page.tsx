@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function UnifiedLogin() {
+// 🧠 Naya Component jo URL read karega
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   // States
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
@@ -17,6 +19,16 @@ export default function UnifiedLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [agreeRules, setAgreeRules] = useState(false);
+
+  // 🔥 MAGIC LISTENER: Next.js official way to read ?role=seller
+  useEffect(() => {
+    const urlRole = searchParams.get('role');
+    if (urlRole === 'seller') {
+      setRole('seller');
+    } else if (urlRole === 'buyer') {
+      setRole('buyer');
+    }
+  }, [searchParams]);
 
   // 📧 Email/Password Auth Handler
   const handleAuth = async (e: React.FormEvent) => {
@@ -79,7 +91,10 @@ export default function UnifiedLogin() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/${role === 'buyer' ? 'scout' : 'dealer'}`
+        redirectTo: `${window.location.origin}/${role === 'buyer' ? 'scout' : 'dealer'}`,
+        queryParams: {
+          prompt: 'select_account' // Forces Google to show account selection every time
+        }
       }
     });
     if (error) {
@@ -241,5 +256,18 @@ export default function UnifiedLogin() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 🚀 Ye naya function pure page ko wrap karega taaki Error na aaye
+export default function UnifiedLogin() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#050505] text-[#00e599] flex items-center justify-center font-black tracking-widest uppercase text-sm">
+        Loading...
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }
