@@ -114,17 +114,19 @@ export default function Home() {
   return (
     <div className="bg-black text-white w-full pb-24 min-h-screen">
       
-      {/* 🚀 REDESIGNED HEADER (Points 1 & 5) */}
+      {/* 🚀 REDESIGNED HEADER (Points 1) */}
       <header className="px-5 pt-4 pb-3 sticky top-0 bg-black/90 backdrop-blur-md z-40 border-b border-gray-900">
         <div className="flex justify-between items-center mb-3">
           <h1 className="text-xl font-black tracking-tighter flex items-center gap-2">
             KORO<span className="text-[#00e599]">LANE</span>
           </h1>
           <div className="flex items-center gap-4">
+            {/* 🟢 HEART GOES TO WISHLIST */}
             <Link href="/wishlist" className="text-gray-300 hover:text-white transition">
                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
             </Link>
-            <button className="relative text-gray-300 hover:text-white transition">
+            {/* 🟢 BELL SHOWS ALERT */}
+            <button onClick={() => alert("Notifications coming soon! 🔔")} className="relative text-gray-300 hover:text-white transition">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
               <span className="absolute top-0 right-0.5 w-2 h-2 bg-[#00e599] rounded-full border border-black"></span>
             </button>
@@ -136,7 +138,8 @@ export default function Home() {
           <p className="text-[10px] font-bold text-gray-300 tracking-widest lowercase">Dehradun next day delivery</p>
         </div>
 
-        <Link href="/search" className="bg-[#121214] w-full text-gray-400 border border-gray-800 hover:border-gray-600 transition px-4 py-2.5 rounded-xl text-xs flex items-center gap-2">
+        {/* 🟢 SEARCH GOES TO /shop */}
+        <Link href="/shop" className="bg-[#121214] w-full text-gray-400 border border-gray-800 hover:border-gray-600 transition px-4 py-2.5 rounded-xl text-xs flex items-center gap-2">
           <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           Search drops & sellers...
         </Link>
@@ -156,7 +159,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 FEATURED SELLERS (Point 2 - Now a slider!) */}
+      {/* 🚀 FEATURED SELLERS */}
       <section className="pt-2 pb-6">
         <div className="flex justify-between items-center px-5 mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
@@ -166,8 +169,9 @@ export default function Home() {
         </div>
         
         <div className="flex overflow-x-auto hide-scrollbar px-5 gap-4 snap-x snap-mandatory pb-2">
-          {/* Seller 1 */}
-          <Link href={`/store/03bc76a4-84c4-4d89-bf83-6cc89b52a7c4`} className="w-[280px] shrink-0 snap-start bg-[#121214] border border-gray-800 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-600 transition">
+          {/* Seller 1 : GET NOW */}
+          {/* 🟢 TODO: Replace REPLACE_WITH_ACTUAL_SELLER_ID below with the real ID from your Supabase 'profiles' table */}
+          <Link href={`/store/REPLACE_WITH_ACTUAL_SELLER_ID`} className="w-[280px] shrink-0 snap-start bg-[#121214] border border-gray-800 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-600 transition">
             <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#003320]/20 to-transparent pointer-events-none"></div>
             <div className="w-16 h-16 bg-black border border-gray-700 rounded-full flex items-center justify-center shrink-0">
               <span className="text-[10px] font-black text-white text-center leading-tight">GET<br/>NOW</span>
@@ -184,8 +188,9 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Dummy Seller 2 (To show slider effect) */}
-          <Link href={`/store/frido`} className="w-[280px] shrink-0 snap-start bg-[#121214] border border-gray-800 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-600 transition">
+          {/* Seller 2 : FRIDO */}
+          {/* 🟢 TODO: Replace REPLACE_WITH_ACTUAL_SELLER_ID below with the real Frido ID from your Supabase 'profiles' table */}
+          <Link href={`/store/REPLACE_WITH_ACTUAL_SELLER_ID`} className="w-[280px] shrink-0 snap-start bg-[#121214] border border-gray-800 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-600 transition">
             <div className="w-16 h-16 bg-black border border-gray-700 rounded-full flex items-center justify-center shrink-0">
               <span className="text-[10px] font-black text-white text-center leading-tight">FRIDO</span>
             </div>
@@ -213,9 +218,12 @@ export default function Home() {
           {products.map((product) => (
             <div key={product.id} onClick={() => handleCardClick(product)} className="w-[140px] shrink-0 snap-start bg-[#0a0a0c] border border-gray-900 rounded-xl overflow-hidden relative cursor-pointer hover:border-gray-700 transition flex flex-col">
               
-              <WishlistButton productId={product.id} onRequireAuth={() => setIsAuthModalOpen(true)} />
-              
               <div className="relative aspect-[4/5] bg-gray-900">
+                {/* 🟢 HEART FIX: Placed inside relative image container with high z-index */}
+                <div className="absolute top-2 right-2 z-30">
+                  <WishlistButton productId={product.id} onRequireAuth={() => setIsAuthModalOpen(true)} />
+                </div>
+                
                 <span className="absolute top-2 left-2 bg-[#003320] text-[#00e599] text-[7px] font-bold px-1.5 py-0.5 rounded z-10 uppercase tracking-widest">{product.category || 'TOP'}</span>
                 
                 {product.isOnHold ? (
@@ -258,7 +266,37 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 WHY KORO LANE (Points 4 & 6 - Free Delivery Truck) */}
+      {/* 🚀 NEW: STYLE FEED BLOCK (Point 4) */}
+      <section className="px-5 pb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
+             <span className="text-[#00e599]">📸</span> STYLE FEED
+          </h3>
+          <Link href="/shop" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View all</Link>
+        </div>
+        
+        <div className="bg-[#0a0a0c] border border-gray-800 rounded-2xl p-5 flex items-center gap-4 relative overflow-hidden">
+          <div className="w-16 h-16 shrink-0 relative flex items-center justify-center">
+            {/* Outline wireframe icon for Style */}
+            <svg className="w-full h-full text-gray-700" viewBox="0 0 64 64" fill="none" stroke="currentColor">
+               <rect x="8" y="8" width="48" height="48" rx="8" strokeWidth="1" strokeDasharray="4 4" />
+               <circle cx="32" cy="24" r="10" strokeWidth="1" />
+               <path d="M16 48c0-8.8 7.2-16 16-16s16 7.2 16 16" strokeWidth="1" />
+               <rect x="24" y="28" width="16" height="12" rx="2" strokeWidth="1.5" fill="#0a0a0c" />
+               <circle cx="32" cy="34" r="3" strokeWidth="1.5" />
+            </svg>
+          </div>
+          <div>
+            <h4 className="text-[11px] font-bold text-white mb-1">Be the first to upload your style!</h4>
+            <p className="text-[9px] text-gray-500 mb-4">Buy any item and share your look with the community.</p>
+            <Link href="/shop" className="inline-block border border-[#00e599] text-[#00e599] text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-lg hover:bg-[#00e599]/10 transition">
+              Explore Marketplace
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* WHY KORO LANE */}
       <section className="px-5 pb-10">
         <h3 className="text-xs font-black uppercase tracking-widest text-white mb-4 flex items-center gap-2">
            <span className="text-[#00e599]">🛡️</span> WHY KORO LANE?
@@ -275,7 +313,6 @@ export default function Home() {
             <p className="text-[8px] text-gray-500">One-of-a-kind finds</p>
           </div>
           
-          {/* 🔥 NEW TRUCK ICON */}
           <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex flex-col items-center text-center">
             <svg className="w-6 h-6 text-[#00e599] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"></path>
