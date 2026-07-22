@@ -23,7 +23,8 @@ export default function ScoutTerminal() {
       return;
     }
     
-    setEmail(session.user.email || "");
+    const userEmail = session.user.email || "";
+    setEmail(userEmail);
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -31,15 +32,15 @@ export default function ScoutTerminal() {
       .eq("id", session.user.id)
       .single();
 
-    if (profile) {
-      setFullName(profile.full_name || "");
-    }
+    // Fix Name fallback
+    const nameToUse = profile?.full_name || userEmail.split("@")[0];
+    setFullName(nameToUse);
 
-    // Get order counts for the dashboard
+    // Fix Orders Count - matching exact name or email prefix
     const { data: scoutOrders } = await supabase
       .from("orders")
       .select("*")
-      .eq("customer_name", profile?.full_name || session.user.email?.split("@")[0]);
+      .in("customer_name", [nameToUse, userEmail.split("@")[0]]);
 
     if (scoutOrders) {
       setOrders(scoutOrders);
@@ -54,13 +55,18 @@ export default function ScoutTerminal() {
 
   if (loading) return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-[#00e599] font-black tracking-widest text-xs uppercase">Loading Terminal...</div>;
 
+  // Dynamic order counts
+  const activeCount = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled').length;
+  const deliveredCount = orders.filter(o => o.status === 'delivered').length;
+  const historyCount = orders.length;
+
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans pb-24 selection:bg-[#00e599] selection:text-black">
       
       {/* HEADER */}
       <header className="px-6 py-6 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-white">Terminal</h1>
+          <h1 className="text-xl font-black tracking-tighter w-max block">KORO <span className="text-[#00e599]">LANE</span></h1>
           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Manage your account and orders.</p>
         </div>
         <div className="flex items-center gap-4">
@@ -76,11 +82,11 @@ export default function ScoutTerminal() {
           <div className="flex items-center gap-4">
             <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=200&h=200" className="w-16 h-16 rounded-full border-2 border-[#00e599]/30 object-cover" />
             <div>
-              <h2 className="text-lg font-black text-white">{fullName || "Agent"}</h2>
+              <h2 className="text-lg font-black text-white capitalize">{fullName}</h2>
               <div className="flex items-center gap-1 mt-1 bg-[#003320] text-[#00e599] px-2 py-0.5 rounded-full w-max">
-                <span className="text-[8px] font-black uppercase">Verified Buyer</span>
+                <span className="text-[8px] font-black uppercase tracking-widest">Verified Buyer</span>
               </div>
-              <p className="text-[10px] text-gray-500 font-bold mt-1">📍 Dehradun, Uttarakhand</p>
+              <p className="text-[10px] text-gray-500 font-bold mt-1.5">📍 Dehradun, Uttarakhand</p>
             </div>
           </div>
           <button className="text-gray-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></button>
@@ -96,42 +102,59 @@ export default function ScoutTerminal() {
           </div>
           <div className="grid grid-cols-3 gap-4 border-t border-gray-900 pt-4 text-center">
             <div>
-              <p className="text-lg font-black text-[#00e599]">{orders.filter(o => o.status !== 'delivered').length}</p>
+              <p className="text-lg font-black text-[#00e599]">{activeCount}</p>
               <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1">Active</p>
             </div>
             <div>
-              <p className="text-lg font-black text-white">{orders.filter(o => o.status === 'delivered').length}</p>
+              <p className="text-lg font-black text-white">{deliveredCount}</p>
               <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1">Delivered</p>
             </div>
             <div>
-              <p className="text-lg font-black text-white">{orders.length}</p>
+              <p className="text-lg font-black text-white">{historyCount}</p>
               <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1">History</p>
             </div>
           </div>
         </div>
 
-        {/* LIST ITEMS */}
-        <div className="space-y-3">
+        {/* LIST ITEMS (2-COLUMN GRID) */}
+        <div className="grid grid-cols-2 gap-3">
           {[
-            { icon: "♡", title: "Wishlist", sub: "Items you have saved", count: 8 },
-            { icon: "🔔", title: "Notifications", sub: "Updates on orders & more", count: 6 },
-            { icon: "👥", title: "Following", sub: "Sellers you follow", count: 4 },
-            { icon: "📍", title: "Addresses", sub: "Manage your delivery addresses", count: null },
-            { icon: "⚙️", title: "Settings", sub: "Account, privacy and more", count: null },
-            { icon: "🛡️", title: "Secure Shopping", sub: "Your data is safe with us.", count: null },
+            { icon: "♡", title: "Wishlist", sub: "Items you saved", count: 8, route: "/wishlist" },
+            { icon: "👥", title: "Following", sub: "Sellers you follow", count: 4, route: "#" },
+            { icon: "📍", title: "Addresses", sub: "Delivery addresses", count: null, route: "#" },
+            { icon: "⚙️", title: "Settings", sub: "Account & privacy", count: null, route: "#" },
+            { icon: "🛡️", title: "Security", sub: "Your data is safe", count: null, route: "#", colSpan: 2 }, // Made full width to balance the odd number
           ].map((item, idx) => (
-            <div key={idx} className="flex items-center justify-between p-4 bg-[#0a0a0c] border border-gray-900 rounded-2xl hover:border-gray-700 transition cursor-pointer group">
-              <div className="flex items-center gap-4">
-                <div className="text-lg">{item.icon}</div>
-                <div>
-                  <h4 className="text-sm font-bold text-white">{item.title}</h4>
-                  <p className="text-[10px] text-gray-500 font-medium">{item.sub}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                {item.count !== null && <span className="bg-[#121214] text-white px-2.5 py-0.5 rounded-full text-[10px] font-black">{item.count}</span>}
-                <svg className="w-4 h-4 text-gray-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-              </div>
+            <div 
+              key={idx} 
+              onClick={() => item.route !== "#" && router.push(item.route)}
+              className={`flex flex-col justify-between p-4 bg-[#0a0a0c] border border-gray-900 rounded-2xl hover:border-gray-700 transition cursor-pointer group ${item.colSpan === 2 ? 'col-span-2 flex-row items-center' : 'h-32'}`}
+            >
+              {item.colSpan === 2 ? (
+                // Horizontal Layout for the Full-Width block (Secure Shopping)
+                <>
+                  <div className="flex items-center gap-3">
+                     <div className="text-xl bg-[#121214] w-10 h-10 rounded-full flex items-center justify-center border border-gray-800">{item.icon}</div>
+                     <div>
+                       <h4 className="text-[11px] font-bold text-white leading-tight">{item.title}</h4>
+                       <p className="text-[9px] text-gray-500 font-medium mt-0.5">{item.sub}</p>
+                     </div>
+                  </div>
+                  <svg className="w-4 h-4 text-gray-600 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                </>
+              ) : (
+                // Vertical Layout for the 2-Column Grid blocks
+                <>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="text-lg bg-[#121214] w-8 h-8 rounded-full flex items-center justify-center border border-gray-800">{item.icon}</div>
+                    {item.count !== null && <span className="bg-[#121214] border border-gray-800 text-white px-2 py-0.5 rounded-full text-[10px] font-black">{item.count}</span>}
+                  </div>
+                  <div>
+                    <h4 className="text-[11px] font-bold text-white mb-0.5">{item.title}</h4>
+                    <p className="text-[9px] text-gray-500 font-medium leading-tight">{item.sub}</p>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
