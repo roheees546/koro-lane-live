@@ -52,13 +52,7 @@ export default function ScoutTerminal() {
     const userEmail = session.user.email || "";
     setEmail(userEmail);
 
-    // Fetch Profile
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", session.user.id)
-      .single();
-
+    const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
     const nameToUse = profile?.full_name || userEmail.split("@")[0];
     setFullName(nameToUse);
     
@@ -72,26 +66,13 @@ export default function ScoutTerminal() {
       setAvatarUrl(profile.avatar_url || "");
     }
 
-    // Fetch Orders
-    const { data: scoutOrders } = await supabase
-      .from("orders")
-      .select("*")
-      .in("customer_name", [nameToUse, userEmail.split("@")[0]])
-      .order("created_at", { ascending: false });
+    const { data: scoutOrders } = await supabase.from("orders").select("*").in("customer_name", [nameToUse, userEmail.split("@")[0]]).order("created_at", { ascending: false });
     if (scoutOrders) setOrders(scoutOrders);
 
-    // Fetch Real Wishlist Count
-    const { count: wlCount } = await supabase
-      .from("wishlist")
-      .select("*", { count: 'exact', head: true })
-      .eq("user_id", session.user.id);
+    const { count: wlCount } = await supabase.from("wishlist").select("*", { count: 'exact', head: true }).eq("user_id", session.user.id);
     setWishlistCount(wlCount || 0);
 
-    // Fetch Real Following Count (Checking 'follows' table if exists)
-    const { count: fCount } = await supabase
-      .from("follows")
-      .select("*", { count: 'exact', head: true })
-      .eq("follower_id", session.user.id);
+    const { count: fCount } = await supabase.from("follows").select("*", { count: 'exact', head: true }).eq("follower_id", session.user.id);
     setFollowingCount(fCount || 0);
 
     setLoading(false);
@@ -101,22 +82,16 @@ export default function ScoutTerminal() {
   const uploadAvatar = async (event: any) => {
     try {
       setUploading(true);
-      if (!event.target.files || event.target.files.length === 0) {
-        throw new Error('You must select an image to upload.');
-      }
-
+      if (!event.target.files || event.target.files.length === 0) throw new Error('You must select an image.');
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}-${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const filePath = `${userId}-${Math.random()}.${fileExt}`;
 
       let { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      
-      const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', userId);
-      if (updateError) throw updateError;
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', userId);
 
       setAvatarUrl(publicUrl);
       alert('Profile picture updated successfully! 📸');
@@ -127,57 +102,55 @@ export default function ScoutTerminal() {
     }
   };
 
-  // 💾 Mega Profile Save
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        full_name: editName,
-        phone: editPhone,
-        alt_phone: editAltPhone,
-        address: editAddress,
-        upi_id: editUpi,
-        insta_id: editInsta,
-      })
-      .eq("id", userId);
-
+    const { error } = await supabase.from("profiles").update({ full_name: editName, phone: editPhone, alt_phone: editAltPhone, address: editAddress, upi_id: editUpi, insta_id: editInsta }).eq("id", userId);
     if (!error) {
       setFullName(editName); 
       setShowProfileModal(false);
-      alert("Profile Saved Successfully! ✅");
-    } else {
-      alert("Failed to save: " + error.message);
     }
     setSaving(false);
   };
 
-  // Load Real Wishlist Items with Product Join
+  // 🔥 2-STEP BYPASS FETCH FOR WISHLIST (Fixes 404 & Click Issue)
   const loadWishlistItems = async () => {
     setActiveView('wishlist');
-    const { data } = await supabase
-      .from("wishlist")
-      .select(`
-        id,
-        product_id,
-        products (*)
-      `)
-      .eq("user_id", userId);
-    
-    if (data) setWishlistItems(data);
+    try {
+      const { data: wlData } = await supabase.from("wishlist").select("id, product_id").eq("user_id", userId);
+      if (wlData && wlData.length > 0) {
+        const productIds = wlData.map(w => w.product_id);
+        const { data: prodData } = await supabase.from("products").select("*").in("id", productIds);
+        
+        const enriched = wlData.map(w => ({
+          ...w,
+          products: prodData?.find(p => p.id === w.product_id)
+        }));
+        setWishlistItems(enriched);
+      } else {
+        setWishlistItems([]);
+      }
+    } catch(e) { console.error("Wishlist Fetch Error", e); }
   };
 
-  // Load Real Following List
+  // 🔥 2-STEP BYPASS FETCH FOR FOLLOWING (Fixes Seller ID issue)
   const loadFollowingList = async () => {
     setActiveView('following');
-    const { data } = await supabase
-      .from("follows")
-      .select("*")
-      .eq("follower_id", userId);
-    
-    if (data) setFollowingList(data);
+    try {
+      const { data: followsData } = await supabase.from("follows").select("*").eq("follower_id", userId);
+      if (followsData && followsData.length > 0) {
+        const sellerIds = followsData.map(f => f.seller_id).filter(Boolean);
+        const { data: profilesData } = await supabase.from("profiles").select("id, full_name, store_name, avatar_url").in("id", sellerIds);
+        
+        const enriched = followsData.map(f => ({
+          ...f,
+          seller_profile: profilesData?.find(p => p.id === f.seller_id)
+        }));
+        setFollowingList(enriched);
+      } else {
+        setFollowingList([]);
+      }
+    } catch(e) { console.error("Following Fetch Error", e); }
   };
 
   const handleLogout = async () => {
@@ -190,7 +163,6 @@ export default function ScoutTerminal() {
   const activeCount = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled').length;
   const deliveredCount = orders.filter(o => o.status === 'delivered').length;
   const historyCount = orders.length;
-  
   const defaultAvatar = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=200&h=200";
 
   return (
@@ -231,7 +203,7 @@ export default function ScoutTerminal() {
         </div>
       </div>
 
-      {/* ✏️ MEGA PROFILE MODAL (Gallery DP + All Fields) */}
+      {/* ✏️ MEGA PROFILE MODAL */}
       {showProfileModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-end md:justify-center p-0 md:p-4" onClick={() => setShowProfileModal(false)}>
           <div className="bg-[#0a0a0c] border border-gray-900 rounded-t-3xl md:rounded-3xl p-6 w-full max-w-md max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
@@ -240,7 +212,6 @@ export default function ScoutTerminal() {
               <button onClick={() => setShowProfileModal(false)} className="text-gray-500 hover:text-white"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
             
-            {/* DP Gallery Uploader */}
             <div className="flex flex-col items-center justify-center mb-6">
               <label className="relative cursor-pointer group">
                 <img src={avatarUrl || defaultAvatar} className="w-24 h-24 rounded-full border-2 border-[#00e599] object-cover" />
@@ -267,7 +238,7 @@ export default function ScoutTerminal() {
         </div>
       )}
 
-      {/* ⚙️ SETTINGS MODAL (Privacy & Support with Rohes Details) */}
+      {/* ⚙️ SETTINGS MODAL */}
       {showSettingsModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowSettingsModal(false)}>
           <div className="bg-[#0a0a0c] border border-gray-900 rounded-3xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
@@ -295,23 +266,34 @@ export default function ScoutTerminal() {
 
       <main className="relative">
         
-        {/* 🎛️ VIEW 1: MAIN DASHBOARD (Clean & Compact to avoid empty dead space) */}
+        {/* 🎛️ VIEW 1: MAIN DASHBOARD (PREMIUM UI UPDATE) */}
         {activeView === 'dashboard' && (
-          <div className="px-6 space-y-5 animate-in fade-in duration-300">
+          <div className="px-6 space-y-4 animate-in fade-in duration-300">
             
-            {/* PROFILE CARD */}
-            <div onClick={() => setShowProfileModal(true)} className="flex items-center justify-between p-4 bg-[#0a0a0c] border border-gray-900 rounded-3xl cursor-pointer hover:border-gray-700 transition group">
-              <div className="flex items-center gap-4">
-                <img src={avatarUrl || defaultAvatar} className="w-16 h-16 rounded-full border-2 border-[#00e599]/30 object-cover" />
-                <div>
-                  <h2 className="text-lg font-black text-white capitalize">{fullName}</h2>
-                  <div className="flex items-center gap-1 mt-1 bg-[#003320] text-[#00e599] px-2 py-0.5 rounded-full w-max">
-                    <span className="text-[8px] font-black uppercase tracking-widest">Verified Buyer</span>
+            {/* 🌟 PREMIUM PROFILE CARD */}
+            <div onClick={() => setShowProfileModal(true)} className="relative p-5 bg-[#0a0a0c] border border-gray-900 rounded-3xl cursor-pointer hover:border-[#00e599]/30 transition duration-300 group overflow-hidden">
+               {/* Background Glow */}
+               <div className="absolute top-0 left-0 w-32 h-32 bg-[#00e599] rounded-full blur-[80px] opacity-[0.15]"></div>
+               
+               <div className="flex items-center gap-4 relative z-10">
+                  <div className="relative">
+                     <img src={avatarUrl || defaultAvatar} className="w-16 h-16 rounded-full border-2 border-[#00e599] object-cover bg-gray-900" />
+                     <div className="absolute bottom-0 right-0 bg-[#00e599] text-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-[#0a0a0c]">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-500 font-bold mt-1.5 truncate max-w-[150px]">📍 {editAddress ? editAddress.split(',')[0] : "Update Address"}</p>
-                </div>
-              </div>
-              <svg className="w-5 h-5 text-gray-700 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                  <div className="flex-1">
+                     <h2 className="text-xl font-black text-white capitalize tracking-tight">{fullName}</h2>
+                     <div className="flex items-center gap-1 mt-0.5 bg-[#003320] text-[#00e599] px-2 py-0.5 rounded w-max">
+                       <span className="text-[8px] font-black uppercase tracking-widest">Verified Buyer ✓</span>
+                     </div>
+                     <p className="text-[10px] text-gray-400 font-medium mt-1.5 leading-tight">Building my thrift wardrobe<br/>one piece at a time.</p>
+                     <p className="text-[10px] text-gray-500 font-bold mt-1.5 flex items-center gap-1">📍 {editAddress ? editAddress.split(',')[0] : "Update Address"}</p>
+                  </div>
+                  <div className="flex items-center gap-1 text-[9px] font-black text-gray-500 uppercase tracking-widest group-hover:text-[#00e599] transition">
+                     Edit Profile <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                  </div>
+               </div>
             </div>
 
             {/* ORDERS CARD */}
@@ -330,42 +312,69 @@ export default function ScoutTerminal() {
               </div>
             </div>
 
-            {/* CLEAN 3-BLOCK GRID (Real Counts) */}
+            {/* WATERMARK GRIDS */}
             <div className="grid grid-cols-2 gap-3">
               
-              {/* Wishlist -> Real Data View */}
-              <div onClick={loadWishlistItems} className="flex flex-col justify-between p-4 h-32 bg-[#0a0a0c] border border-gray-900 rounded-2xl hover:border-gray-700 transition cursor-pointer group">
-                <div className="flex justify-between items-start mb-2">
+              {/* Wishlist */}
+              <div onClick={loadWishlistItems} className="relative overflow-hidden flex flex-col justify-between p-4 h-32 bg-[#0a0a0c] border border-gray-900 rounded-2xl hover:border-gray-700 transition cursor-pointer group">
+                <svg className="absolute -bottom-4 -right-4 w-24 h-24 text-[#00e599] opacity-[0.03] group-hover:opacity-[0.08] transition duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 17s-2-1.5-2-2.5a2 2 0 114 0c0 1-2 2.5-2 2.5z"></path></svg>
+                <div className="flex justify-between items-start mb-2 relative z-10">
                   <div className="text-lg bg-[#121214] w-8 h-8 rounded-full flex items-center justify-center border border-gray-800">♡</div>
                   <span className="bg-[#121214] border border-gray-800 text-white px-2 py-0.5 rounded-full text-[10px] font-black">{wishlistCount}</span>
                 </div>
-                <div><h4 className="text-[11px] font-bold text-white mb-0.5">Wishlist</h4><p className="text-[9px] text-gray-500 font-medium leading-tight">Items you saved</p></div>
+                <div className="relative z-10"><h4 className="text-[11px] font-bold text-white mb-0.5">Wishlist</h4><p className="text-[9px] text-gray-500 font-medium leading-tight">Items you saved</p></div>
               </div>
 
-              {/* Following -> Real Data View */}
-              <div onClick={loadFollowingList} className="flex flex-col justify-between p-4 h-32 bg-[#0a0a0c] border border-gray-900 rounded-2xl hover:border-gray-700 transition cursor-pointer group">
-                <div className="flex justify-between items-start mb-2">
+              {/* Following */}
+              <div onClick={loadFollowingList} className="relative overflow-hidden flex flex-col justify-between p-4 h-32 bg-[#0a0a0c] border border-gray-900 rounded-2xl hover:border-gray-700 transition cursor-pointer group">
+                <svg className="absolute -bottom-2 -right-2 w-24 h-24 text-[#00e599] opacity-[0.03] group-hover:opacity-[0.08] transition duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <div className="flex justify-between items-start mb-2 relative z-10">
                   <div className="text-lg bg-[#121214] w-8 h-8 rounded-full flex items-center justify-center border border-gray-800">👥</div>
                   <span className="bg-[#121214] border border-gray-800 text-white px-2 py-0.5 rounded-full text-[10px] font-black">{followingCount}</span>
                 </div>
-                <div><h4 className="text-[11px] font-bold text-white mb-0.5">Following</h4><p className="text-[9px] text-gray-500 font-medium leading-tight">Sellers you follow</p></div>
+                <div className="relative z-10"><h4 className="text-[11px] font-bold text-white mb-0.5">Following</h4><p className="text-[9px] text-gray-500 font-medium leading-tight">Sellers you follow</p></div>
               </div>
 
-              {/* Security -> View */}
-              <div onClick={() => setActiveView('security')} className="col-span-2 flex flex-row items-center justify-between p-4 bg-[#0a0a0c] border border-gray-900 rounded-2xl hover:border-gray-700 transition cursor-pointer group">
-                <div className="flex items-center gap-3">
+              {/* Security */}
+              <div onClick={() => setActiveView('security')} className="relative overflow-hidden col-span-2 flex flex-row items-center justify-between p-4 bg-[#0a0a0c] border border-gray-900 rounded-2xl hover:border-gray-700 transition cursor-pointer group">
+                <svg className="absolute -bottom-6 -right-2 w-32 h-32 text-[#00e599] opacity-[0.03] group-hover:opacity-[0.08] transition duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.956 11.956 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                <div className="flex items-center gap-3 relative z-10">
                   <div className="text-xl bg-[#121214] w-10 h-10 rounded-full flex items-center justify-center border border-gray-800">🛡️</div>
                   <div><h4 className="text-[11px] font-bold text-white leading-tight">Security</h4><p className="text-[9px] text-gray-500 font-medium mt-0.5">Your data is safe</p></div>
                 </div>
-                <svg className="w-4 h-4 text-gray-600 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                <svg className="w-4 h-4 text-gray-600 group-hover:text-white transition relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
               </div>
 
             </div>
 
-            {/* LOGOUT */}
-            <button onClick={handleLogout} className="w-full text-center text-red-500 text-[10px] font-black uppercase tracking-widest py-3 mt-1 hover:bg-red-950/20 rounded-xl transition">
+            {/* LOGOUT BUTTON */}
+            <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-red-500 text-[10px] font-black uppercase tracking-widest py-2 hover:opacity-80 transition">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
               Secure Sign Out
             </button>
+
+            {/* 🔥 PREMIUM PROMO BANNER (Fills the bottom gap) */}
+            <div className="relative bg-gradient-to-br from-[#003320]/40 to-[#0a0a0c] border border-[#00e599]/20 rounded-3xl p-5 overflow-hidden flex items-center justify-between group">
+              <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-24 h-24 bg-[#00e599] rounded-full blur-[40px] opacity-[0.15]"></div>
+              
+              <div className="relative z-10 space-y-1">
+                <h3 className="text-white font-black text-[15px] leading-tight">Thrift more.<br/>Live unique.</h3>
+                <p className="text-[#00e599]/70 text-[9px] font-medium tracking-wider uppercase mt-1">Sustainable fashion,<br/>smarter choices.</p>
+              </div>
+
+              {/* Minimalist Shopping Bag + Leaves Graphic */}
+              <div className="relative z-10 text-[#00e599] opacity-80 group-hover:scale-110 transition-transform duration-700">
+                <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                  {/* Leaves inside bag */}
+                  <path d="M9 12c0 2 1.5 3.5 3 3.5s3-1.5 3-3.5-1.5-2.5-3-2.5S9 10 9 12z"></path>
+                  <path d="M12 15.5v3"></path>
+                </svg>
+              </div>
+            </div>
+
           </div>
         )}
 
@@ -436,14 +445,24 @@ export default function ScoutTerminal() {
             <h2 className="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2"><span>👥</span> Following ({followingList.length})</h2>
             
             {followingList.length > 0 ? (
-              followingList.map((follow, idx) => (
-                <div key={idx} className="flex items-center justify-between bg-[#0a0a0c] border border-gray-900 p-4 rounded-2xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#121214] rounded-full border border-gray-800 flex items-center justify-center font-black text-xs">S</div>
-                    <div><h4 className="text-xs font-bold text-white">Seller ID: {follow.seller_id?.substring(0,8)}...</h4><p className="text-[9px] text-[#00e599] font-black uppercase tracking-widest">Connected</p></div>
+              followingList.map((follow, idx) => {
+                const seller = follow.seller_profile;
+                return (
+                  <div key={idx} className="flex items-center justify-between bg-[#0a0a0c] border border-gray-900 p-4 rounded-2xl">
+                    <div className="flex items-center gap-3">
+                      {seller?.avatar_url ? (
+                         <img src={seller.avatar_url} className="w-10 h-10 rounded-full object-cover border border-gray-800" />
+                      ) : (
+                         <div className="w-10 h-10 bg-[#121214] rounded-full border border-gray-800 flex items-center justify-center font-black text-xs text-[#00e599]">{seller?.store_name?.[0] || seller?.full_name?.[0] || "S"}</div>
+                      )}
+                      <div>
+                        <h4 className="text-xs font-bold text-white">{seller?.store_name || seller?.full_name || "Unknown Seller"}</h4>
+                        <p className="text-[9px] text-[#00e599] font-black uppercase tracking-widest mt-0.5">Connected ✓</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))
+                )
+              })
             ) : (
               <div className="text-center py-12 border border-gray-900 border-dashed rounded-3xl bg-[#0a0a0c]">
                 <p className="text-gray-500 text-[10px] uppercase tracking-widest font-black">You are not following anyone yet.</p>
