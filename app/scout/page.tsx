@@ -113,7 +113,7 @@ export default function ScoutTerminal() {
     setSaving(false);
   };
 
-  // 🔥 2-STEP BYPASS FETCH FOR WISHLIST (Fixes 404 & Click Issue)
+  // 🔥 2-STEP BYPASS FETCH FOR WISHLIST
   const loadWishlistItems = async () => {
     setActiveView('wishlist');
     try {
@@ -133,20 +133,32 @@ export default function ScoutTerminal() {
     } catch(e) { console.error("Wishlist Fetch Error", e); }
   };
 
-  // 🔥 2-STEP BYPASS FETCH FOR FOLLOWING (Fixes Seller ID issue)
+  // 🔥 UNIVERSAL COLUMN BYPASS FETCH FOR FOLLOWING
   const loadFollowingList = async () => {
     setActiveView('following');
     try {
       const { data: followsData } = await supabase.from("follows").select("*").eq("follower_id", userId);
       if (followsData && followsData.length > 0) {
-        const sellerIds = followsData.map(f => f.seller_id).filter(Boolean);
-        const { data: profilesData } = await supabase.from("profiles").select("id, full_name, store_name, avatar_url").in("id", sellerIds);
+        // Universal ID Check: Support for multiple possible column names
+        const getTargetId = (f: any) => f.seller_id || f.following_id || f.dealer_id || f.profile_id;
         
-        const enriched = followsData.map(f => ({
-          ...f,
-          seller_profile: profilesData?.find(p => p.id === f.seller_id)
-        }));
-        setFollowingList(enriched);
+        const sellerIds = followsData.map(f => getTargetId(f)).filter(Boolean);
+        
+        if (sellerIds.length > 0) {
+          const { data: profilesData } = await supabase.from("profiles").select("id, full_name, store_name, avatar_url").in("id", sellerIds);
+          
+          const enriched = followsData.map(f => {
+            const tId = getTargetId(f);
+            return {
+              ...f,
+              target_id: tId,
+              seller_profile: profilesData?.find(p => p.id === tId)
+            }
+          });
+          setFollowingList(enriched);
+        } else {
+          setFollowingList(followsData.map(f => ({ ...f, target_id: null })));
+        }
       } else {
         setFollowingList([]);
       }
@@ -266,15 +278,13 @@ export default function ScoutTerminal() {
 
       <main className="relative">
         
-        {/* 🎛️ VIEW 1: MAIN DASHBOARD (PREMIUM UI UPDATE) */}
+        {/* 🎛️ VIEW 1: MAIN DASHBOARD */}
         {activeView === 'dashboard' && (
           <div className="px-6 space-y-4 animate-in fade-in duration-300">
             
             {/* 🌟 PREMIUM PROFILE CARD */}
             <div onClick={() => setShowProfileModal(true)} className="relative p-5 bg-[#0a0a0c] border border-gray-900 rounded-3xl cursor-pointer hover:border-[#00e599]/30 transition duration-300 group overflow-hidden">
-               {/* Background Glow */}
                <div className="absolute top-0 left-0 w-32 h-32 bg-[#00e599] rounded-full blur-[80px] opacity-[0.15]"></div>
-               
                <div className="flex items-center gap-4 relative z-10">
                   <div className="relative">
                      <img src={avatarUrl || defaultAvatar} className="w-16 h-16 rounded-full border-2 border-[#00e599] object-cover bg-gray-900" />
@@ -314,8 +324,6 @@ export default function ScoutTerminal() {
 
             {/* WATERMARK GRIDS */}
             <div className="grid grid-cols-2 gap-3">
-              
-              {/* Wishlist */}
               <div onClick={loadWishlistItems} className="relative overflow-hidden flex flex-col justify-between p-4 h-32 bg-[#0a0a0c] border border-gray-900 rounded-2xl hover:border-gray-700 transition cursor-pointer group">
                 <svg className="absolute -bottom-4 -right-4 w-24 h-24 text-[#00e599] opacity-[0.03] group-hover:opacity-[0.08] transition duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 17s-2-1.5-2-2.5a2 2 0 114 0c0 1-2 2.5-2 2.5z"></path></svg>
                 <div className="flex justify-between items-start mb-2 relative z-10">
@@ -325,7 +333,6 @@ export default function ScoutTerminal() {
                 <div className="relative z-10"><h4 className="text-[11px] font-bold text-white mb-0.5">Wishlist</h4><p className="text-[9px] text-gray-500 font-medium leading-tight">Items you saved</p></div>
               </div>
 
-              {/* Following */}
               <div onClick={loadFollowingList} className="relative overflow-hidden flex flex-col justify-between p-4 h-32 bg-[#0a0a0c] border border-gray-900 rounded-2xl hover:border-gray-700 transition cursor-pointer group">
                 <svg className="absolute -bottom-2 -right-2 w-24 h-24 text-[#00e599] opacity-[0.03] group-hover:opacity-[0.08] transition duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                 <div className="flex justify-between items-start mb-2 relative z-10">
@@ -335,7 +342,6 @@ export default function ScoutTerminal() {
                 <div className="relative z-10"><h4 className="text-[11px] font-bold text-white mb-0.5">Following</h4><p className="text-[9px] text-gray-500 font-medium leading-tight">Sellers you follow</p></div>
               </div>
 
-              {/* Security */}
               <div onClick={() => setActiveView('security')} className="relative overflow-hidden col-span-2 flex flex-row items-center justify-between p-4 bg-[#0a0a0c] border border-gray-900 rounded-2xl hover:border-gray-700 transition cursor-pointer group">
                 <svg className="absolute -bottom-6 -right-2 w-32 h-32 text-[#00e599] opacity-[0.03] group-hover:opacity-[0.08] transition duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.956 11.956 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                 <div className="flex items-center gap-3 relative z-10">
@@ -344,7 +350,6 @@ export default function ScoutTerminal() {
                 </div>
                 <svg className="w-4 h-4 text-gray-600 group-hover:text-white transition relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
               </div>
-
             </div>
 
             {/* LOGOUT BUTTON */}
@@ -353,7 +358,7 @@ export default function ScoutTerminal() {
               Secure Sign Out
             </button>
 
-            {/* 🔥 PREMIUM PROMO BANNER (Fills the bottom gap) */}
+            {/* 🔥 PREMIUM PROMO BANNER */}
             <div className="relative bg-gradient-to-br from-[#003320]/40 to-[#0a0a0c] border border-[#00e599]/20 rounded-3xl p-5 overflow-hidden flex items-center justify-between group">
               <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-24 h-24 bg-[#00e599] rounded-full blur-[40px] opacity-[0.15]"></div>
               
@@ -361,14 +366,11 @@ export default function ScoutTerminal() {
                 <h3 className="text-white font-black text-[15px] leading-tight">Thrift more.<br/>Live unique.</h3>
                 <p className="text-[#00e599]/70 text-[9px] font-medium tracking-wider uppercase mt-1">Sustainable fashion,<br/>smarter choices.</p>
               </div>
-
-              {/* Minimalist Shopping Bag + Leaves Graphic */}
               <div className="relative z-10 text-[#00e599] opacity-80 group-hover:scale-110 transition-transform duration-700">
                 <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
                   <line x1="3" y1="6" x2="21" y2="6"></line>
                   <path d="M16 10a4 4 0 0 1-8 0"></path>
-                  {/* Leaves inside bag */}
                   <path d="M9 12c0 2 1.5 3.5 3 3.5s3-1.5 3-3.5-1.5-2.5-3-2.5S9 10 9 12z"></path>
                   <path d="M12 15.5v3"></path>
                 </svg>
@@ -405,7 +407,7 @@ export default function ScoutTerminal() {
           </div>
         )}
 
-        {/* 🎛️ VIEW 3: REAL WISHLIST ITEMS */}
+        {/* 🎛️ VIEW 3: REAL WISHLIST ITEMS (Clickable) */}
         {activeView === 'wishlist' && (
           <div className="px-6 space-y-4 animate-in slide-in-from-right duration-300">
             <button onClick={() => setActiveView('dashboard')} className="flex items-center gap-2 text-gray-400 hover:text-white text-[10px] font-black uppercase tracking-widest mb-6 transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>Back to Dashboard</button>
@@ -416,14 +418,18 @@ export default function ScoutTerminal() {
                 {wishlistItems.map((item, idx) => {
                   const product = item.products;
                   return (
-                    <div key={idx} className="bg-[#0a0a0c] border border-gray-900 rounded-2xl p-3 flex flex-col justify-between">
+                    <div 
+                      key={idx} 
+                      onClick={() => product?.id && router.push(`/product/${product.id}`)}
+                      className="bg-[#0a0a0c] border border-gray-900 rounded-2xl p-3 flex flex-col justify-between cursor-pointer hover:border-[#00e599]/50 hover:shadow-[0_0_15px_rgba(0,229,153,0.1)] transition group"
+                    >
                       {product?.image_url ? (
                         <img src={product.image_url} className="w-full aspect-square object-cover rounded-xl mb-2" />
                       ) : (
                         <div className="w-full aspect-square bg-[#121214] rounded-xl flex items-center justify-center text-xl mb-2">👕</div>
                       )}
                       <div>
-                        <h4 className="text-xs font-bold text-white truncate">{product?.title || "Exclusive Drop"}</h4>
+                        <h4 className="text-xs font-bold text-white truncate group-hover:text-[#00e599] transition">{product?.title || "Exclusive Drop"}</h4>
                         <p className="text-[10px] text-[#00e599] font-black mt-0.5">₹{product?.price || "---"}</p>
                       </div>
                     </div>
@@ -438,7 +444,7 @@ export default function ScoutTerminal() {
           </div>
         )}
 
-        {/* 🎛️ VIEW 4: REAL FOLLOWING LIST */}
+        {/* 🎛️ VIEW 4: REAL FOLLOWING LIST (Clickable with Universal ID Check) */}
         {activeView === 'following' && (
           <div className="px-6 space-y-4 animate-in slide-in-from-right duration-300">
             <button onClick={() => setActiveView('dashboard')} className="flex items-center gap-2 text-gray-400 hover:text-white text-[10px] font-black uppercase tracking-widest mb-6 transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>Back to Dashboard</button>
@@ -447,8 +453,14 @@ export default function ScoutTerminal() {
             {followingList.length > 0 ? (
               followingList.map((follow, idx) => {
                 const seller = follow.seller_profile;
+                const targetId = follow.target_id;
+                
                 return (
-                  <div key={idx} className="flex items-center justify-between bg-[#0a0a0c] border border-gray-900 p-4 rounded-2xl">
+                  <div 
+                    key={idx} 
+                    onClick={() => targetId && router.push(`/store/${targetId}`)}
+                    className="flex items-center justify-between bg-[#0a0a0c] border border-gray-900 p-4 rounded-2xl cursor-pointer hover:border-[#00e599]/50 hover:shadow-[0_0_15px_rgba(0,229,153,0.1)] transition group"
+                  >
                     <div className="flex items-center gap-3">
                       {seller?.avatar_url ? (
                          <img src={seller.avatar_url} className="w-10 h-10 rounded-full object-cover border border-gray-800" />
@@ -456,10 +468,11 @@ export default function ScoutTerminal() {
                          <div className="w-10 h-10 bg-[#121214] rounded-full border border-gray-800 flex items-center justify-center font-black text-xs text-[#00e599]">{seller?.store_name?.[0] || seller?.full_name?.[0] || "S"}</div>
                       )}
                       <div>
-                        <h4 className="text-xs font-bold text-white">{seller?.store_name || seller?.full_name || "Unknown Seller"}</h4>
-                        <p className="text-[9px] text-[#00e599] font-black uppercase tracking-widest mt-0.5">Connected ✓</p>
+                        <h4 className="text-xs font-bold text-white group-hover:text-[#00e599] transition">{seller?.store_name || seller?.full_name || "Unknown Seller"}</h4>
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Connected <span className="text-[#00e599]">✓</span></p>
                       </div>
                     </div>
+                    <svg className="w-4 h-4 text-gray-600 group-hover:text-[#00e599] transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                   </div>
                 )
               })
@@ -480,15 +493,9 @@ export default function ScoutTerminal() {
               <div className="w-16 h-16 bg-[#003320] text-[#00e599] rounded-full flex items-center justify-center mx-auto text-3xl">🔒</div>
               <h3 className="text-lg font-black text-white">Your Data is Encrypted</h3>
               <p className="text-xs text-gray-400 leading-relaxed">Koro Lane uses bank-level encryption to secure your details. Sellers never see your personal payment information.</p>
-              <div className="pt-4 border-t border-gray-900 text-left space-y-3">
-                <div className="flex items-center gap-2 text-[10px] text-gray-300 font-bold"><span className="text-[#00e599]">✓</span> Secure WhatsApp Verification</div>
-                <div className="flex items-center gap-2 text-[10px] text-gray-300 font-bold"><span className="text-[#00e599]">✓</span> 100% Authenticity Guarantee</div>
-                <div className="flex items-center gap-2 text-[10px] text-gray-300 font-bold"><span className="text-[#00e599]">✓</span> Fraud Protection</div>
-              </div>
             </div>
           </div>
         )}
-
       </main>
     </div>
   );
