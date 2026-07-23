@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-// 🧠 Naya Component jo URL read karega
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,7 +19,15 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [agreeRules, setAgreeRules] = useState(false);
 
-  // 🔥 MAGIC LISTENER: Next.js official way to read ?role=seller
+  // Dynamic Theme Colors based on Role
+  const themeColorText = role === 'buyer' ? 'text-[#00e599]' : 'text-[#F5A623]';
+  const themeColorBg = role === 'buyer' ? 'bg-[#00e599]' : 'bg-[#F5A623]';
+  const themeColorBorder = role === 'buyer' ? 'border-[#00e599]' : 'border-[#F5A623]';
+  const themeColorHover = role === 'buyer' ? 'hover:bg-emerald-400' : 'hover:bg-amber-400';
+  const shadowGlow = role === 'buyer' ? 'shadow-[0_0_20px_rgba(0,229,153,0.2)]' : 'shadow-[0_0_20px_rgba(245,166,35,0.2)]';
+  const topBarGlow = role === 'buyer' ? 'bg-[#00e599] shadow-[0_0_30px_#00e599]' : 'bg-[#F5A623] shadow-[0_0_30px_#F5A623]';
+
+  // Read URL Params
   useEffect(() => {
     const urlRole = searchParams.get('role');
     if (urlRole === 'seller') {
@@ -47,22 +54,33 @@ function LoginContent() {
           email,
           password,
           options: {
-            data: { role: role === 'buyer' ? 'scout' : 'dealer' }
+            data: { role: role === 'buyer' ? 'scout' : 'dealer' } // Role locked at signup
           }
         });
         if (error) throw error;
         alert(`Welcome to Koro Lane! Your ${role} account is created. 🎉`);
+        router.push(role === 'buyer' ? "/scout" : "/dealer");
+        
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        // 🔥 THE LOGIN LOCK: Read actual role from DB
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+
+        // Fetch user's registered role from metadata
+        const actualRole = data.user?.user_metadata?.role;
+
+        if (actualRole === 'dealer') {
+          router.push("/dealer");
+        } else if (actualRole === 'scout') {
+          router.push("/scout");
+        } else {
+          // Fallback if role is somehow missing
+          router.push("/");
+        }
       }
-      
-      // Smart Routing
-      router.push(role === 'buyer' ? "/scout" : "/dealer");
-      
     } catch (error: any) {
       alert("Error: " + error.message);
     } finally {
@@ -91,9 +109,9 @@ function LoginContent() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/${role === 'buyer' ? 'scout' : 'dealer'}`,
+        redirectTo: `${window.location.origin}/`, // Redirects to home, global nav handles routing based on actual role
         queryParams: {
-          prompt: 'select_account' // Forces Google to show account selection every time
+          prompt: 'select_account' 
         }
       }
     });
@@ -104,28 +122,28 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans selection:bg-[#00e599] selection:text-black">
+    <div className={`min-h-screen bg-[#050505] text-white flex flex-col font-sans selection:text-black ${role === 'buyer' ? 'selection:bg-[#00e599]' : 'selection:bg-[#F5A623]'} transition-colors duration-500`}>
       
       {/* Header */}
       <header className="px-6 py-6 absolute top-0 left-0 w-full z-10">
         <Link href="/" className="text-xl font-black tracking-tighter hover:text-gray-300 transition w-max block">
-          KORO <span className="text-[#00e599]">LANE</span>
+          KORO <span className={themeColorText}>LANE</span>
         </Link>
       </header>
 
       {/* Main Login Card Area */}
       <div className="flex-1 flex items-center justify-center p-5 mt-10">
-        <div className="w-full max-w-[400px] bg-[#0a0a0c] border border-gray-900 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
+        <div className="w-full max-w-[400px] bg-[#0a0a0c] border border-gray-900 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl transition-all duration-500">
           
-          {/* 🔥 Top Neon Glow */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-[#00e599] shadow-[0_0_30px_#00e599]"></div>
+          {/* 🔥 Dynamic Top Neon Glow */}
+          <div className={`absolute top-0 left-0 w-full h-1 ${topBarGlow} transition-all duration-500`}></div>
 
           <div className="text-center mb-6 mt-2">
-            <h2 className="text-2xl font-black uppercase tracking-tight text-white mb-1">
+            <h2 className="text-2xl font-black uppercase tracking-tight text-white mb-1 transition-all duration-300">
               {mode === 'login' ? 'WELCOME BACK' : 'JOIN KORO LANE'}
             </h2>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-              {mode === 'login' ? 'Sign in to continue your thrift journey.' : 'Create an account to start exploring.'}
+              {mode === 'login' ? 'Sign in to continue your journey.' : 'Create an account to start exploring.'}
             </p>
           </div>
 
@@ -133,13 +151,13 @@ function LoginContent() {
           <div className="flex border-b border-gray-900 mb-6">
             <button 
               onClick={() => setRole('buyer')}
-              className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${role === 'buyer' ? 'text-[#00e599] border-b-2 border-[#00e599]' : 'text-gray-500 hover:text-gray-300'}`}
+              className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${role === 'buyer' ? `${themeColorText} border-b-2 ${themeColorBorder}` : 'text-gray-500 hover:text-gray-300'}`}
             >
               Buyer {mode === 'login' ? 'Login' : 'Signup'}
             </button>
             <button 
               onClick={() => setRole('seller')}
-              className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${role === 'seller' ? 'text-[#00e599] border-b-2 border-[#00e599]' : 'text-gray-500 hover:text-gray-300'}`}
+              className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${role === 'seller' ? `${themeColorText} border-b-2 ${themeColorBorder}` : 'text-gray-500 hover:text-gray-300'}`}
             >
               Seller {mode === 'login' ? 'Login' : 'Signup'}
             </button>
@@ -151,13 +169,13 @@ function LoginContent() {
             <div>
               <label className="block text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1.5">Email Address *</label>
               <div className="relative">
-                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                <svg className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${themeColorText} transition-colors`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                 <input 
                   required 
                   type="email" 
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)} 
-                  className="w-full bg-[#121214] border border-gray-900 rounded-xl text-white pl-11 pr-4 py-3.5 text-sm outline-none focus:border-[#00e599] transition" 
+                  className={`w-full bg-[#121214] border border-gray-900 rounded-xl text-white pl-11 pr-4 py-3.5 text-sm outline-none focus:${themeColorBorder} transition-colors`} 
                   placeholder="Enter email address" 
                 />
               </div>
@@ -168,22 +186,21 @@ function LoginContent() {
               <div className="flex justify-between items-center mb-1.5">
                 <label className="block text-[9px] text-gray-500 font-bold uppercase tracking-widest">Password *</label>
                 {mode === 'login' && (
-                  <button type="button" onClick={handleForgotPassword} className="text-[9px] text-[#00e599] hover:underline uppercase font-black tracking-widest">
+                  <button type="button" onClick={handleForgotPassword} className={`text-[9px] ${themeColorText} hover:underline uppercase font-black tracking-widest transition-colors`}>
                     Forgot Password?
                   </button>
                 )}
               </div>
               <div className="relative">
-                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                <svg className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${themeColorText} transition-colors`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 <input 
                   required 
                   type={showPassword ? "text" : "password"}
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
-                  className="w-full bg-[#121214] border border-gray-900 rounded-xl text-white pl-11 pr-11 py-3.5 text-sm outline-none focus:border-[#00e599] transition" 
+                  className={`w-full bg-[#121214] border border-gray-900 rounded-xl text-white pl-11 pr-11 py-3.5 text-sm outline-none focus:${themeColorBorder} transition-colors`} 
                   placeholder="Enter your password" 
                 />
-                {/* 👁️ Eye Icon Button */}
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition">
                   {showPassword ? (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
@@ -194,12 +211,12 @@ function LoginContent() {
               </div>
             </div>
 
-            {/* Seller Rules (Only visible during Seller Signup) */}
+            {/* Seller Rules */}
             {mode === 'signup' && role === 'seller' && (
-              <div className="bg-[#003320]/20 border border-[#00e599]/30 rounded-xl p-4 mt-2">
+              <div className="bg-[#F5A623]/10 border border-[#F5A623]/30 rounded-xl p-4 mt-2">
                 <div className="flex items-center gap-2">
-                  <input type="checkbox" id="rules" required checked={agreeRules} onChange={(e) => setAgreeRules(e.target.checked)} className="accent-[#00e599] w-3.5 h-3.5 cursor-pointer" />
-                  <label htmlFor="rules" className="text-[9px] text-[#00e599] font-black uppercase tracking-widest cursor-pointer hover:text-white transition">
+                  <input type="checkbox" id="rules" required checked={agreeRules} onChange={(e) => setAgreeRules(e.target.checked)} className="accent-[#F5A623] w-3.5 h-3.5 cursor-pointer" />
+                  <label htmlFor="rules" className="text-[9px] text-[#F5A623] font-black uppercase tracking-widest cursor-pointer hover:text-white transition">
                     I AGREE TO KORO LANE SELLER RULES (5% FEE)
                   </label>
                 </div>
@@ -209,7 +226,7 @@ function LoginContent() {
             <button 
               type="submit" 
               disabled={loading || (mode === 'signup' && role === 'seller' && !agreeRules)} 
-              className="w-full bg-[#00e599] text-black font-black py-4 rounded-xl uppercase tracking-widest text-[11px] hover:bg-emerald-400 transition duration-300 shadow-[0_0_20px_rgba(0,229,153,0.2)] disabled:opacity-50 mt-4 active:scale-[0.98]"
+              className={`w-full ${themeColorBg} text-black font-black py-4 rounded-xl uppercase tracking-widest text-[11px] ${themeColorHover} transition-all duration-300 ${shadowGlow} disabled:opacity-50 mt-4 active:scale-[0.98]`}
             >
               {loading ? "Authenticating..." : (mode === 'login' ? "Login" : "Sign Up")}
             </button>
@@ -231,7 +248,7 @@ function LoginContent() {
               <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Apple</span>
             </button>
             <button onClick={() => alert("Phone Login (OTP) coming soon! 📱")} className="flex flex-col items-center justify-center gap-1.5 py-3.5 bg-[#121214] border border-gray-900 rounded-xl hover:border-gray-700 hover:bg-gray-900 transition group">
-              <svg className="w-5 h-5 text-[#00e599] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+              <svg className={`w-5 h-5 ${themeColorText} group-hover:scale-110 transition-all duration-300`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
               <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Phone</span>
             </button>
           </div>
@@ -246,9 +263,9 @@ function LoginContent() {
               className="text-[10px] text-gray-500 uppercase tracking-widest font-bold hover:text-white transition"
             >
               {mode === 'login' ? (
-                <>NEW TO KOROLANE? <span className="text-[#00e599]">SIGN UP</span></>
+                <>NEW TO KOROLANE? <span className={`${themeColorText} transition-colors`}>SIGN UP</span></>
               ) : (
-                <>ALREADY HAVE AN ACCOUNT? <span className="text-[#00e599]">LOGIN</span></>
+                <>ALREADY HAVE AN ACCOUNT? <span className={`${themeColorText} transition-colors`}>LOGIN</span></>
               )}
             </button>
           </div>
@@ -259,7 +276,6 @@ function LoginContent() {
   );
 }
 
-// 🚀 Ye naya function pure page ko wrap karega taaki Error na aaye
 export default function UnifiedLogin() {
   return (
     <Suspense fallback={
