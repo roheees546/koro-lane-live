@@ -77,8 +77,8 @@ function LoginContent() {
         } else if (actualRole === 'scout') {
           router.push("/scout");
         } else {
-          // Fallback if role is somehow missing
-          router.push("/");
+          // Fallback agar purana Google account hai jisme role metadata nahi hai
+          router.push(role === 'buyer' ? "/scout" : "/dealer");
         }
       }
     } catch (error: any) {
@@ -109,7 +109,8 @@ function LoginContent() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`, // Redirects to home, global nav handles routing based on actual role
+        // 🔥 FIXED: Direct routing to specific dashboard based on selected tab
+        redirectTo: `${window.location.origin}/${role === 'buyer' ? 'scout' : 'dealer'}`, 
         queryParams: {
           prompt: 'select_account' 
         }

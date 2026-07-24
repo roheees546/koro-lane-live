@@ -114,18 +114,16 @@ export default function Home() {
   return (
     <div className="bg-black text-white w-full pb-24 min-h-screen">
       
-      {/* 🚀 REDESIGNED HEADER (Points 1) */}
+      {/* 🚀 REDESIGNED HEADER */}
       <header className="px-5 pt-4 pb-3 sticky top-0 bg-black/90 backdrop-blur-md z-40 border-b border-gray-900">
         <div className="flex justify-between items-center mb-3">
           <h1 className="text-xl font-black tracking-tighter flex items-center gap-2">
             KORO<span className="text-[#00e599]">LANE</span>
           </h1>
           <div className="flex items-center gap-4">
-            {/* 🟢 HEART GOES TO WISHLIST */}
             <Link href="/wishlist" className="text-gray-300 hover:text-white transition">
                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
             </Link>
-            {/* 🟢 BELL SHOWS ALERT */}
             <button onClick={() => alert("Notifications coming soon! 🔔")} className="relative text-gray-300 hover:text-white transition">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
               <span className="absolute top-0 right-0.5 w-2 h-2 bg-[#00e599] rounded-full border border-black"></span>
@@ -138,7 +136,6 @@ export default function Home() {
           <p className="text-[10px] font-bold text-gray-300 tracking-widest lowercase">Dehradun next day delivery</p>
         </div>
 
-        {/* 🟢 SEARCH GOES TO /shop */}
         <Link href="/shop" className="bg-[#121214] w-full text-gray-400 border border-gray-800 hover:border-gray-600 transition px-4 py-2.5 rounded-xl text-xs flex items-center gap-2">
           <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           Search drops & sellers...
@@ -159,7 +156,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 FEATURED SELLERS */}
+      {/* 🚀 FEATURED SELLERS (PITCH BLACK DESIGN) */}
       <section className="pt-2 pb-6">
         <div className="flex justify-between items-center px-5 mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
@@ -170,10 +167,9 @@ export default function Home() {
         
         <div className="flex overflow-x-auto hide-scrollbar px-5 gap-4 snap-x snap-mandatory pb-2">
           {/* Seller 1 : GET NOW */}
-          {/* 🟢 TODO: Replace REPLACE_WITH_ACTUAL_SELLER_ID below with the real ID from your Supabase 'profiles' table */}
-          <Link href={`/store/REPLACE_WITH_ACTUAL_SELLER_ID`} className="w-[280px] shrink-0 snap-start bg-[#121214] border border-gray-800 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-600 transition">
-            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#003320]/20 to-transparent pointer-events-none"></div>
-            <div className="w-16 h-16 bg-black border border-gray-700 rounded-full flex items-center justify-center shrink-0">
+          <Link href={`/store/REPLACE_WITH_ACTUAL_SELLER_ID`} className="w-[280px] shrink-0 snap-start bg-black border border-gray-900 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-700 hover:shadow-[0_0_20px_rgba(0,229,153,0.05)] transition">
+            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#003320]/10 to-transparent pointer-events-none"></div>
+            <div className="w-16 h-16 bg-[#0a0a0c] border border-gray-800 rounded-full flex items-center justify-center shrink-0 shadow-inner">
               <span className="text-[10px] font-black text-white text-center leading-tight">GET<br/>NOW</span>
             </div>
             <div>
@@ -189,13 +185,12 @@ export default function Home() {
           </Link>
 
           {/* Seller 2 : FRIDO */}
-          {/* 🟢 TODO: Replace REPLACE_WITH_ACTUAL_SELLER_ID below with the real Frido ID from your Supabase 'profiles' table */}
-          <Link href={`/store/REPLACE_WITH_ACTUAL_SELLER_ID`} className="w-[280px] shrink-0 snap-start bg-[#121214] border border-gray-800 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-600 transition">
-            <div className="w-16 h-16 bg-black border border-gray-700 rounded-full flex items-center justify-center shrink-0">
+          <Link href={`/store/REPLACE_WITH_ACTUAL_SELLER_ID`} className="w-[280px] shrink-0 snap-start bg-black border border-gray-900 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-700 hover:shadow-[0_0_20px_rgba(0,229,153,0.05)] transition">
+            <div className="w-16 h-16 bg-[#0a0a0c] border border-gray-800 rounded-full flex items-center justify-center shrink-0 shadow-inner">
               <span className="text-[10px] font-black text-white text-center leading-tight">FRIDO</span>
             </div>
             <div>
-              <span className="bg-gray-800 text-gray-300 text-[7px] font-bold px-2 py-0.5 rounded uppercase tracking-widest mb-1 inline-block">Verified</span>
+              <span className="bg-gray-900 text-gray-300 text-[7px] font-bold px-2 py-0.5 rounded uppercase tracking-widest mb-1 inline-block">Verified</span>
               <h4 className="text-sm font-black text-white flex items-center gap-1">Frido.in <svg className="w-3 h-3 text-[#00e599]" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></h4>
               <p className="text-[9px] text-gray-500 mt-0.5">Dehradun, Uttarakhand</p>
               <div className="mt-2 flex gap-2 items-center">
@@ -219,7 +214,6 @@ export default function Home() {
             <div key={product.id} onClick={() => handleCardClick(product)} className="w-[140px] shrink-0 snap-start bg-[#0a0a0c] border border-gray-900 rounded-xl overflow-hidden relative cursor-pointer hover:border-gray-700 transition flex flex-col">
               
               <div className="relative aspect-[4/5] bg-gray-900">
-                {/* 🟢 HEART FIX: Placed inside relative image container with high z-index */}
                 <div className="absolute top-2 right-2 z-30">
                   <WishlistButton productId={product.id} onRequireAuth={() => setIsAuthModalOpen(true)} />
                 </div>
@@ -266,33 +260,36 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 NEW: STYLE FEED BLOCK (Point 4) */}
+      {/* 🔴 NEW: LIVE SHOPPING BLOCK */}
       <section className="px-5 pb-8">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
-             <span className="text-[#00e599]">📸</span> STYLE FEED
+             <span className="text-red-500 animate-pulse">🔴</span> LIVE SHOPPING
           </h3>
-          <Link href="/shop" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View all</Link>
+          <Link href="/live" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View live</Link>
         </div>
         
-        <div className="bg-[#0a0a0c] border border-gray-800 rounded-2xl p-5 flex items-center gap-4 relative overflow-hidden">
-          <div className="w-16 h-16 shrink-0 relative flex items-center justify-center">
-            {/* Outline wireframe icon for Style */}
-            <svg className="w-full h-full text-gray-700" viewBox="0 0 64 64" fill="none" stroke="currentColor">
-               <rect x="8" y="8" width="48" height="48" rx="8" strokeWidth="1" strokeDasharray="4 4" />
-               <circle cx="32" cy="24" r="10" strokeWidth="1" />
-               <path d="M16 48c0-8.8 7.2-16 16-16s16 7.2 16 16" strokeWidth="1" />
-               <rect x="24" y="28" width="16" height="12" rx="2" strokeWidth="1.5" fill="#0a0a0c" />
-               <circle cx="32" cy="34" r="3" strokeWidth="1.5" />
-            </svg>
+        <div className="bg-[#0a0a0c] border border-gray-900 rounded-2xl p-5 flex flex-col relative overflow-hidden">
+          {/* Subtle Red Ambient Glow */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-500/10 rounded-full blur-2xl pointer-events-none"></div>
+          
+          <div className="flex items-center gap-4 mb-5 z-10">
+              <div className="w-12 h-12 bg-red-500/10 border border-red-500/30 rounded-full shrink-0 flex items-center justify-center relative">
+                <div className="absolute inset-0 rounded-full border border-red-500/50 animate-ping opacity-20"></div>
+                <svg className="w-5 h-5 text-red-500 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="bg-red-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest animate-pulse">Live Now</span>
+                </div>
+                <h4 className="text-[12px] font-black text-white leading-tight">Exclusive Thrift Drops</h4>
+                <p className="text-[9px] text-gray-400 mt-1">Join the stream and claim 1-of-1 pieces before they're gone.</p>
+              </div>
           </div>
-          <div>
-            <h4 className="text-[11px] font-bold text-white mb-1">Be the first to upload your style!</h4>
-            <p className="text-[9px] text-gray-500 mb-4">Buy any item and share your look with the community.</p>
-            <Link href="/shop" className="inline-block border border-[#00e599] text-[#00e599] text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-lg hover:bg-[#00e599]/10 transition">
-              Explore Marketplace
-            </Link>
-          </div>
+          
+          <Link href="/live" className="w-full text-center bg-white text-black text-[9px] font-black uppercase tracking-widest py-3.5 rounded-xl hover:bg-gray-200 transition z-10 shadow-[0_0_15px_rgba(255,255,255,0.1)] active:scale-[0.98]">
+            Enter Live Stream
+          </Link>
         </div>
       </section>
 
