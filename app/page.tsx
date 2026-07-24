@@ -9,6 +9,7 @@ import WishlistButton from "../components/WishlistButton";
 export default function Home() {
   const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
+  const [featuredSellers, setFeaturedSellers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -23,7 +24,7 @@ export default function Home() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   useEffect(() => {
-    fetchProducts();
+    fetchInitialData();
     checkAuthStatus();
   }, []);
 
@@ -36,9 +37,20 @@ export default function Home() {
     }
   };
 
-  const fetchProducts = async () => {
+  // 🔥 Fetch both Products and Dynamic Sellers
+  const fetchInitialData = async () => {
     try {
-      let { data: prods, error } = await supabase
+      // 1. Fetch Sellers
+      const { data: sellers } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("role", "dealer")
+        .limit(5);
+        
+      if (sellers) setFeaturedSellers(sellers);
+
+      // 2. Fetch Products
+      let { data: prods } = await supabase
         .from("products")
         .select(`*, profiles(store_name)`)
         .order("created_at", { ascending: false })
@@ -56,7 +68,6 @@ export default function Home() {
           ...p,
           isOnHold: p.is_sold && pendingIds.includes(p.id)
         }));
-
         setProducts(enrichedProds);
       }
     } catch (err) {
@@ -114,7 +125,7 @@ export default function Home() {
   return (
     <div className="bg-black text-white w-full pb-24 min-h-screen">
       
-      {/* 🚀 REDESIGNED HEADER */}
+      {/* 🚀 HEADER */}
       <header className="px-5 pt-4 pb-3 sticky top-0 bg-black/90 backdrop-blur-md z-40 border-b border-gray-900">
         <div className="flex justify-between items-center mb-3">
           <h1 className="text-xl font-black tracking-tighter flex items-center gap-2">
@@ -156,7 +167,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 FEATURED SELLERS (PITCH BLACK DESIGN) */}
+      {/* 🚀 DYNAMIC FEATURED SELLERS */}
       <section className="pt-2 pb-6">
         <div className="flex justify-between items-center px-5 mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
@@ -166,38 +177,38 @@ export default function Home() {
         </div>
         
         <div className="flex overflow-x-auto hide-scrollbar px-5 gap-4 snap-x snap-mandatory pb-2">
-          {/* Seller 1 : GET NOW */}
-          <Link href={`/store/REPLACE_WITH_ACTUAL_SELLER_ID`} className="w-[280px] shrink-0 snap-start bg-black border border-gray-900 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-700 hover:shadow-[0_0_20px_rgba(0,229,153,0.05)] transition">
-            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#003320]/10 to-transparent pointer-events-none"></div>
-            <div className="w-16 h-16 bg-[#0a0a0c] border border-gray-800 rounded-full flex items-center justify-center shrink-0 shadow-inner">
-              <span className="text-[10px] font-black text-white text-center leading-tight">GET<br/>NOW</span>
+          
+          {/* 🔥 Dynamic Database Check */}
+          {featuredSellers.length === 0 ? (
+            <div className="w-full bg-[#121214] border border-gray-900 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
+              <span className="text-2xl mb-2 block opacity-50 grayscale">🏪</span>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-white mb-1">No Sellers Found</h4>
+              <p className="text-[9px] text-gray-500 font-medium uppercase tracking-widest">Onboarding in progress.</p>
             </div>
-            <div>
-              <span className="bg-[#003320] text-[#00e599] text-[7px] font-bold px-2 py-0.5 rounded uppercase tracking-widest mb-1 inline-block">Verified</span>
-              <h4 className="text-sm font-black text-white flex items-center gap-1">GET NOW <svg className="w-3 h-3 text-[#00e599]" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></h4>
-              <p className="text-[9px] text-gray-500 mt-0.5">Dehradun, Uttarakhand</p>
-              <div className="mt-2 flex gap-2 items-center">
-                <span className="text-[9px] text-yellow-500 font-bold">★ 5.0 <span className="text-gray-500">(12)</span></span>
-                <span className="text-gray-700 text-[8px]">•</span>
-                <span className="text-[9px] text-gray-400 font-medium">Active Drops</span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Seller 2 : FRIDO */}
-          <Link href={`/store/REPLACE_WITH_ACTUAL_SELLER_ID`} className="w-[280px] shrink-0 snap-start bg-black border border-gray-900 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-700 hover:shadow-[0_0_20px_rgba(0,229,153,0.05)] transition">
-            <div className="w-16 h-16 bg-[#0a0a0c] border border-gray-800 rounded-full flex items-center justify-center shrink-0 shadow-inner">
-              <span className="text-[10px] font-black text-white text-center leading-tight">FRIDO</span>
-            </div>
-            <div>
-              <span className="bg-gray-900 text-gray-300 text-[7px] font-bold px-2 py-0.5 rounded uppercase tracking-widest mb-1 inline-block">Verified</span>
-              <h4 className="text-sm font-black text-white flex items-center gap-1">Frido.in <svg className="w-3 h-3 text-[#00e599]" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></h4>
-              <p className="text-[9px] text-gray-500 mt-0.5">Dehradun, Uttarakhand</p>
-              <div className="mt-2 flex gap-2 items-center">
-                <span className="text-[9px] text-yellow-500 font-bold">★ 4.9 <span className="text-gray-500">(8)</span></span>
-              </div>
-            </div>
-          </Link>
+          ) : (
+            featuredSellers.map((seller) => (
+              <Link key={seller.id} href={`/store/${seller.id}`} className="w-[280px] shrink-0 snap-start bg-black border border-gray-900 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-700 hover:shadow-[0_0_20px_rgba(0,229,153,0.05)] transition">
+                <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#003320]/10 to-transparent pointer-events-none"></div>
+                <div className="w-16 h-16 bg-[#0a0a0c] border border-gray-800 rounded-full flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
+                  {seller.avatar_url ? (
+                    <img src={seller.avatar_url} alt={seller.store_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-[10px] font-black text-white text-center leading-tight">
+                      {seller.store_name ? seller.store_name.substring(0, 3).toUpperCase() : 'NEW'}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <span className="bg-[#003320] text-[#00e599] text-[7px] font-bold px-2 py-0.5 rounded uppercase tracking-widest mb-1 inline-block">Verified</span>
+                  <h4 className="text-sm font-black text-white flex items-center gap-1">
+                    {seller.store_name || "New Seller"} 
+                    <svg className="w-3 h-3 text-[#00e599]" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  </h4>
+                  <p className="text-[9px] text-gray-500 mt-0.5">{seller.bio ? seller.bio.substring(0, 30) + '...' : 'Dehradun, Uttarakhand'}</p>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </section>
 
@@ -210,57 +221,60 @@ export default function Home() {
         </div>
         
         <div className="flex overflow-x-auto hide-scrollbar px-5 gap-4 snap-x snap-mandatory pb-4">
-          {products.map((product) => (
-            <div key={product.id} onClick={() => handleCardClick(product)} className="w-[140px] shrink-0 snap-start bg-[#0a0a0c] border border-gray-900 rounded-xl overflow-hidden relative cursor-pointer hover:border-gray-700 transition flex flex-col">
-              
-              <div className="relative aspect-[4/5] bg-gray-900">
-                <div className="absolute top-2 right-2 z-30">
-                  <WishlistButton productId={product.id} onRequireAuth={() => setIsAuthModalOpen(true)} />
-                </div>
-                
-                <span className="absolute top-2 left-2 bg-[#003320] text-[#00e599] text-[7px] font-bold px-1.5 py-0.5 rounded z-10 uppercase tracking-widest">{product.category || 'TOP'}</span>
-                
-                {product.isOnHold ? (
-                  <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
-                    <div className="bg-yellow-600 text-black text-[9px] font-black uppercase px-3 py-1 tracking-widest shadow-xl rotate-[-12deg] rounded-sm">ON HOLD ⏳</div>
+          {products.length === 0 ? (
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest text-center w-full py-4">No drops available.</p>
+          ) : (
+            products.map((product) => (
+              <div key={product.id} onClick={() => handleCardClick(product)} className="w-[140px] shrink-0 snap-start bg-[#0a0a0c] border border-gray-900 rounded-xl overflow-hidden relative cursor-pointer hover:border-gray-700 transition flex flex-col">
+                <div className="relative aspect-[4/5] bg-gray-900">
+                  <div className="absolute top-2 right-2 z-30">
+                    <WishlistButton productId={product.id} onRequireAuth={() => setIsAuthModalOpen(true)} />
                   </div>
-                ) : product.is_sold ? (
-                  <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
-                    <div className="bg-red-600 text-white text-[9px] font-black uppercase px-3 py-1 tracking-widest shadow-xl rotate-[-12deg] rounded-sm">SOLD OUT</div>
-                  </div>
-                ) : null}
-
-                <img src={product.image_urls?.[0] || product.image_url} alt={product.title} className="w-full h-full object-cover" />
-              </div>
-              <div className="p-3 flex flex-col flex-grow justify-between bg-gradient-to-t from-black to-[#0a0a0c]">
-                <div>
-                  <h4 className="text-[10px] font-bold uppercase truncate text-gray-200">{product.title}</h4>
-                  <p className="text-[8px] text-gray-500 mt-0.5">{product.size || 'Free Size'}</p>
-                </div>
-                <div className="mt-2">
-                  <span className="text-xs font-black text-white block mb-2">₹{product.price.toLocaleString('en-IN')}</span>
                   
-                  <button 
-                    onClick={(e) => {
-                      if(product.is_sold) {
-                        e.stopPropagation();
-                        router.push(`/product/${product.id}`); 
-                      } else {
-                        handleBuyNowClick(e, product);
-                      }
-                    }} 
-                    className={`w-full text-[8px] font-black uppercase py-1.5 rounded transition ${product.isOnHold ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : product.is_sold ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-[#00e599]/10 text-[#00e599] hover:bg-[#00e599] hover:text-black border border-[#00e599]/20'}`}
-                  >
-                    {product.isOnHold ? 'On Hold ⏳' : product.is_sold ? 'Sold Out 🚫' : 'Buy Now'}
-                  </button>
+                  <span className="absolute top-2 left-2 bg-[#003320] text-[#00e599] text-[7px] font-bold px-1.5 py-0.5 rounded z-10 uppercase tracking-widest">{product.category || 'TOP'}</span>
+                  
+                  {product.isOnHold ? (
+                    <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
+                      <div className="bg-yellow-600 text-black text-[9px] font-black uppercase px-3 py-1 tracking-widest shadow-xl rotate-[-12deg] rounded-sm">ON HOLD ⏳</div>
+                    </div>
+                  ) : product.is_sold ? (
+                    <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
+                      <div className="bg-red-600 text-white text-[9px] font-black uppercase px-3 py-1 tracking-widest shadow-xl rotate-[-12deg] rounded-sm">SOLD OUT</div>
+                    </div>
+                  ) : null}
+
+                  <img src={product.image_urls?.[0] || product.image_url} alt={product.title} className="w-full h-full object-cover" />
+                </div>
+                <div className="p-3 flex flex-col flex-grow justify-between bg-gradient-to-t from-black to-[#0a0a0c]">
+                  <div>
+                    <h4 className="text-[10px] font-bold uppercase truncate text-gray-200">{product.title}</h4>
+                    <p className="text-[8px] text-gray-500 mt-0.5">{product.size || 'Free Size'}</p>
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-xs font-black text-white block mb-2">₹{product.price.toLocaleString('en-IN')}</span>
+                    
+                    <button 
+                      onClick={(e) => {
+                        if(product.is_sold) {
+                          e.stopPropagation();
+                          router.push(`/product/${product.id}`); 
+                        } else {
+                          handleBuyNowClick(e, product);
+                        }
+                      }} 
+                      className={`w-full text-[8px] font-black uppercase py-1.5 rounded transition ${product.isOnHold ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : product.is_sold ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-[#00e599]/10 text-[#00e599] hover:bg-[#00e599] hover:text-black border border-[#00e599]/20'}`}
+                    >
+                      {product.isOnHold ? 'On Hold ⏳' : product.is_sold ? 'Sold Out 🚫' : 'Buy Now'}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
 
-      {/* 🔴 NEW: LIVE SHOPPING BLOCK */}
+      {/* 🔴 LIVE SHOPPING BLOCK */}
       <section className="px-5 pb-8">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
@@ -270,7 +284,6 @@ export default function Home() {
         </div>
         
         <div className="bg-[#0a0a0c] border border-gray-900 rounded-2xl p-5 flex flex-col relative overflow-hidden">
-          {/* Subtle Red Ambient Glow */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-500/10 rounded-full blur-2xl pointer-events-none"></div>
           
           <div className="flex items-center gap-4 mb-5 z-10">
