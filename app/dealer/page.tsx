@@ -52,11 +52,36 @@ export default function DealerDashboard() {
     }
     setUserId(session.user.id);
 
-    const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+    // Pehle try karo profile lane ki
+    let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+
+    const intendedRole = typeof window !== 'undefined' ? localStorage.getItem('koro_intended_role') : null;
+
+    // 🔥 THE MASTER UPSERT FIX 🔥
+    // Agar DB empty hai (!profile) YA banda naya Seller banne aaya hai, toh data create/overwrite karo
+    if (!profile || intendedRole === 'seller') {
+      const { data: savedProfile, error } = await supabase.from("profiles").upsert({
+        id: session.user.id,
+        role: "dealer",
+        store_name: "NEW SELLER STORE",
+        store_address: "Address not set",
+        address: "Address not set"
+      }).select().single();
+
+      if (savedProfile) {
+        profile = savedProfile;
+      }
+      
+      // Memory hack ko saaf kar do
+      if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
+    }
+
+    // Security Check
     if (profile?.role !== "dealer") {
       router.push("/");
       return;
     }
+
     setStoreName(profile.store_name || "KOROLANE STORE");
     setStoreAddress(profile.address || profile.store_address || "Address not set");
     setStoreLogo(profile.store_logo || profile.avatar_url || null);
