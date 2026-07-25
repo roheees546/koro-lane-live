@@ -52,7 +52,33 @@ export default function ScoutTerminal() {
     const userEmail = session.user.email || "";
     setEmail(userEmail);
 
-    const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+    let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+    
+    // 🔒 STRICT ROLE LOCK: Agar ye banda SELLER (dealer) hai, toh isko uske dashboard pe bhej do! Overwrite mat karo!
+    if (profile && profile.role === 'dealer') {
+      router.push("/dealer");
+      return;
+    }
+
+    // 🆕 NAYA BUYER CREATION (Agar profile DB mein nahi hai)
+    if (!profile) {
+      const { data: newProfile } = await supabase.from("profiles").insert({
+        id: session.user.id,
+        email: userEmail,
+        role: "scout",
+        full_name: userEmail.split("@")[0]
+      }).select().single();
+      
+      if (newProfile) profile = newProfile;
+    } else if (profile && !profile.email) {
+      // Sync email just in case
+      await supabase.from("profiles").update({ email: userEmail }).eq("id", session.user.id);
+      profile.email = userEmail;
+    }
+
+    // Remove any memory hacks
+    if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
+
     const nameToUse = profile?.full_name || userEmail.split("@")[0];
     setFullName(nameToUse);
     
