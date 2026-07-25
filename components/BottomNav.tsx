@@ -13,24 +13,31 @@ export default function BottomNav() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // 🔥 YEH RAHI TERE PROBLEM KI CHABBI: Check if we are in Dealer Dashboard
+  // Check if we are in Dealer Dashboard
   const isDealerRoute = pathname?.startsWith('/dealer');
 
-  // 🔐 Check Auth Status & Listen for Login/Logout events
+  // 🔐 Check Auth Status & Fetch REAL ROLE from Database
   useEffect(() => {
+    const fetchRealRole = async (userId: string) => {
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single();
+      if (profile) {
+        setUserRole(profile.role);
+      }
+    };
+
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsLoggedIn(true);
-        setUserRole(session.user.user_metadata?.role || null);
+        await fetchRealRole(session.user.id);
       }
     };
     checkAuth();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         setIsLoggedIn(true);
-        setUserRole(session.user.user_metadata?.role || null);
+        await fetchRealRole(session.user.id);
       } else {
         setIsLoggedIn(false);
         setUserRole(null);
@@ -42,18 +49,21 @@ export default function BottomNav() {
     };
   }, []);
 
-  // 🔥 SMART PROFILE ROUTING
+  // 🔥 SMART PROFILE ROUTING (The Magic Fix)
   const handleProfileClick = (e: React.MouseEvent) => {
     e.preventDefault();
     
     if (!isLoggedIn) {
+      // 1. Agar logged out hai, toh Modal dikhao
       setShowRoleModal(true);
     } else {
+      // 2. Agar logged in hai, toh ASLI ROLE ke hisaab se route karo
       if (userRole === 'dealer') {
         router.push('/dealer');
       } else if (userRole === 'scout') {
         router.push('/scout');
       } else {
+        // Fallback (Agar database mein role set nahi hai)
         setShowRoleModal(true);
       }
     }
@@ -61,7 +71,7 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* 🚀 MAGIC FIX: Sirf tabhi dikhao jab hum Dealer route par NAHI hain */}
+      {/* Sirf tabhi dikhao jab hum Dealer route par NAHI hain */}
       {!isDealerRoute && (
         <nav className="fixed bottom-0 w-full max-w-[450px] bg-[#0a0a0c]/95 backdrop-blur-md border-t border-gray-900 flex justify-around items-center px-2 py-4 z-40 pb-6">
           
@@ -83,7 +93,7 @@ export default function BottomNav() {
             <span className="text-[9px] font-bold uppercase tracking-widest">Live</span>
           </Link>
 
-          {/* PROFILE */}
+          {/* PROFILE (SMART ROUTING) */}
           <button onClick={handleProfileClick} className={`flex flex-col items-center gap-1.5 w-16 ${pathname === '/scout' || pathname === '/login' ? 'text-[#00e599]' : 'text-gray-500 hover:text-gray-300 transition'}`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
             <span className="text-[9px] font-bold uppercase tracking-widest">Profile</span>
