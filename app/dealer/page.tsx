@@ -15,6 +15,7 @@ export default function DealerDashboard() {
   const [storeAddress, setStoreAddress] = useState("");
   const [storeLogo, setStoreLogo] = useState<string | null>(null);
   const [joinDate, setJoinDate] = useState("");
+  const [userEmail, setUserEmail] = useState(""); // 🔥 Email state added
   
   // Stats & Pipeline
   const [stats, setStats] = useState({ todaySale: 0, pending: 0, totalSales: 0, liveStock: 0 });
@@ -51,21 +52,22 @@ export default function DealerDashboard() {
       return;
     }
     setUserId(session.user.id);
+    const sessionEmail = session.user.email || "";
 
     // Pehle try karo profile lane ki
     let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
 
     const intendedRole = typeof window !== 'undefined' ? localStorage.getItem('koro_intended_role') : null;
 
-    // 🔥 THE MASTER UPSERT FIX 🔥
-    // Agar DB empty hai (!profile) YA banda naya Seller banne aaya hai, toh data create/overwrite karo
+    // 🔥 THE MASTER UPSERT FIX (NOW WITH EMAIL) 🔥
     if (!profile || intendedRole === 'seller') {
       const { data: savedProfile, error } = await supabase.from("profiles").upsert({
         id: session.user.id,
+        email: sessionEmail, // 🔥 Email save ho raha hai yahan
         role: "dealer",
-        store_name: "NEW SELLER STORE",
-        store_address: "Address not set",
-        address: "Address not set"
+        store_name: profile?.store_name || "NEW SELLER STORE", // Purana naam bacha rahega (Jaise DR ZEUS)
+        store_address: profile?.store_address || profile?.address || "Address not set",
+        address: profile?.address || profile?.store_address || "Address not set"
       }).select().single();
 
       if (savedProfile) {
@@ -74,6 +76,11 @@ export default function DealerDashboard() {
       
       // Memory hack ko saaf kar do
       if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
+      
+    } else if (profile && !profile.email) {
+      // 🔥 Agar pehle se profile hai par email NULL hai, toh automatically update kar do!
+      await supabase.from("profiles").update({ email: sessionEmail }).eq("id", session.user.id);
+      profile.email = sessionEmail;
     }
 
     // Security Check
@@ -85,6 +92,7 @@ export default function DealerDashboard() {
     setStoreName(profile.store_name || "KOROLANE STORE");
     setStoreAddress(profile.address || profile.store_address || "Address not set");
     setStoreLogo(profile.store_logo || profile.avatar_url || null);
+    setUserEmail(profile.email || sessionEmail); // Set Email to UI state
     
     // Format Join Date
     if (profile.created_at) {
@@ -286,7 +294,9 @@ export default function DealerDashboard() {
                 <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
                 <span className="text-[9px] font-black uppercase tracking-widest">Verified Seller</span>
               </div>
+              {/* 🔥 EMAIL UI SECTION ADDED HERE */}
               <div className="text-[10px] text-gray-400 mt-1.5 space-y-0.5">
+                <p className="flex items-center gap-1 truncate"><span className="text-gray-500">✉️</span> {userEmail}</p>
                 <p className="flex items-center gap-1"><span className="text-gray-500">📍</span> {storeAddress.split(',')[0]}</p>
                 <p className="flex items-center gap-1"><span className="text-gray-500">📅</span> {joinDate}</p>
               </div>
