@@ -82,17 +82,6 @@ export default function ProductDetailPage() {
     if (productId) fetchProductDetails();
   }, [productId]);
 
-  // 🔥 AUTO-UPI TRIGGER (Without Amount + Added Merchant Code)
-  useEffect(() => {
-    if (checkoutStep === 2) {
-      const timer = setTimeout(() => {
-        // am= hataya hai aur mc=0000 add kiya hai taaki Business account strict block bypass ho jaye
-        window.location.href = `upi://pay?pa=paytm.s30za19@pty&pn=Rohit%20Singh%20Rana&mc=0000&cu=INR`;
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [checkoutStep]);
-
   // 🔥 SWIPE GESTURE HANDLERS
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -145,6 +134,7 @@ export default function ProductDetailPage() {
       const { error: productError } = await supabase.from('products').update({ is_sold: true }).eq('id', product.id);
       if (productError) throw productError;
 
+      // 🔥 AUTO WHATSAPP REDIRECT ON "I HAVE PAID"
       const message = `Hi, I just paid ₹${totalPrice} for ${product.title} (ID: ${product.id}).\n\nDelivery Details:\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}, Pincode: ${formData.pincode}\n\nPlease verify my payment screenshot attached.`;
       window.location.href = `https://wa.me/919027434335?text=${encodeURIComponent(message)}`;
       
@@ -385,18 +375,24 @@ export default function ProductDetailPage() {
               {checkoutStep === 2 && (
                 <div className="animate-in fade-in flex flex-col items-center pt-2 max-w-sm mx-auto">
                   <div className="bg-white p-2.5 rounded-2xl w-56 h-56 border-4 border-[#00e599] shadow-[0_0_40px_rgba(0,229,153,0.2)] mb-5">
-                    <img src="/paytm-qr.jpg" alt="Payment QR" className="w-full h-full object-contain rounded-xl" />
+                    {/* 🔥 IMAGE CHANGED TO /new-qr.png */}
+                    <img src="/new-qr.png" alt="Payment QR" className="w-full h-full object-contain rounded-xl" />
                   </div>
-                  <div className="text-center mb-6">
-                    <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">UPI ID: <span className="text-white">paytm.s30za19@pty</span></p>
-                    <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mt-1.5">Name: <span className="text-white">Rohit Singh Rana</span></p>
+                  
+                  {/* 🔥 NEW TEXT & UPDATED UPI ID ADDED HERE */}
+                  <div className="text-center mb-6 space-y-2">
+                    <p className="text-[11px] text-[#00e599] font-black uppercase tracking-widest bg-[#003320]/50 border border-[#00e599]/30 py-1.5 px-4 rounded-full inline-block">✓ You are paying to the co-founder</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mt-2">UPI ID: <span className="text-white">9027434335@ptsbi</span></p>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-2 leading-relaxed">After payment, share screenshot to WhatsApp number<br/><span className="text-white text-xs">9027434335</span></p>
                   </div>
+
                   <div className="text-center bg-[#0a0a0c] w-full border border-gray-800 rounded-xl py-4 mb-6">
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Please enter this exact amount</p>
                     <p className="text-4xl font-black text-[#00e599]">₹{totalPrice}</p>
                   </div>
-                  {/* 🔥 BUTTON BHI UPDATE KAR DIYA HAI (NO AMOUNT, WITH MC=0000) */}
-                  <a href={`upi://pay?pa=paytm.s30za19@pty&pn=Rohit%20Singh%20Rana&mc=0000&cu=INR`} className="w-full block bg-[#003320]/30 border border-[#00e599]/50 text-[#00e599] font-black uppercase tracking-widest text-[11px] py-4 rounded-xl hover:bg-[#00e599]/20 transition text-center flex items-center justify-center gap-2 mb-3">
+                  
+                  {/* 🔥 UPDATED UPI LINK WITH NEW ID */}
+                  <a href={`upi://pay?pa=9027434335@ptsbi&pn=Rohit%20Singh%20Rana&mc=0000&cu=INR`} className="w-full block bg-[#003320]/30 border border-[#00e599]/50 text-[#00e599] font-black uppercase tracking-widest text-[11px] py-4 rounded-xl hover:bg-[#00e599]/20 transition text-center flex items-center justify-center gap-2 mb-3">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Pay Directly via UPI App
                   </a>
                 </div>
@@ -424,6 +420,7 @@ export default function ProductDetailPage() {
               ) : (
                 <div className="p-4 flex gap-3 w-full border-t border-gray-900 bg-black">
                   <button onClick={() => setCheckoutStep(1)} className="flex-1 bg-[#121214] border border-gray-800 text-white font-black uppercase tracking-widest text-[10px] py-4 rounded-xl hover:bg-gray-900 transition">Back</button>
+                  {/* 🔥 I HAVE PAID BUTTON - triggers WhatsApp redirect logic */}
                   <button disabled={isProcessing} onClick={handlePaymentConfirm} className="flex-[2] bg-[#00e599] text-black font-black uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-[0_0_20px_rgba(0,229,153,0.3)] hover:bg-emerald-400 transition flex items-center justify-center gap-2">
                     {isProcessing ? "Processing..." : "I Have Paid"}
                   </button>
