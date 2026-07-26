@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import WishlistButton from "@/components/WishlistButton"; // 🔥 Fixed Import Path
+import WishlistButton from "@/components/WishlistButton";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -17,6 +17,9 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [copied, setCopied] = useState(false);
+  
+  // 🔥 Image Zoom State
+  const [isZoomed, setIsZoomed] = useState(false);
 
   // Checkout States
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -42,6 +45,20 @@ export default function ProductDetailPage() {
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
+        // 🔥 AUTO-FILL HACK: Get Logged In User Profile Data
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+          if (userProfile) {
+            setFormData(prev => ({
+              ...prev,
+              name: userProfile.full_name || '',
+              phone: userProfile.phone || '',
+              address: userProfile.address || ''
+            }));
+          }
+        }
+
         const { data: prodData, error: prodError } = await supabase.from("products").select("*").eq("id", productId).single();
         if (prodError) throw prodError;
         
@@ -64,6 +81,19 @@ export default function ProductDetailPage() {
     };
     if (productId) fetchProductDetails();
   }, [productId]);
+
+  // 🔥 AUTO-UPI POPUP TRIGGER (App Chooser)
+  useEffect(() => {
+    if (checkoutStep === 2) {
+      // Small delay to let the QR modal render smoothly before throwing the app popup
+      const timer = setTimeout(() => {
+        const itemPrice = product?.price || 0;
+        const totalPrice = itemPrice + 0; // Delivery is 0
+        window.location.href = `upi://pay?pa=paytm.s30za19@pty&pn=Rohit%20Singh%20Rana&am=${totalPrice}&cu=INR`;
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [checkoutStep, product]);
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -109,7 +139,10 @@ export default function ProductDetailPage() {
 
   const images = product.image_urls?.length > 0 ? product.image_urls : [product.image_url].filter(Boolean);
   const itemPrice = product.price || 0;
-  const deliveryCharge = 40;
+  
+  // 🔥 DELIVERY CHARGE SET TO 0
+  const deliveryCharge = 0; 
+  
   const totalPrice = itemPrice + deliveryCharge;
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const deliveryDate = tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -124,8 +157,8 @@ export default function ProductDetailPage() {
         </button>
         
         <div className="flex gap-3 pointer-events-auto">
-          {/* 🔥 WISHLIST (HEART) BUTTON */}
-          <div className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:text-[#00e599] transition">
+          {/* 🔥 FIXED DOUBLE HEART: Removed background from wrapper */}
+          <div className="flex items-center justify-center">
             <WishlistButton 
               productId={product.id} 
               onRequireAuth={() => alert("Please login from the Home page first to save items to your wishlist!")} 
@@ -150,7 +183,13 @@ export default function ProductDetailPage() {
           </div>
         )}
         
-        {images.length > 0 ? <img src={images[activeImage]} alt={product.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-700 font-bold uppercase">No Image Available</div>}
+        {/* 🔥 CLICK TO ZOOM ADDED */}
+        {images.length > 0 ? (
+          <img onClick={() => setIsZoomed(true)} src={images[activeImage]} alt={product.title} className="w-full h-full object-cover cursor-pointer" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-700 font-bold uppercase">No Image Available</div>
+        )}
+        
         {images.length > 1 && (
           <div className="absolute bottom-4 left-0 w-full flex justify-center gap-2 z-10">
             {images.map((url: any, idx: number) => <button key={idx} onClick={() => setActiveImage(idx)} className={`w-2 h-2 rounded-full transition-all ${activeImage === idx ? 'bg-[#00e599] w-6' : 'bg-white/50 hover:bg-white'}`} />)}
@@ -299,21 +338,19 @@ export default function ProductDetailPage() {
                     <span className="bg-[#003320]/40 text-[#00e599] text-[9px] font-black uppercase px-2 py-1 rounded flex items-center gap-1 border border-[#00e599]/20">⚡ FAST</span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex items-center gap-2">
-                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                      <span className="text-[9px] text-gray-300 font-bold uppercase tracking-widest">4 people viewed</span>
-                    </div>
-                    <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex items-center gap-2">
+                  {/* 🔥 CLEANED UP "Only 1 left" BOX */}
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex justify-center items-center gap-2">
                       <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path></svg>
-                      <span className="text-[9px] text-gray-300 font-bold uppercase tracking-widest">Only 1 left</span>
+                      <span className="text-[10px] text-[#00e599] font-bold uppercase tracking-widest">Hurry! Only 1 piece left in stock</span>
                     </div>
                   </div>
 
                   <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-4">
                     <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Order Summary</h3>
                     <div className="flex justify-between text-xs text-gray-300 mb-2.5"><span>Item Price</span><span>₹{itemPrice}</span></div>
-                    <div className="flex justify-between text-xs text-gray-300 mb-2.5"><span>Delivery Charge</span><span>₹{deliveryCharge}</span></div>
+                    {/* 🔥 DELIVERY CHARGE SHOWING AS 0 */}
+                    <div className="flex justify-between text-xs text-[#00e599] mb-2.5"><span>Delivery Charge</span><span>Free (₹0)</span></div>
                     <div className="flex justify-between text-xs text-gray-300 mb-3 pb-3 border-b border-gray-800"><span>Platform Fee ⓘ</span><span>₹0</span></div>
                     <div className="flex justify-between items-center">
                       <div><p className="text-sm font-black text-white uppercase tracking-widest">TOTAL</p><p className="text-[8px] text-gray-500 uppercase mt-0.5">Inclusive of all taxes</p></div>
@@ -386,6 +423,21 @@ export default function ProductDetailPage() {
           </div>
         </div>
       )}
+
+      {/* 🔥 FULLSCREEN IMAGE ZOOM MODAL */}
+      {isZoomed && (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center" onClick={() => setIsZoomed(false)}>
+          <button className="absolute top-6 right-6 text-white bg-black/50 p-2 rounded-full z-50 hover:bg-black/80 transition">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+          <img 
+            src={images[activeImage]} 
+            alt="Zoomed"
+            className="w-full h-auto max-h-[90vh] object-contain animate-in zoom-in duration-300" 
+          />
+        </div>
+      )}
+
       <style dangerouslySetInnerHTML={{__html: `.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #1a1a1c; border-radius: 4px; }`}} />
     </div>
   );
