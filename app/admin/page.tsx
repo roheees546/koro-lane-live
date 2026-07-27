@@ -40,15 +40,18 @@ export default function AdminDashboard() {
 
   const fetchOrders = async () => {
     setLoading(true);
-    // 🔥 JOINED PRODUCTS TABLE TO GET IMAGE & EXACT DETAILS
+    // 🔥 REVERTED TO SAFE QUERY (Without strict product join to prevent silent failures)
     const { data, error } = await supabase
       .from("orders")
       .select(`
         *,
-        profiles(store_name, store_address, phone),
-        products(image_url, image_urls)
+        profiles(store_name, store_address, phone)
       `)
       .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Supabase Error:", error);
+    }
 
     if (data) {
       setOrders(data);
@@ -81,6 +84,24 @@ export default function AdminDashboard() {
       });
     }
     setLoading(false);
+  };
+
+  // 🔥 NEW FUNCTION: Safely fetch image only when viewing details
+  const handleViewDetails = async (order: any) => {
+    setSelectedOrder(order); // Show modal immediately
+    
+    // Fetch image data separately to avoid breaking the main table
+    if (order.product_id) {
+      const { data: prodData } = await supabase
+        .from("products")
+        .select("image_url, image_urls")
+        .eq("id", order.product_id)
+        .single();
+        
+      if (prodData) {
+        setSelectedOrder((prev: any) => ({ ...prev, products: prodData }));
+      }
+    }
   };
 
   const handleVerifyPayment = async (orderId: string) => {
@@ -170,7 +191,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🔥 THE BREAKOUT HACK: fixed inset-0 z-[100] overlays the entire screen, hiding bottom nav
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 z-[100] bg-[#050505] flex flex-col items-center justify-center p-4 selection:bg-[#00e599] selection:text-black">
@@ -199,7 +219,6 @@ export default function AdminDashboard() {
     );
   }
 
-  // 🔥 THE BREAKOUT HACK APPLIED TO MAIN DASHBOARD TOO
   return (
     <div className="fixed inset-0 z-[100] bg-[#050505] overflow-y-auto text-white font-sans selection:bg-[#00e599] selection:text-black">
       
@@ -301,7 +320,8 @@ export default function AdminDashboard() {
                    ) : (
                       <span className="text-[10px] text-gray-600 font-bold uppercase tracking-widest text-center w-full py-2.5">-</span>
                    )}
-                   <button onClick={() => setSelectedOrder(order)} className="bg-[#0a0a0c] text-gray-400 hover:text-white hover:bg-gray-800 px-3 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition w-full border border-gray-800 mt-1">Full Details 📋</button>
+                   {/* 🔥 UPDATED TO CALL THE NEW HANDLER */}
+                   <button onClick={() => handleViewDetails(order)} className="bg-[#0a0a0c] text-gray-400 hover:text-white hover:bg-gray-800 px-3 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition w-full border border-gray-800 mt-1">Full Details 📋</button>
                  </div>
               </div>
             ))}
@@ -331,7 +351,7 @@ export default function AdminDashboard() {
 
             <div className="p-6 space-y-6">
               
-              {/* 🔥 NEW: ITEM DETAILS VERIFICATION BLOCK */}
+              {/* 🔥 ITEM DETAILS VERIFICATION BLOCK */}
               <div className="bg-[#121214] border border-gray-800 rounded-2xl p-5 flex items-center gap-5">
                 <div className="w-24 h-24 bg-black rounded-xl border border-gray-800 overflow-hidden shrink-0">
                   {selectedOrder.products?.image_urls?.[0] || selectedOrder.products?.image_url ? (
@@ -341,7 +361,7 @@ export default function AdminDashboard() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-600 uppercase font-bold text-center p-2">No Image</div>
+                    <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-600 uppercase font-bold text-center p-2 animate-pulse">Loading Image...</div>
                   )}
                 </div>
                 <div>
