@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import WishlistButton from "@/components/WishlistButton";
-
+import ProductEngagement from "@/components/ProductEngagement";
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -239,7 +239,7 @@ export default function ProductDetailPage() {
           </div>
         )}
 
-        {seller && (
+ {seller && (
           <div className="mb-6">
             <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Sourced & Verified By</h3>
             <Link href={`/store/${seller.id}`} className="bg-[#121214] border border-gray-800 rounded-xl p-4 flex items-center justify-between group hover:border-gray-600 transition block">
@@ -253,10 +253,12 @@ export default function ProductDetailPage() {
                 </div>
               </div>
             </Link>
+
+            {/* 🔥 Yahan aa gaya apna Like & Comment engagement component */}
+            <ProductEngagement productId={product.id} />
           </div>
         )}
       </div>
-
       <div className="fixed bottom-[72px] left-0 w-full bg-[#0a0a0c]/90 backdrop-blur-lg border-t border-gray-800 z-30 p-4">
         <div className="max-w-xl mx-auto flex items-center justify-between gap-4">
           <div className="flex flex-col">
