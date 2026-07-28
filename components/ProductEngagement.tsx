@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-export default function ProductEngagement({ productId }: { productId: string }) {
+export default function ProductEngagement({ productId, sellerId }: { productId: string; sellerId?: string }) {
   const [likesCount, setLikesCount] = useState(0);
   const [hasLiked, setHasLiked] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
+  const [profilesMap, setProfilesMap] = useState<{ [key: string]: any }>({});
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -19,12 +20,14 @@ export default function ProductEngagement({ productId }: { productId: string }) 
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       setCurrentUser(session.user);
+      
       const { data: likeData } = await supabase
         .from("product_likes")
         .select("*")
         .eq("product_id", productId)
         .eq("user_id", session.user.id)
         .single();
+      
       if (likeData) setHasLiked(true);
     }
 
@@ -34,14 +37,33 @@ export default function ProductEngagement({ productId }: { productId: string }) 
       .eq("product_id", productId);
     setLikesCount(count || 0);
 
-    // Fetch comments directly without join error
+    // Fetch comments
     const { data: commentsData } = await supabase
       .from("product_comments")
       .select("id, content, created_at, user_id")
       .eq("product_id", productId)
       .order("created_at", { ascending: false });
 
-    if (commentsData) setComments(commentsData);
+    if (commentsData && commentsData.length > 0) {
+      setComments(commentsData);
+
+      // Extract unique user IDs to fetch their real profiles safely
+      const userIds = Array.from(new Set(commentsData.map(c => c.user_id)));
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, store_name, full_name, avatar_url")
+        .in("id", userIds);
+
+      if (profilesData) {
+        const map: { [key: string]: any } = {};
+        profilesData.forEach(p => {
+          map[p.id] = p;
+        });
+        setProfilesMap(map);
+      }
+    } else {
+      setComments([]);
+    }
   };
 
   const handleLikeToggle = async () => {
@@ -58,6 +80,20 @@ export default function ProductEngagement({ productId }: { productId: string }) 
       setHasLiked(true);
       setLikesCount(prev => prev + 1);
       await supabase.from("product_likes").insert([{ product_id: productId, user_id: currentUser.id }]);
+
+      // Send notification to seller safely
+      if (sellerId && sellerId !== currentUser.id) {
+        try {
+          await supabase.from("notifications").insert([{
+            user_id: sellerId,
+            title: "New Product Like ❤️",
+            message: `Someone liked your product!`,
+            is_read: false
+          }]);
+        } catch (err) {
+          // Ignore if notifications table doesn't exist
+        }
+      }
     }
   };
 
@@ -70,17 +106,43 @@ export default function ProductEngagement({ productId }: { productId: string }) 
     if (!newComment.trim()) return;
 
     setIsSubmitting(true);
+    const commentText = newComment.trim();
     const { error } = await supabase.from("product_comments").insert([
-      { product_id: productId, user_id: currentUser.id, content: newComment.trim() }
+      { product_id: productId, user_id: currentUser.id, content: commentText }
     ]);
 
     if (!error) {
       setNewComment("");
+      
+      // Send notification to seller safely
+      if (sellerId && sellerId !== currentUser.id) {
+        try {
+          await supabase.from("notifications").insert([{
+            user_id: sellerId,
+            title: "New Community Comment 💬",
+            message: `Someone commented on your product: "${commentText.substring(0, 30)}..."`,
+            is_read: false
+          }]);
+        } catch (err) {
+          // Ignore if notifications table doesn't exist
+        }
+      }
+
       fetchEngagementData();
     } else {
       alert("Error posting comment: " + error.message);
     }
     setIsSubmitting(false);
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("Delete this comment?")) return;
+    const { error } = await supabase.from("product_comments").delete().eq("id", commentId);
+    if (!error) {
+      fetchEngagementData();
+    } else {
+      alert("Error deleting comment: " + error.message);
+    }
   };
 
   const formatTime = (dateString: string) => {
@@ -139,22 +201,40 @@ export default function ProductEngagement({ productId }: { productId: string }) 
 
         {/* Comment List */}
         <div className="space-y-4 pt-2">
-          {comments.map((comment) => (
-            <div key={comment.id} className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-gray-900 shrink-0 overflow-hidden border border-gray-800">
-                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.user_id}`} className="w-full h-full object-cover" />
-              </div>
-              <div className="flex-1 bg-[#121214] border border-gray-800/60 rounded-tr-xl rounded-b-xl p-3">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="text-xs font-bold text-white uppercase tracking-tight">
-                    Collector #{comment.user_id.slice(0, 4)}
-                  </span>
-                  <span className="text-[9px] text-gray-500 font-medium">{formatTime(comment.created_at)}</span>
+          {comments.map((comment) => {
+            const profile = profilesMap[comment.user_id];
+            const displayName = profile?.store_name || profile?.full_name || `Collector #${comment.user_id.slice(0, 4)}`;
+            const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.user_id}`;
+            const isOwner = currentUser && currentUser.id === comment.user_id;
+
+            return (
+              <div key={comment.id} className="flex gap-3 group">
+                <div className="w-8 h-8 rounded-full bg-gray-900 shrink-0 overflow-hidden border border-gray-800">
+                  <img src={avatarUrl} className="w-full h-full object-cover" alt="avatar" />
                 </div>
-                <p className="text-xs text-gray-300 leading-relaxed">{comment.content}</p>
+                <div className="flex-1 bg-[#121214] border border-gray-800/60 rounded-tr-xl rounded-b-xl p-3 relative">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="text-xs font-bold text-white uppercase tracking-tight">
+                      {displayName}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] text-gray-500 font-medium">{formatTime(comment.created_at)}</span>
+                      {isOwner && (
+                        <button 
+                          onClick={() => handleDeleteComment(comment.id)}
+                          className="text-gray-500 hover:text-red-400 text-xs font-bold transition px-1"
+                          title="Delete comment"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-300 leading-relaxed">{comment.content}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {comments.length === 0 && (
             <p className="text-center text-[10px] text-gray-600 font-bold uppercase tracking-widest py-4">No comments yet. Be the first to hype this!</p>
           )}

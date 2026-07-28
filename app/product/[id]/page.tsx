@@ -255,7 +255,7 @@ export default function ProductDetailPage() {
             </Link>
 
             {/* 🔥 Yahan aa gaya apna Like & Comment engagement component */}
-            <ProductEngagement productId={product.id} />
+           <ProductEngagement productId={product.id} sellerId={product.seller_id || seller?.id} />
           </div>
         )}
       </div>
