@@ -16,36 +16,28 @@ export default function ProductEngagement({ productId }: { productId: string }) 
   }, [productId]);
 
   const fetchEngagementData = async () => {
-    // 1. Get Current User
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       setCurrentUser(session.user);
-      
-      // 2. Check if user already liked
       const { data: likeData } = await supabase
         .from("product_likes")
         .select("*")
         .eq("product_id", productId)
         .eq("user_id", session.user.id)
         .single();
-      
       if (likeData) setHasLiked(true);
     }
 
-    // 3. Get Total Likes
     const { count } = await supabase
       .from("product_likes")
       .select("*", { count: 'exact', head: true })
       .eq("product_id", productId);
     setLikesCount(count || 0);
 
-    // 4. Get Comments with User Profiles
+    // Fetch comments directly without join error
     const { data: commentsData } = await supabase
       .from("product_comments")
-      .select(`
-        id, content, created_at, user_id,
-        profiles ( store_name, full_name, avatar_url )
-      `)
+      .select("id, content, created_at, user_id")
       .eq("product_id", productId)
       .order("created_at", { ascending: false });
 
@@ -59,12 +51,10 @@ export default function ProductEngagement({ productId }: { productId: string }) 
     }
 
     if (hasLiked) {
-      // Unlike
       setHasLiked(false);
       setLikesCount(prev => Math.max(0, prev - 1));
       await supabase.from("product_likes").delete().eq("product_id", productId).eq("user_id", currentUser.id);
     } else {
-      // Like
       setHasLiked(true);
       setLikesCount(prev => prev + 1);
       await supabase.from("product_likes").insert([{ product_id: productId, user_id: currentUser.id }]);
@@ -86,7 +76,7 @@ export default function ProductEngagement({ productId }: { productId: string }) 
 
     if (!error) {
       setNewComment("");
-      fetchEngagementData(); // Refresh comments
+      fetchEngagementData();
     } else {
       alert("Error posting comment: " + error.message);
     }
@@ -152,16 +142,12 @@ export default function ProductEngagement({ productId }: { productId: string }) 
           {comments.map((comment) => (
             <div key={comment.id} className="flex gap-3">
               <div className="w-8 h-8 rounded-full bg-gray-900 shrink-0 overflow-hidden border border-gray-800">
-                {comment.profiles?.avatar_url ? (
-                  <img src={comment.profiles.avatar_url} className="w-full h-full object-cover" />
-                ) : (
-                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.user_id}`} className="w-full h-full object-cover" />
-                )}
+                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.user_id}`} className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 bg-[#121214] border border-gray-800/60 rounded-tr-xl rounded-b-xl p-3">
                 <div className="flex justify-between items-start mb-1">
                   <span className="text-xs font-bold text-white uppercase tracking-tight">
-                    {comment.profiles?.store_name || comment.profiles?.full_name || "User"}
+                    Collector #{comment.user_id.slice(0, 4)}
                   </span>
                   <span className="text-[9px] text-gray-500 font-medium">{formatTime(comment.created_at)}</span>
                 </div>
