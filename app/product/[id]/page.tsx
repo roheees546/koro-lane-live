@@ -237,11 +237,6 @@ export default function ProductDetailPage() {
           )}
         </div>
 
-        {/* 🔥 YAHAN PASTE KARNA HAI DEBUG CODE */}
-        <div className="text-[10px] text-yellow-500 overflow-hidden break-words mb-2">
-          {JSON.stringify(product)}
-        </div>
-
         <div className="mb-8">
           <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Size Details</h3>
           <div className="w-full bg-[#121214] border border-[#00e599]/50 rounded-xl p-4 flex justify-between items-center relative overflow-hidden">
@@ -253,31 +248,31 @@ export default function ProductDetailPage() {
             <svg className="w-5 h-5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           </div>
 
-          {/* 🔥 MISSING DETAILS GRID ADDED HERE */}
-          {(product.chest || product.length || product.shoulder || product.sleeve || product.color || product.material) && (
+          {/* 🔥 MISSING DETAILS GRID FIXED: Now pulling from product.measurements */}
+          {(product.measurements?.chest || product.measurements?.length || product.measurements?.shoulder || product.measurements?.sleeve || product.color || product.material) && (
             <div className="grid grid-cols-2 gap-3 mt-4">
-              {product.chest && (
+              {product.measurements?.chest && (
                 <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex justify-between items-center">
                   <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Chest</span>
-                  <span className="text-xs font-black text-white">{product.chest} cm</span>
+                  <span className="text-xs font-black text-white">{product.measurements.chest} cm</span>
                 </div>
               )}
-              {product.length && (
+              {product.measurements?.length && (
                 <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex justify-between items-center">
                   <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Length</span>
-                  <span className="text-xs font-black text-white">{product.length} cm</span>
+                  <span className="text-xs font-black text-white">{product.measurements.length} cm</span>
                 </div>
               )}
-              {product.shoulder && (
+              {product.measurements?.shoulder && (
                 <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex justify-between items-center">
                   <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Shoulder</span>
-                  <span className="text-xs font-black text-white">{product.shoulder} cm</span>
+                  <span className="text-xs font-black text-white">{product.measurements.shoulder} cm</span>
                 </div>
               )}
-              {product.sleeve && (
+              {product.measurements?.sleeve && (
                 <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex justify-between items-center">
                   <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Sleeve</span>
-                  <span className="text-xs font-black text-white">{product.sleeve} cm</span>
+                  <span className="text-xs font-black text-white">{product.measurements.sleeve} cm</span>
                 </div>
               )}
               {product.color && (
