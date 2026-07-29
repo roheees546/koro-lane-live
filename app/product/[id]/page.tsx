@@ -237,6 +237,11 @@ export default function ProductDetailPage() {
           )}
         </div>
 
+        {/* 🔥 YAHAN PASTE KARNA HAI DEBUG CODE */}
+        <div className="text-[10px] text-yellow-500 overflow-hidden break-words mb-2">
+          {JSON.stringify(product)}
+        </div>
+
         <div className="mb-8">
           <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Size Details</h3>
           <div className="w-full bg-[#121214] border border-[#00e599]/50 rounded-xl p-4 flex justify-between items-center relative overflow-hidden">
