@@ -31,6 +31,27 @@ export default function WishlistButton({ productId, onRequireAuth }: { productId
     } else {
       await supabase.from('wishlist').insert([{ user_id: session.user.id, product_id: productId }]);
       setIsSaved(true);
+
+      // 🔥 TERA NAYA NOTIFICATION JADOO YAHAN HAI
+      try {
+        // 1. Pehle product ki details nikal rahe hain taaki dealer_id mil jaye
+        const { data: product } = await supabase
+          .from('products')
+          .select('dealer_id, title')
+          .eq('id', productId)
+          .single();
+
+        // 2. Agar dealer_id mil gayi, toh seedha uski bell baja do!
+        if (product && product.dealer_id) {
+          await supabase.from('notifications').insert([{
+            user_id: product.dealer_id,
+            title: "New Like! ❤️",
+            message: `Kisine aapka "${product.title}" wishlist mein save kiya hai!`
+          }]);
+        }
+      } catch (error) {
+        console.error("Notification fire hone mein error aaya:", error);
+      }
     }
     setLoading(false);
   };

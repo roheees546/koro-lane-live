@@ -43,6 +43,19 @@ function PaymentContent() {
   const whatsappMessage = `Hello Koro Lane Team! 👋\n\nI have made the payment for my order.\n\n*Order ID:* ${order.id}\n*Item:* ${order.product_name}\n*Amount Paid:* ₹${order.price}\n*Name:* ${order.customer_name}\n\nHere is my payment screenshot:`;
   const whatsappUrl = `https://wa.me/${koroLaneWhatsAppNumber}?text=${encodeURIComponent(whatsappMessage)}`;
 
+  // 🔥 TERA NAYA JADOO WALA FUNCTION (dealer_id ke sath)
+  const handlePaymentClick = async () => {
+    if (order && order.dealer_id) { 
+      await supabase.from("notifications").insert([
+        {
+          user_id: order.dealer_id, 
+          title: "New Payment Sent! 💸",
+          message: `${order.customer_name} ne ${order.product_name} ka payment kar diya hai. WhatsApp check karo!`
+        }
+      ]);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white font-sans pb-20">
       
@@ -93,11 +106,12 @@ function PaymentContent() {
           </p>
         </div>
 
-        {/* 🟢 WHATSAPP REDIRECT BUTTON */}
+        {/* 🟢 WHATSAPP REDIRECT BUTTON WITH NOTIFICATION TRIGGER */}
         <a 
           href={whatsappUrl} 
           target="_blank" 
           rel="noopener noreferrer"
+          onClick={handlePaymentClick}
           className="w-full bg-[#25D366] hover:bg-[#1ebe57] text-white font-black py-4 rounded-xl uppercase tracking-widest text-sm transition flex items-center justify-center gap-3 shadow-lg shadow-[#25D366]/20"
         >
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 21.5c-1.636 0-3.222-.416-4.648-1.211L3 21l.816-4.239A9.957 9.957 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10.031 10.5zM12 4a8 8 0 100 16 7.973 7.973 0 003.882-1.002l2.673.71-.722-2.6A7.962 7.962 0 0019.998 12 8 8 0 0012 4zm4.238 11.025c-.213-.107-1.26-.622-1.455-.693-.194-.072-.336-.107-.478.107-.142.214-.548.693-.672.835-.124.143-.248.16-.461.054-.213-.107-.9-.332-1.714-1.06-.633-.565-1.06-1.264-1.184-1.478-.124-.214-.014-.33.093-.437.096-.096.213-.249.319-.374.107-.125.142-.214.214-.356.071-.143.036-.268-.018-.374-.053-.107-.478-1.151-.655-1.576-.173-.414-.347-.358-.478-.364-.123-.006-.265-.006-.407-.006a.78.78 0 00-.568.268c-.194.214-.746.729-.746 1.78 0 1.052.763 2.068.87 2.211.106.143 1.508 2.302 3.655 3.228.512.221.912.353 1.223.452.514.164.983.14 1.353.085.412-.062 1.26-.515 1.437-1.013.178-.498.178-.925.124-1.013-.053-.089-.195-.143-.408-.25z"/></svg>
