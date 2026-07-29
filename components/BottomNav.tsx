@@ -49,21 +49,18 @@ export default function BottomNav() {
     };
   }, []);
 
-  // 🔥 SMART PROFILE ROUTING (The Magic Fix)
+  // 🔥 SMART PROFILE ROUTING
   const handleProfileClick = (e: React.MouseEvent) => {
     e.preventDefault();
     
     if (!isLoggedIn) {
-      // 1. Agar logged out hai, toh Modal dikhao
       setShowRoleModal(true);
     } else {
-      // 2. Agar logged in hai, toh ASLI ROLE ke hisaab se route karo
       if (userRole === 'dealer') {
         router.push('/dealer');
       } else if (userRole === 'scout') {
         router.push('/scout');
       } else {
-        // Fallback (Agar database mein role set nahi hai)
         setShowRoleModal(true);
       }
     }
@@ -109,13 +106,10 @@ export default function BottomNav() {
             
             {/* Top Glowing Icon */}
             <div className="flex justify-center mb-6 relative">
-              {/* Glow effect */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-[#00e599]/20 blur-2xl rounded-full"></div>
-              {/* Icon Circle */}
               <div className="relative w-14 h-14 bg-[#050505] border border-[#00e599]/50 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.3)]">
                 <svg className="w-6 h-6 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
               </div>
-              {/* Sparkles */}
               <span className="absolute top-0 right-8 text-[#00e599] text-lg animate-pulse">✦</span>
               <span className="absolute bottom-2 left-6 text-[#00e599] text-sm animate-pulse">✦</span>
             </div>
@@ -151,17 +145,17 @@ export default function BottomNav() {
                 </div>
               </button>
               
-              {/* Seller Route */}
-              <button onClick={() => { setShowRoleModal(false); router.push(isLoggedIn ? '/dealer' : '/login?role=seller'); }} className="w-full bg-[#003320]/20 border border-[#00e599] hover:bg-[#003320]/40 p-4 rounded-2xl flex items-center gap-4 group transition text-left shadow-[0_0_15px_rgba(0,229,153,0.1)] hover:shadow-[0_0_25px_rgba(0,229,153,0.2)]">
-                <div className="w-12 h-12 rounded-full bg-[#050505] border border-[#00e599]/30 flex items-center justify-center shrink-0 text-xl">
+              {/* Seller Route - 🔥 REDESIGNED TO BE BLACK AND MINIMAL 🔥 */}
+              <button onClick={() => { setShowRoleModal(false); router.push(isLoggedIn ? '/dealer' : '/login?role=seller'); }} className="w-full bg-[#121214] border border-gray-800 hover:border-gray-600 p-4 rounded-2xl flex items-center gap-4 group transition text-left">
+                <div className="w-12 h-12 rounded-full bg-[#0a0a0c] border border-gray-800 flex items-center justify-center shrink-0 text-xl">
                   🏪
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-sm font-black uppercase tracking-widest text-[#00e599] mb-1">Seller Profile</h4>
-                  <p className="text-[10px] text-[#00e599]/70 leading-tight">List your surplus drops and<br/>grow your store.</p>
+                  <h4 className="text-sm font-black uppercase tracking-widest text-gray-200 group-hover:text-[#00e599] transition-colors mb-1">Seller Profile</h4>
+                  <p className="text-[10px] text-gray-500 leading-tight">List your surplus drops and<br/>grow your store.</p>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-[#050505] border border-[#00e599]/30 flex items-center justify-center shrink-0">
-                  <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                <div className="w-8 h-8 rounded-full bg-[#0a0a0c] border border-gray-800 flex items-center justify-center group-hover:border-gray-600 transition shrink-0">
+                  <svg className="w-4 h-4 text-gray-500 group-hover:text-[#00e599] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                 </div>
               </button>
 
