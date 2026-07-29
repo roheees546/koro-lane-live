@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function ProductEngagement({ productId, sellerId }: { productId: string; sellerId?: string }) {
-  const [likesCount, setLikesCount] = useState(0);
-  const [hasLiked, setHasLiked] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [profilesMap, setProfilesMap] = useState<{ [key: string]: any }>({});
   const [newComment, setNewComment] = useState("");
@@ -20,22 +18,7 @@ export default function ProductEngagement({ productId, sellerId }: { productId: 
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       setCurrentUser(session.user);
-      
-      const { data: likeData } = await supabase
-        .from("product_likes")
-        .select("*")
-        .eq("product_id", productId)
-        .eq("user_id", session.user.id)
-        .single();
-      
-      if (likeData) setHasLiked(true);
     }
-
-    const { count } = await supabase
-      .from("product_likes")
-      .select("*", { count: 'exact', head: true })
-      .eq("product_id", productId);
-    setLikesCount(count || 0);
 
     // Fetch comments
     const { data: commentsData } = await supabase
@@ -63,37 +46,6 @@ export default function ProductEngagement({ productId, sellerId }: { productId: 
       }
     } else {
       setComments([]);
-    }
-  };
-
-  const handleLikeToggle = async () => {
-    if (!currentUser) {
-      alert("Bawa, please login to like this item!");
-      return;
-    }
-
-    if (hasLiked) {
-      setHasLiked(false);
-      setLikesCount(prev => Math.max(0, prev - 1));
-      await supabase.from("product_likes").delete().eq("product_id", productId).eq("user_id", currentUser.id);
-    } else {
-      setHasLiked(true);
-      setLikesCount(prev => prev + 1);
-      await supabase.from("product_likes").insert([{ product_id: productId, user_id: currentUser.id }]);
-
-      // Send notification to seller safely
-      if (sellerId && sellerId !== currentUser.id) {
-        try {
-          await supabase.from("notifications").insert([{
-            user_id: sellerId,
-            title: "New Product Like ❤️",
-            message: `Someone liked your product!`,
-            is_read: false
-          }]);
-        } catch (err) {
-          // Ignore if notifications table doesn't exist
-        }
-      }
     }
   };
 
@@ -151,23 +103,7 @@ export default function ProductEngagement({ productId, sellerId }: { productId: 
   };
 
   return (
-    <div className="mt-8 mb-6 border-t border-gray-800 pt-6">
-      {/* LIKE BUTTON SECTION */}
-      <div className="flex items-center gap-4 mb-8">
-        <button 
-          onClick={handleLikeToggle} 
-          className={`flex items-center gap-2 px-4 py-2 rounded-full border transition ${hasLiked ? 'bg-red-500/10 border-red-500/50 text-red-500' : 'bg-[#121214] border-gray-800 text-gray-400 hover:text-white hover:border-gray-600'}`}
-        >
-          <svg className={`w-5 h-5 ${hasLiked ? 'fill-current' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-          </svg>
-          <span className="font-bold text-sm">{likesCount} Likes</span>
-        </button>
-        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-          {likesCount > 5 ? '🔥 High Demand' : 'Tap to Hype'}
-        </p>
-      </div>
-
+    <div className="border-t border-gray-800 pt-6">
       {/* COMMENTS SECTION */}
       <div className="space-y-5">
         <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest flex items-center gap-2">

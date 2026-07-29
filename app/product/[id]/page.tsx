@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import WishlistButton from "@/components/WishlistButton";
 import ProductEngagement from "@/components/ProductEngagement";
+
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -112,7 +113,6 @@ export default function ProductDetailPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // 🔥 COPY UPI ID HANDLER
   const handleCopyUPI = () => {
     navigator.clipboard.writeText("9027434335@ptsbi");
     setUpiCopied(true);
@@ -130,7 +130,7 @@ export default function ProductDetailPage() {
         customer_phone: formData.phone, 
         customer_address: formData.address, 
         customer_pincode: formData.pincode, 
-        price: totalPrice,
+        price: product.price || 0,
         status: 'pending', 
         payment_status: 'Pending WhatsApp Confirmation', 
         size: product.size || '1-of-1', 
@@ -142,8 +142,7 @@ export default function ProductDetailPage() {
       const { error: productError } = await supabase.from('products').update({ is_sold: true }).eq('id', product.id);
       if (productError) throw productError;
 
-      // 🔥 AUTO WHATSAPP REDIRECT ON "I HAVE PAID"
-      const message = `Hi, I just paid ₹${totalPrice} for ${product.title} (ID: ${product.id}).\n\nDelivery Details:\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}, Pincode: ${formData.pincode}\n\nPlease verify my payment screenshot attached.`;
+      const message = `Hi, I just paid ₹${product.price} for ${product.title} (ID: ${product.id}).\n\nDelivery Details:\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}, Pincode: ${formData.pincode}\n\nPlease verify my payment screenshot attached.`;
       window.location.href = `https://wa.me/919027434335?text=${encodeURIComponent(message)}`;
       
     } catch (error: any) {
@@ -158,27 +157,18 @@ export default function ProductDetailPage() {
 
   const images = product.image_urls?.length > 0 ? product.image_urls : [product.image_url].filter(Boolean);
   const itemPrice = product.price || 0;
-  const deliveryCharge = 0; 
-  const totalPrice = itemPrice + deliveryCharge;
+  const totalPrice = itemPrice; // Delivery free
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const deliveryDate = tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans flex flex-col relative selection:bg-[#00e599] selection:text-black pb-40">
       
+      {/* HEADER (Only Back Button Now) */}
       <header className="fixed top-0 left-0 w-full px-5 py-4 flex justify-between items-center z-40 pointer-events-none">
         <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:text-[#00e599] transition pointer-events-auto">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
         </button>
-        
-        <div className="flex gap-3 pointer-events-auto">
-          <div className="flex items-center justify-center">
-            <WishlistButton productId={product.id} onRequireAuth={() => alert("Please login from the Home page first to save items to your wishlist!")} />
-          </div>
-          <button onClick={handleShare} className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:text-[#00e599] transition">
-            {copied ? <svg className="w-5 h-5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg> : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>}
-          </button>
-        </div>
       </header>
 
       {/* 🔥 SWIPEABLE IMAGE CONTAINER */}
@@ -188,6 +178,17 @@ export default function ProductDetailPage() {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEndEvent}
       >
+        {/* RIGHT SIDE ACTION BUTTONS (Share + Wishlist) */}
+        <div className="absolute top-4 right-4 flex flex-col items-center gap-3 z-30 pointer-events-auto">
+          <button onClick={handleShare} className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:text-[#00e599] transition shadow-lg">
+            {copied ? <svg className="w-5 h-5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>}
+          </button>
+          {/* Wishlist Button wrapped properly for vertical stacking */}
+          <div className="relative w-10 flex items-center justify-center">
+            <WishlistButton productId={product.id} onRequireAuth={() => alert("Please login from the Home page first to save items to your wishlist!")} />
+          </div>
+        </div>
+
         {product.is_sold && (
           <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-sm">
             {pendingOrder ? (
@@ -217,8 +218,24 @@ export default function ProductDetailPage() {
           <span className="bg-[#00e599]/20 text-[#00e599] border border-[#00e599]/30 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-sm shadow-sm">1-OF-1 ARCHIVE</span>
           {product.category && <span className="bg-[#121214] text-gray-300 border border-gray-800 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-sm">{product.category}</span>}
         </div>
-        <h1 className="text-2xl font-black text-white uppercase tracking-tight leading-tight mb-2">{product.title}</h1>
-        <p className="text-xl font-black text-[#00e599] mb-6">₹{itemPrice.toLocaleString('en-IN')}</p>
+        
+        {/* 🔥 NEW LAYOUT: TITLE + PRICE on LEFT, SELLER BLOCK on RIGHT */}
+        <div className="flex justify-between items-start mb-8 gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl font-black text-white uppercase tracking-tight leading-tight mb-2">{product.title}</h1>
+            <p className="text-xl font-black text-[#00e599]">₹{itemPrice.toLocaleString('en-IN')}</p>
+          </div>
+          
+          {seller && (
+            <Link href={`/store/${seller.id}`} className="shrink-0 bg-[#121214] border border-gray-800 rounded-xl px-3 py-2.5 flex flex-col items-center justify-center min-w-[80px] max-w-[90px] hover:border-gray-600 transition group shadow-lg">
+              <div className="w-10 h-10 bg-black border-2 border-gray-800 rounded-full flex items-center justify-center overflow-hidden mb-1.5 group-hover:border-[#00e599] transition-colors">
+                {seller.avatar_url ? <img src={seller.avatar_url} alt="Seller" className="w-full h-full object-cover" /> : <span className="text-sm font-black text-[#00e599] uppercase">{seller.store_name ? seller.store_name.charAt(0) : "S"}</span>}
+              </div>
+              <h4 className="text-[9px] font-black text-white uppercase w-full truncate text-center leading-tight">{seller.store_name}</h4>
+              <p className="text-[7px] text-[#00e599] font-bold tracking-widest mt-1 flex items-center gap-0.5"><svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> VERIFIED</p>
+            </Link>
+          )}
+        </div>
 
         <div className="mb-8">
           <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Size Details</h3>
@@ -230,34 +247,62 @@ export default function ProductDetailPage() {
             </div>
             <svg className="w-5 h-5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           </div>
+
+          {/* 🔥 MISSING DETAILS GRID ADDED HERE */}
+          {(product.chest || product.length || product.shoulder || product.sleeve || product.color || product.material) && (
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              {product.chest && (
+                <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex justify-between items-center">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Chest</span>
+                  <span className="text-xs font-black text-white">{product.chest} cm</span>
+                </div>
+              )}
+              {product.length && (
+                <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex justify-between items-center">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Length</span>
+                  <span className="text-xs font-black text-white">{product.length} cm</span>
+                </div>
+              )}
+              {product.shoulder && (
+                <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex justify-between items-center">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Shoulder</span>
+                  <span className="text-xs font-black text-white">{product.shoulder} cm</span>
+                </div>
+              )}
+              {product.sleeve && (
+                <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex justify-between items-center">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Sleeve</span>
+                  <span className="text-xs font-black text-white">{product.sleeve} cm</span>
+                </div>
+              )}
+              {product.color && (
+                <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex flex-col justify-center gap-1">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Color</span>
+                  <span className="text-xs font-black text-white capitalize">{product.color}</span>
+                </div>
+              )}
+              {product.material && (
+                <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex flex-col justify-center gap-1">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Material</span>
+                  <span className="text-xs font-black text-white capitalize">{product.material}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {product.description && (
-          <div className="mb-10">
+          <div className="mb-6">
             <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Product Description</h3>
             <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{product.description}</p>
           </div>
         )}
 
- {seller && (
-          <div className="mb-6">
-            <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Sourced & Verified By</h3>
-            <Link href={`/store/${seller.id}`} className="bg-[#121214] border border-gray-800 rounded-xl p-4 flex items-center justify-between group hover:border-gray-600 transition block">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-black border-2 border-gray-800 rounded-full flex items-center justify-center overflow-hidden">
-                  {seller.avatar_url ? <img src={seller.avatar_url} alt="Seller" className="w-full h-full object-cover" /> : <span className="text-lg font-black text-[#00e599] uppercase">{seller.store_name ? seller.store_name.charAt(0) : "S"}</span>}
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-white uppercase flex items-center gap-1.5">{seller.store_name} <svg className="w-3.5 h-3.5 text-[#00e599]" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></h4>
-                  <p className="text-[10px] text-gray-500 font-bold tracking-widest mt-0.5">Top Rated Dealer</p>
-                </div>
-              </div>
-            </Link>
+        {/* 🔥 ENGAGEMENT COMPONENT (Comments only) */}
+        <div className="mt-8 mb-6">
+          <ProductEngagement productId={product.id} sellerId={product.dealer_id || seller?.id} />
+        </div>
 
-            {/* 🔥 Yahan aa gaya apna Like & Comment engagement component */}
-           <ProductEngagement productId={product.id} sellerId={product.dealer_id || seller?.id} />
-          </div>
-        )}
       </div>
       <div className="fixed bottom-[72px] left-0 w-full bg-[#0a0a0c]/90 backdrop-blur-lg border-t border-gray-800 z-30 p-4">
         <div className="max-w-xl mx-auto flex items-center justify-between gap-4">
@@ -388,7 +433,6 @@ export default function ProductDetailPage() {
                     <img src="/new-qr.png" alt="Payment QR" className="w-full h-full object-contain rounded-xl" />
                   </div>
                   
-                  {/* 🔥 ROHIT SINGH RANA ADDED CLEARLY HERE */}
                   <div className="text-center mb-6 space-y-2">
                     <p className="text-[11px] text-[#00e599] font-black uppercase tracking-widest bg-[#003320]/50 border border-[#00e599]/30 py-1.5 px-4 rounded-full inline-block">✓ You are paying to the co-founder</p>
                     <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mt-2">UPI ID: <span className="text-white">9027434335@ptsbi</span></p>
@@ -401,7 +445,6 @@ export default function ProductDetailPage() {
                     <p className="text-4xl font-black text-[#00e599]">₹{totalPrice}</p>
                   </div>
                   
-                  {/* 🔥 COPY UPI ID BUTTON */}
                   <button onClick={handleCopyUPI} className="w-full block bg-[#003320]/30 border border-[#00e599]/50 text-[#00e599] font-black uppercase tracking-widest text-[11px] py-4 rounded-xl hover:bg-[#00e599]/20 transition text-center flex items-center justify-center gap-2 mb-3">
                     {upiCopied ? (
                       <>
@@ -440,7 +483,6 @@ export default function ProductDetailPage() {
               ) : (
                 <div className="p-4 flex gap-3 w-full border-t border-gray-900 bg-black">
                   <button onClick={() => setCheckoutStep(1)} className="flex-1 bg-[#121214] border border-gray-800 text-white font-black uppercase tracking-widest text-[10px] py-4 rounded-xl hover:bg-gray-900 transition">Back</button>
-                  {/* 🔥 I HAVE PAID BUTTON */}
                   <button disabled={isProcessing} onClick={handlePaymentConfirm} className="flex-[2] bg-[#00e599] text-black font-black uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-[0_0_20px_rgba(0,229,153,0.3)] hover:bg-emerald-400 transition flex items-center justify-center gap-2">
                     {isProcessing ? "Processing..." : "I Have Paid"}
                   </button>
