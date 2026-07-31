@@ -13,10 +13,8 @@ export default function BottomNav() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // Check if we are in Dealer Dashboard
   const isDealerRoute = pathname?.startsWith('/dealer');
 
-  // 🔐 Check Auth Status & Fetch REAL ROLE from Database
   useEffect(() => {
     const fetchRealRole = async (userId: string) => {
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single();
@@ -49,10 +47,8 @@ export default function BottomNav() {
     };
   }, []);
 
-  // 🔥 SMART PROFILE ROUTING
   const handleProfileClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    
     if (!isLoggedIn) {
       setShowRoleModal(true);
     } else {
@@ -68,7 +64,6 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* Sirf tabhi dikhao jab hum Dealer route par NAHI hain */}
       {!isDealerRoute && (
         <nav className="fixed bottom-0 w-full max-w-[450px] bg-[#0a0a0c]/95 backdrop-blur-md border-t border-gray-900 flex justify-around items-center px-2 py-4 z-40 pb-6">
           
@@ -85,12 +80,12 @@ export default function BottomNav() {
           </Link>
 
           {/* LIVE */}
-          <Link href="/feed" className={`flex flex-col items-center gap-1.5 w-16 ${pathname === '/feed' ? 'text-[#00e599]' : 'text-gray-500 hover:text-gray-300 transition'}`}>
+          <Link href="/live" className={`flex flex-col items-center gap-1.5 w-16 ${pathname === '/live' ? 'text-red-500' : 'text-gray-500 hover:text-gray-300 transition'}`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             <span className="text-[9px] font-bold uppercase tracking-widest">Live</span>
           </Link>
 
-          {/* PROFILE (SMART ROUTING) */}
+          {/* PROFILE */}
           <button onClick={handleProfileClick} className={`flex flex-col items-center gap-1.5 w-16 ${pathname === '/scout' || pathname === '/login' ? 'text-[#00e599]' : 'text-gray-500 hover:text-gray-300 transition'}`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
             <span className="text-[9px] font-bold uppercase tracking-widest">Profile</span>
@@ -99,22 +94,11 @@ export default function BottomNav() {
         </nav>
       )}
 
-      {/* 🔥 PREMIUM UI: DUAL ROLE SELECTION MODAL */}
+      {/* ROLE SELECTION MODAL */}
       {showRoleModal && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-5" onClick={() => setShowRoleModal(false)}>
-          <div className="bg-[#0a0a0c] border border-gray-900 shadow-[0_0_50px_rgba(0,229,153,0.05)] rounded-[32px] w-full max-w-sm p-8 relative overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#0a0a0c] border border-gray-900 rounded-[32px] w-full max-w-sm p-8 relative overflow-hidden" onClick={e => e.stopPropagation()}>
             
-            {/* Top Glowing Icon */}
-            <div className="flex justify-center mb-6 relative">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-[#00e599]/20 blur-2xl rounded-full"></div>
-              <div className="relative w-14 h-14 bg-[#050505] border border-[#00e599]/50 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,229,153,0.3)]">
-                <svg className="w-6 h-6 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-              </div>
-              <span className="absolute top-0 right-8 text-[#00e599] text-lg animate-pulse">✦</span>
-              <span className="absolute bottom-2 left-6 text-[#00e599] text-sm animate-pulse">✦</span>
-            </div>
-
-            {/* Header Text */}
             <div className="text-center mb-6">
               <h3 className="text-2xl font-black uppercase tracking-widest text-white mb-2">
                 SELECT <span className="text-[#00e599]">PROFILE</span>
@@ -122,51 +106,22 @@ export default function BottomNav() {
               <p className="text-xs text-gray-400">Choose how you want to continue on Koro Lane</p>
             </div>
 
-            {/* Diamond Divider */}
-            <div className="flex items-center justify-center gap-3 mb-8">
-              <div className="h-[1px] w-16 bg-gradient-to-r from-transparent to-gray-700"></div>
-              <div className="w-1.5 h-1.5 bg-[#00e599] rotate-45"></div>
-              <div className="h-[1px] w-16 bg-gradient-to-l from-transparent to-gray-700"></div>
-            </div>
-
             <div className="space-y-4">
-              
-              {/* Buyer Route */}
-              <button onClick={() => { setShowRoleModal(false); router.push(isLoggedIn ? '/scout' : '/login?role=buyer'); }} className="w-full bg-[#121214] border border-gray-800 hover:border-gray-600 p-4 rounded-2xl flex items-center gap-4 group transition text-left">
-                <div className="w-12 h-12 rounded-full bg-[#0a0a0c] border border-gray-800 flex items-center justify-center shrink-0 text-xl">
-                  🧑‍🚀
-                </div>
+              <button onClick={() => { setShowRoleModal(false); router.push(isLoggedIn ? '/scout' : '/login?role=buyer'); }} className="w-full bg-[#121214] border border-gray-800 p-4 rounded-2xl flex items-center gap-4 text-left">
+                <div className="w-12 h-12 rounded-full bg-[#0a0a0c] border border-gray-800 flex items-center justify-center shrink-0 text-xl">🧑‍🚀</div>
                 <div className="flex-1">
-                  <h4 className="text-sm font-black uppercase tracking-widest text-gray-200 group-hover:text-white mb-1">Buyer Profile</h4>
-                  <p className="text-[10px] text-gray-500 leading-tight">Shop unique thrift finds and<br/>build your style.</p>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-[#0a0a0c] border border-gray-800 flex items-center justify-center group-hover:border-gray-600 transition shrink-0">
-                  <svg className="w-4 h-4 text-gray-500 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                  <h4 className="text-sm font-black uppercase tracking-widest text-white mb-1">Buyer Profile</h4>
+                  <p className="text-[10px] text-gray-500">Shop unique thrift finds.</p>
                 </div>
               </button>
               
-              {/* Seller Route - 🔥 REDESIGNED TO BE BLACK AND MINIMAL 🔥 */}
-              <button onClick={() => { setShowRoleModal(false); router.push(isLoggedIn ? '/dealer' : '/login?role=seller'); }} className="w-full bg-[#121214] border border-gray-800 hover:border-gray-600 p-4 rounded-2xl flex items-center gap-4 group transition text-left">
-                <div className="w-12 h-12 rounded-full bg-[#0a0a0c] border border-gray-800 flex items-center justify-center shrink-0 text-xl">
-                  🏪
-                </div>
+              <button onClick={() => { setShowRoleModal(false); router.push(isLoggedIn ? '/dealer' : '/login?role=seller'); }} className="w-full bg-[#121214] border border-gray-800 p-4 rounded-2xl flex items-center gap-4 text-left">
+                <div className="w-12 h-12 rounded-full bg-[#0a0a0c] border border-gray-800 flex items-center justify-center shrink-0 text-xl">🏪</div>
                 <div className="flex-1">
-                  <h4 className="text-sm font-black uppercase tracking-widest text-gray-200 group-hover:text-[#00e599] transition-colors mb-1">Seller Profile</h4>
-                  <p className="text-[10px] text-gray-500 leading-tight">List your surplus drops and<br/>grow your store.</p>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-[#0a0a0c] border border-gray-800 flex items-center justify-center group-hover:border-gray-600 transition shrink-0">
-                  <svg className="w-4 h-4 text-gray-500 group-hover:text-[#00e599] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                  <h4 className="text-sm font-black uppercase tracking-widest text-white mb-1">Seller Profile</h4>
+                  <p className="text-[10px] text-gray-500">List your surplus drops.</p>
                 </div>
               </button>
-
-            </div>
-
-            {/* Footer Notice */}
-            <div className="mt-8 pt-5 border-t border-gray-900 flex items-center justify-center gap-2">
-              <svg className="w-3.5 h-3.5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-              <p className="text-[9px] text-gray-500">
-                Secure. Verified. Built for the <span className="text-[#00e599] font-bold">thrift community</span>.
-              </p>
             </div>
 
           </div>
