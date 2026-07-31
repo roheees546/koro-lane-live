@@ -15,7 +15,7 @@ export default function PreLiveStudio() {
 
   // 🔥 Camera & Mic State References
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [mediaStream, setMediaStream] = useState<MediaStream | null>(isLive);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
 
