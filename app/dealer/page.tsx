@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SellerNotifications from "@/components/SellerNotifications";
+
 export default function DealerDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -23,7 +24,6 @@ export default function DealerDashboard() {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   
   // Modals & UI States
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPayoutsOpen, setIsPayoutsOpen] = useState(false);
   const [isHowToMeasureOpen, setIsHowToMeasureOpen] = useState(false);
@@ -47,9 +47,6 @@ export default function DealerDashboard() {
     waist: "", hip: "", rise: "", inseam: "", outseam: "", legOpening: "" // Bottom
   });
   const [measurementsConfirmed, setMeasurementsConfirmed] = useState(false);
-
-  // Brand Color (Seller Theme)
-  const themeColor = "#F5A623"; // Premium Amber/Gold
 
   // Pre-defined Colors for UI
   const colorOptions = [
@@ -422,7 +419,8 @@ export default function DealerDashboard() {
               </div>
             </div>
 
-            <div onClick={() => alert("Live Streaming feature coming soon!")} className="bg-[#121214] border border-gray-800/60 p-4 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-purple-500/50 transition">
+            {/* 🔥 Updated Go Live Button */}
+            <div onClick={() => router.push('/dealer/live')} className="bg-[#121214] border border-gray-800/60 p-4 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-purple-500/50 transition">
               <div className="w-10 h-10 bg-[#1a1a1d] rounded-xl flex items-center justify-center text-purple-500">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
               </div>
