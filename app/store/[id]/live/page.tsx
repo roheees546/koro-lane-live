@@ -33,18 +33,15 @@ export default function BuyerLiveView() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  // Fetch active pinned product for this dealer
+  // Fetch active pinned product (Forced Dummy Data for Testing UI)
   useEffect(() => {
     const fetchActivePin = async () => {
-      if (!dealerId) return;
-      const { data } = await supabase
-        .from('products')
-        .select('*')
-        .eq('dealer_id', dealerId)
-        .limit(1)
-        .single();
-      
-      if (data) setPinnedProduct(data);
+      // Supabase query hata di for UI testing. Seedha ek dummy product set kar rahe hain:
+      setPinnedProduct({
+        title: "Vintage Carhartt Jacket (Test)",
+        price: 2499,
+        image_url: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=300&auto=format&fit=crop"
+      });
     };
     fetchActivePin();
   }, [dealerId]);
