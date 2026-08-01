@@ -9,6 +9,13 @@ export default function LiveShoppingPage() {
   const [likes, setLikes] = useState(152);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  // Yeh function user ko seedha naye 2-Step Checkout page par bhej dega!
+  const handleVideoClick = () => {
+    // Abhi ke liye hum yahan '12345' (dummy dealer id) bhej rahe hain.
+    // Jab backend judega, tab yahan asli seller ki ID aayegi.
+    router.push("/store/12345/live");
+  };
+
   // Dummy Chat Messages
   const [chatMessages, setChatMessages] = useState([
     { id: 4, user: "KoRo Lane", avatar: "🏪", time: "11:02 AM", text: "It's Size L & in perfect condition ✅", isHost: true },
@@ -39,11 +46,12 @@ export default function LiveShoppingPage() {
   return (
     <div className="relative w-full h-[100dvh] bg-[#050505] font-sans text-white overflow-hidden max-w-[450px] mx-auto pb-[70px]">
       
-      {/* 🎥 BACKGROUND STREAM */}
+      {/* 🎥 BACKGROUND STREAM (Clickable) */}
       <img 
+        onClick={handleVideoClick}
         src="https://images.unsplash.com/photo-1607083206968-13611e3d76db?q=80&w=800&auto=format&fit=crop" 
         alt="Live Stream" 
-        className="absolute inset-0 w-full h-full object-cover z-0 opacity-60" 
+        className="absolute inset-0 w-full h-full object-cover z-0 opacity-60 cursor-pointer" 
       />
       
       {/* Dark Gradients for Readability */}
@@ -88,8 +96,8 @@ export default function LiveShoppingPage() {
         </button>
       </div>
 
-      {/* 🛍️ NOW SHOWING WIDGET (Top Right Floating) */}
-      <div className="absolute top-20 right-4 z-30 pointer-events-auto">
+      {/* 🛍️ NOW SHOWING WIDGET (Top Right Floating - Clickable) */}
+      <div className="absolute top-20 right-4 z-30 pointer-events-auto" onClick={handleVideoClick}>
         <div className="w-[110px] bg-[#0a0a0c]/90 backdrop-blur-xl border border-white/5 rounded-2xl p-2 flex flex-col shadow-2xl hover:border-[#00e599]/30 transition cursor-pointer group">
           <div className="flex items-center gap-1 mb-1.5">
             <span className="w-1.5 h-1.5 bg-[#00e599] rounded-full animate-pulse"></span>
