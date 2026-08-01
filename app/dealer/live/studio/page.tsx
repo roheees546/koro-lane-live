@@ -13,10 +13,9 @@ export default function PreLiveStudio() {
   const [showProductModal, setShowProductModal] = useState(false);
   const [pinnedProduct, setPinnedProduct] = useState<any | null>(null);
   
-  // 🚀 Chat & Dealer ID states for Realtime Sync
+  // 🚀 Chat & Dealer ID states for Realtime Feed (Read-only for Seller)
   const [dealerId, setDealerId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
-  const [chatInput, setChatInput] = useState("");
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // 🔥 Camera & Mic State References
@@ -51,7 +50,7 @@ export default function PreLiveStudio() {
     };
   }, []);
 
-  // Real-time Chat Listener for this Dealer
+  // Real-time Chat Listener for this Dealer (To read incoming buyer messages)
   useEffect(() => {
     if (!dealerId) return;
 
@@ -90,24 +89,6 @@ export default function PreLiveStudio() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatMessages]);
-
-  const handleSendHostMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || !dealerId) return;
-
-    const newMessage = {
-      dealer_id: dealerId,
-      user_name: "KoRo Lane (Host)",
-      avatar: "🏪",
-      text: chatInput.trim(),
-      is_host: true,
-    };
-
-    const { error } = await supabase.from('live_messages').insert([newMessage]);
-    if (!error) {
-      setChatInput("");
-    }
-  };
 
   const startCamera = async (mode: "user" | "environment") => {
     try {
@@ -249,17 +230,17 @@ export default function PreLiveStudio() {
         </div>
       )}
 
-      {/* 🔴 LIVE STUDIO CONTROLS & REAL-TIME CHAT (When Live) */}
+      {/* 🔴 LIVE STUDIO CONTROLS & CHAT FEED (When Live - Read Only for Host) */}
       {isLive && (
         <div className="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent z-20 pt-16 flex flex-col gap-3">
           
-          {/* 💬 REALTIME CHAT FEED FOR HOST */}
+          {/* 💬 REALTIME CHAT FEED (Host reads viewer comments here) */}
           <div 
             ref={chatContainerRef}
-            className="w-full h-36 overflow-y-auto flex flex-col space-y-2 pr-1 hide-scrollbar bg-black/70 backdrop-blur-md p-3 rounded-2xl border border-white/10"
+            className="w-full h-44 overflow-y-auto flex flex-col space-y-2 pr-1 hide-scrollbar bg-black/70 backdrop-blur-md p-3 rounded-2xl border border-white/10"
           >
             {chatMessages.length === 0 ? (
-              <div className="text-gray-400 text-xs text-center my-auto">Waiting for viewer messages...</div>
+              <div className="text-gray-400 text-xs text-center my-auto">Waiting for viewer comments...</div>
             ) : (
               chatMessages.map((msg, idx) => (
                 <div key={msg.id || idx} className="text-xs leading-snug">
@@ -269,20 +250,6 @@ export default function PreLiveStudio() {
               ))
             )}
           </div>
-
-          {/* ✍️ HOST REPLY INPUT BOX */}
-          <form onSubmit={handleSendHostMessage} className="flex gap-2">
-            <input 
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Reply to chat as Host..."
-              className="flex-1 bg-black/90 border border-white/20 text-xs text-white px-4 py-2.5 rounded-xl outline-none focus:border-[#00e599]"
-            />
-            <button type="submit" className="bg-[#00e599] text-black font-black text-xs px-4 py-2.5 rounded-xl">
-              Send
-            </button>
-          </form>
 
           {pinnedProduct ? (
             <div className="bg-[#121214]/90 backdrop-blur-md border border-[#00e599]/50 rounded-2xl p-3 flex items-center gap-3 relative">
@@ -306,7 +273,7 @@ export default function PreLiveStudio() {
           )}
 
           <div className="flex gap-3">
-            <button onClick={() => setShowProductModal(true)} className="flex-1 bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-2xl py-3 flex items-center justify-center gap-2 text-white font-bold text-xs uppercase tracking-wider hover:bg-gray-900 transition">
+            <button onClick={() => setShowProductModal(true)} className="flex-1 bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-2xl py-3.5 flex items-center justify-center gap-2 text-white font-bold text-xs uppercase tracking-wider hover:bg-gray-900 transition">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
               Pin Product
             </button>
