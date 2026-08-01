@@ -12,6 +12,12 @@ export default function PreLiveStudio() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
   const [pinnedProduct, setPinnedProduct] = useState<any | null>(null);
+  
+  // 🚀 Chat & Dealer ID states for Realtime Sync
+  const [dealerId, setDealerId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // 🔥 Camera & Mic State References
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -22,10 +28,12 @@ export default function PreLiveStudio() {
   // Fetch inventory & Start Camera on mount
   useEffect(() => {
     const fetchInventoryAndCamera = async () => {
-      // 1. Fetch Inventory
+      // 1. Fetch Session & Dealer ID
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        const { data } = await supabase.from('products').select('*').eq('dealer_id', session.user.id);
+        const id = session.user.id;
+        setDealerId(id);
+        const { data } = await supabase.from('products').select('*').eq('dealer_id', id);
         if (data) setInventory(data);
       }
 
@@ -43,9 +51,66 @@ export default function PreLiveStudio() {
     };
   }, []);
 
+  // Real-time Chat Listener for this Dealer
+  useEffect(() => {
+    if (!dealerId) return;
+
+    const fetchMessages = async () => {
+      const { data } = await supabase
+        .from('live_messages')
+        .select('*')
+        .eq('dealer_id', dealerId)
+        .order('created_at', { ascending: true })
+        .limit(50);
+      
+      if (data) setChatMessages(data);
+    };
+
+    fetchMessages();
+
+    const channel = supabase
+      .channel(`studio-chat-${dealerId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'live_messages', filter: `dealer_id=eq.${dealerId}` },
+        (payload) => {
+          setChatMessages((prev) => [...prev, payload.new]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dealerId]);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
+  const handleSendHostMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !dealerId) return;
+
+    const newMessage = {
+      dealer_id: dealerId,
+      user_name: "KoRo Lane (Host)",
+      avatar: "🏪",
+      text: chatInput.trim(),
+      is_host: true,
+    };
+
+    const { error } = await supabase.from('live_messages').insert([newMessage]);
+    if (!error) {
+      setChatInput("");
+    }
+  };
+
   const startCamera = async (mode: "user" | "environment") => {
     try {
-      // Stop existing tracks if any
       if (mediaStream) {
         mediaStream.getTracks().forEach(track => track.stop());
       }
@@ -184,11 +249,43 @@ export default function PreLiveStudio() {
         </div>
       )}
 
-      {/* 🔴 LIVE STUDIO CONTROLS (When Live) */}
+      {/* 🔴 LIVE STUDIO CONTROLS & REAL-TIME CHAT (When Live) */}
       {isLive && (
-        <div className="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black via-black/80 to-transparent z-20 pt-20 flex flex-col gap-4">
+        <div className="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent z-20 pt-16 flex flex-col gap-3">
+          
+          {/* 💬 REALTIME CHAT FEED FOR HOST */}
+          <div 
+            ref={chatContainerRef}
+            className="w-full h-36 overflow-y-auto flex flex-col space-y-2 pr-1 hide-scrollbar bg-black/70 backdrop-blur-md p-3 rounded-2xl border border-white/10"
+          >
+            {chatMessages.length === 0 ? (
+              <div className="text-gray-400 text-xs text-center my-auto">Waiting for viewer messages...</div>
+            ) : (
+              chatMessages.map((msg, idx) => (
+                <div key={msg.id || idx} className="text-xs leading-snug">
+                  <span className={`font-bold mr-1.5 ${msg.is_host ? 'text-[#00e599]' : 'text-gray-300'}`}>{msg.user_name}:</span>
+                  <span className="text-white">{msg.text}</span>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* ✍️ HOST REPLY INPUT BOX */}
+          <form onSubmit={handleSendHostMessage} className="flex gap-2">
+            <input 
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Reply to chat as Host..."
+              className="flex-1 bg-black/90 border border-white/20 text-xs text-white px-4 py-2.5 rounded-xl outline-none focus:border-[#00e599]"
+            />
+            <button type="submit" className="bg-[#00e599] text-black font-black text-xs px-4 py-2.5 rounded-xl">
+              Send
+            </button>
+          </form>
+
           {pinnedProduct ? (
-            <div className="bg-[#121214]/90 backdrop-blur-md border border-[#00e599]/50 rounded-2xl p-3 flex items-center gap-3 relative animate-in slide-in-from-bottom-4">
+            <div className="bg-[#121214]/90 backdrop-blur-md border border-[#00e599]/50 rounded-2xl p-3 flex items-center gap-3 relative">
               <button onClick={() => setPinnedProduct(null)} className="absolute -top-2 -right-2 w-6 h-6 bg-gray-900 border border-gray-700 rounded-full flex items-center justify-center text-gray-400">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
@@ -203,13 +300,13 @@ export default function PreLiveStudio() {
               </div>
             </div>
           ) : (
-            <div className="text-center pb-2">
+            <div className="text-center pb-1">
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">No product pinned</p>
             </div>
           )}
 
           <div className="flex gap-3">
-            <button onClick={() => setShowProductModal(true)} className="flex-1 bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-2xl py-3.5 flex items-center justify-center gap-2 text-white font-bold text-xs uppercase tracking-wider hover:bg-gray-900 transition">
+            <button onClick={() => setShowProductModal(true)} className="flex-1 bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-2xl py-3 flex items-center justify-center gap-2 text-white font-bold text-xs uppercase tracking-wider hover:bg-gray-900 transition">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
               Pin Product
             </button>
@@ -277,6 +374,10 @@ export default function PreLiveStudio() {
         </div>
       )}
 
+      <style dangerouslySetInnerHTML={{__html: `
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}} />
     </div>
   );
 }
