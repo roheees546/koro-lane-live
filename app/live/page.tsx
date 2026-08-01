@@ -9,12 +9,12 @@ export default function LiveShoppingPage() {
   const [chatInput, setChatInput] = useState("");
   const [likes, setLikes] = useState(152);
   const [pinnedProduct, setPinnedProduct] = useState<any | null>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Temporary hardcoded dealer id for live stream master feed simulation (Can be made dynamic based on active live seller later)
   const dealerId = "e2b9fc73-379b-4eb4-95bc-177aec9563b3";
 
-  // Fetch active pinned product from Supabase in real-time
+  // 1. Fetch active pinned product
   useEffect(() => {
     const fetchActivePin = async () => {
       const { data } = await supabase
@@ -29,40 +29,85 @@ export default function LiveShoppingPage() {
     fetchActivePin();
   }, [dealerId]);
 
-  // Handle click on the Now Showing Widget to go to Product Page
-  const handleProductClick = () => {
-    if (pinnedProduct) {
-      router.push(`/product/${pinnedProduct.id}`);
-    } else {
-      router.push(`/store/${dealerId}/live`);
-    }
-  };
+  // 2. Fetch initial chat messages & Setup Supabase Realtime Listener
+  useEffect(() => {
+    const fetchMessages = async () => {
+      const { data } = await supabase
+        .from('live_messages')
+        .select('*')
+        .eq('dealer_id', dealerId)
+        .order('created_at', { ascending: true })
+        .limit(50);
+      
+      if (data && data.length > 0) {
+        setChatMessages(data);
+      } else {
+        // Fallback default messages if table is empty
+        setChatMessages([
+          { id: 4, user_name: "KoRo Lane", avatar: "🏪", text: "It's Size L & in perfect condition ✅", is_host: true },
+          { id: 5, user_name: "Ravi", avatar: "👨🏽", text: "Shipping to Delhi?", is_host: false },
+          { id: 6, user_name: "Sneha", avatar: "👩🏽", text: "Loved it! ❤️", is_host: false },
+        ]);
+      }
+    };
 
-  // Dummy Chat Messages
-  const [chatMessages, setChatMessages] = useState([
-    { id: 4, user: "KoRo Lane", avatar: "🏪", time: "11:02 AM", text: "It's Size L & in perfect condition ✅", isHost: true },
-    { id: 5, user: "Ravi", avatar: "👨🏽", time: "11:03 AM", text: "Shipping to Delhi?", isHost: false },
-    { id: 6, user: "Sneha", avatar: "👩🏽", time: "11:03 AM", text: "Loved it! ❤️", isHost: false },
-    { id: 7, user: "Pooja", avatar: "👱🏽‍♀️", time: "11:03 AM", text: "Show more hoodies", isHost: false },
-    { id: 8, user: "Aman", avatar: "👨🏻‍💻", time: "11:04 AM", text: "Superb quality 🔥", isHost: false },
-  ]);
+    fetchMessages();
 
-  // Auto-scroll chat
+    // Realtime subscription for incoming messages
+    const channel = supabase
+      .channel('realtime-chat')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'live_messages', filter: `dealer_id=eq.${dealerId}` },
+        (payload) => {
+          setChatMessages((prev) => [...prev, payload.new]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dealerId]);
+
+  // Auto-scroll chat to bottom
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatMessages]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  // Handle sending a new message to Supabase
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
-    setChatMessages([...chatMessages, { id: Date.now(), user: "You", avatar: "👤", time: "Now", text: chatInput, isHost: false }]);
-    setChatInput("");
+
+    const newMessage = {
+      dealer_id: dealerId,
+      user_name: "You",
+      avatar: "👤",
+      text: chatInput.trim(),
+      is_host: false,
+    };
+
+    const { error } = await supabase.from('live_messages').insert([newMessage]);
+    if (error) {
+      console.error("Error sending message:", error.message);
+    } else {
+      setChatInput("");
+    }
   };
 
   const handleLike = () => {
     setLikes(prev => prev + 1);
+  };
+
+  const handleProductClick = () => {
+    if (pinnedProduct) {
+      router.push(`/product/${pinnedProduct.id}`);
+    } else {
+      router.push(`/store/${dealerId}/live`);
+    }
   };
 
   return (
@@ -75,16 +120,12 @@ export default function LiveShoppingPage() {
         className="absolute inset-0 w-full h-full object-cover z-0 opacity-60" 
       />
       
-      {/* Dark Gradients for Readability */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black z-10 pointer-events-none"></div>
       <div className="absolute bottom-0 w-full h-[60%] bg-gradient-to-t from-[#050505] via-[#050505]/90 to-transparent z-10 pointer-events-none"></div>
 
       {/* 🚀 TOP HEADER */}
       <div className="absolute top-0 left-0 w-full z-30 p-4 pt-6 flex justify-between items-start pointer-events-none">
-        
-        {/* Left Side: Live Badge & Host */}
         <div className="flex flex-col gap-4 pointer-events-auto">
-          {/* Badge */}
           <div className="flex items-center gap-3">
             <div className="bg-red-600 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md flex items-center gap-1.5 shadow-lg">
               <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> LIVE
@@ -95,7 +136,6 @@ export default function LiveShoppingPage() {
             </div>
           </div>
 
-          {/* Host Info */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-black font-black text-xs shrink-0 shadow-lg">
               KL
@@ -110,14 +150,12 @@ export default function LiveShoppingPage() {
           </div>
         </div>
 
-        {/* Right Side: Share Button */}
         <button className="pointer-events-auto flex items-center gap-1.5 text-xs font-bold bg-black/40 border border-white/10 backdrop-blur-md px-3 py-1.5 rounded-full hover:bg-black/60 transition shadow-lg">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
           Share
         </button>
       </div>
 
-      {/* 🛍️ NOW SHOWING WIDGET (Dynamic from Supabase Pinned Product) */}
+      {/* 🛍️ NOW SHOWING WIDGET */}
       {pinnedProduct && (
         <div className="absolute top-20 right-4 z-30 pointer-events-auto" onClick={handleProductClick}>
           <div className="w-[110px] bg-[#0a0a0c]/90 backdrop-blur-xl border border-white/5 rounded-2xl p-2 flex flex-col shadow-2xl hover:border-[#00e599]/30 transition cursor-pointer group">
@@ -126,7 +164,7 @@ export default function LiveShoppingPage() {
               <span className="text-[#00e599] text-[7px] font-black uppercase tracking-widest">Now Showing</span>
             </div>
             <div className="w-full aspect-square rounded-lg overflow-hidden mb-2 relative bg-zinc-900">
-              <img src={pinnedProduct.image_url || "https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=300&auto=format&fit=crop"} alt="Current Item" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
+              <img src={pinnedProduct.image_url || "https://placehold.co/100"} alt="Current Item" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
             </div>
             <h3 className="text-[8px] font-black uppercase leading-tight text-white mb-1 line-clamp-2">{pinnedProduct.title}</h3>
             <div className="flex items-center justify-between">
@@ -140,29 +178,29 @@ export default function LiveShoppingPage() {
       {/* 💬 BOTTOM CONTENT AREA */}
       <div className="absolute inset-0 z-20 flex flex-col justify-end px-4 pb-4 pointer-events-none">
         
-        {/* Chat List */}
+        {/* Realtime Chat List */}
         <div 
           ref={chatContainerRef}
           className="pointer-events-auto w-[80%] h-[220px] overflow-y-auto flex flex-col justify-end space-y-3 pb-3 hide-scrollbar mask-image-gradient"
           style={{ WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 20%)' }}
         >
-          {chatMessages.map((msg) => (
-            <div key={msg.id} className="flex gap-2 items-start">
+          {chatMessages.map((msg, index) => (
+            <div key={msg.id || index} className="flex gap-2 items-start">
               <div className="w-7 h-7 rounded-full bg-[#1a1a1a] flex items-center justify-center text-xs shrink-0 border border-white/5 shadow-sm">
-                {msg.avatar}
+                {msg.avatar || "👤"}
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="text-[10px] font-bold text-gray-300">{msg.user}</span>
-                  {msg.isHost && <span className="bg-[#00e599] text-black text-[7px] px-1.5 py-0.5 font-black uppercase rounded-sm">Host</span>}
+                  <span className="text-[10px] font-bold text-gray-300">{msg.user_name}</span>
+                  {msg.is_host && <span className="bg-[#00e599] text-black text-[7px] px-1.5 py-0.5 font-black uppercase rounded-sm">Host</span>}
                 </div>
-                <span className={`text-xs leading-snug drop-shadow-md ${msg.isHost ? 'text-[#00e599] font-medium' : 'text-white'}`}>{msg.text}</span>
+                <span className={`text-xs leading-snug drop-shadow-md ${msg.is_host ? 'text-[#00e599] font-medium' : 'text-white'}`}>{msg.text}</span>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Chat Input & Like Button */}
+        {/* Chat Input & Interactive Likes Button */}
         <div className="pointer-events-auto flex items-center gap-3 mb-5">
           <form onSubmit={handleSendMessage} className="relative flex-1">
             <input 
@@ -178,15 +216,13 @@ export default function LiveShoppingPage() {
           </form>
           
           <button onClick={handleLike} className="flex items-center gap-1.5 shrink-0 hover:scale-105 active:scale-95 transition group">
-            <svg className="w-6 h-6 text-gray-400 group-hover:text-red-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+            <svg className="w-6 h-6 text-red-500 fill-red-500 transition animate-bounce" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
             <span className="text-xs font-bold text-white">{likes}</span>
           </button>
         </div>
 
-        {/* 🎛️ DASHBOARD WIDGETS (Bottom Cards) */}
+        {/* 🎛️ DASHBOARD WIDGETS */}
         <div className="pointer-events-auto flex flex-col gap-2">
-          
-          {/* Next Live Card */}
           <div className="bg-[#121214]/90 backdrop-blur-lg border border-white/5 rounded-2xl p-3.5 flex justify-between items-center shadow-lg">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden shrink-0">
@@ -198,43 +234,17 @@ export default function LiveShoppingPage() {
                 <p className="text-[9px] text-gray-500">Premium Thrift Finds</p>
               </div>
             </div>
-            
             <div className="flex flex-col items-end gap-1.5">
-              <div className="text-right">
-                <p className="text-[8px] text-gray-400">Starts in</p>
-                <p className="text-xs font-black text-[#00e599] font-mono">01:30:45</p>
-                <p className="text-[7px] text-gray-500">(After 1.5 hr)</p>
-              </div>
-              <button className="flex items-center gap-1 border border-[#00e599]/30 bg-[#003320]/30 px-2 py-1.5 rounded-lg hover:bg-[#00e599]/20 transition">
-                <svg className="w-3 h-3 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+              <p className="text-xs font-black text-[#00e599] font-mono">01:30:45</p>
+              <button className="flex items-center gap-1 border border-[#00e599]/30 bg-[#003320]/30 px-2 py-1.5 rounded-lg">
                 <span className="text-[9px] font-bold text-[#00e599]">Remind me</span>
               </button>
             </div>
           </div>
-
-          {/* Split Action Cards */}
-          <div className="grid grid-cols-[1fr_1.8fr] gap-2">
-            {/* Upcoming button */}
-            <button className="bg-[#121214]/90 backdrop-blur-lg border border-white/5 rounded-2xl p-3 flex items-center justify-center gap-2 hover:bg-[#1a1a1c] transition shadow-lg group">
-              <svg className="w-4 h-4 text-white group-hover:-translate-y-0.5 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-              <span className="text-[10px] font-bold text-white">Upcoming in this live</span>
-              <svg className="w-3 h-3 text-gray-500 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-            </button>
-
-            {/* Announcement Banner */}
-            <div className="bg-[#003320]/20 backdrop-blur-lg border border-[#00e599]/20 rounded-2xl p-3 flex flex-col justify-center shadow-lg">
-              <div className="flex items-center gap-1.5 mb-1">
-                <svg className="w-3 h-3 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
-                <span className="text-[8px] font-black text-[#00e599] uppercase tracking-widest">Announcement</span>
-              </div>
-              <span className="text-[9px] text-gray-300 leading-snug">Free delivery on all drops! 📍 Dehradun Only</span>
-            </div>
-          </div>
-
         </div>
+
       </div>
 
-      {/* Global styles for hide-scrollbar */}
       <style dangerouslySetInnerHTML={{__html: `
         .hide-scrollbar::-webkit-scrollbar { display: none; } 
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
