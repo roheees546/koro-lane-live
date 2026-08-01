@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -10,8 +10,11 @@ export default function BuyerLiveView() {
   const dealerId = params.id as string;
 
   const [pinnedProduct, setPinnedProduct] = useState<any | null>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch active pinned product for this dealer from Supabase
+  // 1. Fetch active pinned product for this dealer from Supabase
   useEffect(() => {
     const fetchActivePin = async () => {
       if (!dealerId) return;
@@ -27,24 +30,81 @@ export default function BuyerLiveView() {
     fetchActivePin();
   }, [dealerId]);
 
+  // 2. Fetch live chat messages & Setup Supabase Realtime Listener for this Dealer
+  useEffect(() => {
+    if (!dealerId) return;
+
+    const fetchMessages = async () => {
+      const { data } = await supabase
+        .from('live_messages')
+        .select('*')
+        .eq('dealer_id', dealerId)
+        .order('created_at', { ascending: true })
+        .limit(50);
+      
+      if (data) setChatMessages(data);
+    };
+
+    fetchMessages();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel(`seller-live-chat-${dealerId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'live_messages', filter: `dealer_id=eq.${dealerId}` },
+        (payload) => {
+          setChatMessages((prev) => [...prev, payload.new]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dealerId]);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
+  // Handle Host sending a message from Seller dashboard
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+
+    const newMessage = {
+      dealer_id: dealerId,
+      user_name: "KoRo Lane (Host)",
+      avatar: "🏪",
+      text: chatInput.trim(),
+      is_host: true,
+    };
+
+    const { error } = await supabase.from('live_messages').insert([newMessage]);
+    if (!error) {
+      setChatInput("");
+    }
+  };
+
   return (
-    <div className="relative h-[100dvh] w-full max-w-[450px] mx-auto bg-black text-white overflow-hidden selection:bg-[#00e599] selection:text-black">
+    <div className="relative h-[100dvh] w-full max-w-[450px] mx-auto bg-black text-white overflow-hidden selection:bg-[#00e599] selection:text-black flex flex-col justify-between">
       
       {/* 🎥 LIVE STREAM VIDEO BACKGROUND */}
-      <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center">
+      <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center z-0">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555529771-835f59fc5efe?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center opacity-70"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60"></div>
       </div>
 
       {/* 🔴 TOP BAR */}
-      <div className="absolute top-0 w-full p-4 pt-safe-top flex justify-between items-center z-20">
+      <div className="relative w-full p-4 pt-safe-top flex justify-between items-center z-20">
         <div className="flex items-center gap-2">
           <div className="bg-red-600 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase flex items-center gap-1.5 animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.5)]">
             <div className="w-2 h-2 bg-white rounded-full"></div>
-            LIVE
-          </div>
-          <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-gray-300 border border-white/10">
-            👀 124 watching
+            LIVE DASHBOARD
           </div>
         </div>
 
@@ -53,46 +113,59 @@ export default function BuyerLiveView() {
         </button>
       </div>
 
-      {/* 🛍️ PINNED PRODUCT OVERLAY (Yahan Click se Tera Purana Flow Khulega) */}
-      {pinnedProduct && (
-        <div className="absolute bottom-24 w-full px-4 z-20 animate-in slide-in-from-bottom-5">
-          <div 
-            onClick={() => router.push(`/product/${pinnedProduct.id}`)} 
-            className="bg-[#121214]/90 backdrop-blur-xl border border-[#00e599]/60 rounded-2xl p-3.5 flex items-center gap-3.5 cursor-pointer hover:border-[#00e599] transition shadow-[0_10px_30px_rgba(0,0,0,0.8)] group"
-          >
-            <div className="relative">
-              <img src={pinnedProduct.image_url || "https://placehold.co/100"} alt="Pinned" className="w-14 h-14 rounded-xl object-cover bg-gray-900 border border-white/10" />
-              <div className="absolute -top-2 -left-2 bg-[#00e599] text-black text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                Hot 🔥
-              </div>
-            </div>
-
-            <div className="flex-1 min-w-0">
+      {/* MIDDLE CONTENT CONTAINER */}
+      <div className="relative z-20 flex-1 flex flex-col justify-end px-4 pb-6 overflow-hidden">
+        
+        {/* 💬 REALTIME CHAT FEED FOR SELLER */}
+        <div 
+          ref={chatContainerRef}
+          className="w-full h-48 overflow-y-auto flex flex-col space-y-2 mb-3 pr-2 hide-scrollbar"
+        >
+          {chatMessages.map((msg, idx) => (
+            <div key={msg.id || idx} className="bg-black/60 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 max-w-[90%]">
               <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="w-1.5 h-1.5 bg-[#00e599] rounded-full animate-ping"></span>
-                <span className="text-[9px] font-black uppercase text-[#00e599] tracking-widest">Pinned by Host</span>
+                <span className="text-[10px] font-bold text-[#00e599]">{msg.user_name}</span>
+                {msg.is_host && <span className="bg-[#00e599] text-black text-[7px] px-1 font-black rounded">HOST</span>}
               </div>
-              <h4 className="text-xs font-bold text-white truncate group-hover:text-[#00e599] transition">{pinnedProduct.title}</h4>
-              <p className="text-base font-black text-white mt-0.5">₹{pinnedProduct.price}</p>
+              <p className="text-xs text-white">{msg.text}</p>
             </div>
-
-            <button className="bg-[#00e599] hover:bg-[#00c987] text-black font-black text-xs uppercase tracking-wider px-4 py-3 rounded-xl transition shadow-[0_0_15px_rgba(0,229,153,0.3)] shrink-0">
-              Buy Now
-            </button>
-          </div>
+          ))}
         </div>
-      )}
 
-      {/* 💬 CHAT FEED */}
-      <div className="absolute bottom-4 left-4 right-4 z-10 pointer-events-none flex flex-col justify-end h-32">
-        <div className="space-y-1.5 text-xs">
-          <div className="bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-xl inline-block border border-white/5">
-            <span className="font-bold text-[#00e599] mr-2">Aman_99:</span>
-            <span>Bhai quality kaisi hai iski? 🔥</span>
+        {/* ✍️ SELLER CHAT INPUT BOX */}
+        <form onSubmit={handleSendMessage} className="flex gap-2 mb-4">
+          <input 
+            type="text"
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            placeholder="Reply to viewers as Host..."
+            className="flex-1 bg-black/80 backdrop-blur-md border border-white/20 text-xs text-white px-4 py-3 rounded-xl outline-none focus:border-[#00e599]"
+          />
+          <button type="submit" className="bg-[#00e599] text-black font-black text-xs px-4 py-3 rounded-xl">
+            Send
+          </button>
+        </form>
+
+        {/* 🛍️ PINNED PRODUCT OVERLAY */}
+        {pinnedProduct && (
+          <div className="w-full bg-[#121214]/90 backdrop-blur-xl border border-[#00e599]/60 rounded-2xl p-3.5 flex items-center gap-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+            <img src={pinnedProduct.image_url || "https://placehold.co/100"} alt="Pinned" className="w-12 h-12 rounded-xl object-cover bg-gray-900 border border-white/10" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-[#00e599] rounded-full animate-ping"></span>
+                <span className="text-[9px] font-black uppercase text-[#00e599]">Currently Pinned</span>
+              </div>
+              <h4 className="text-xs font-bold text-white truncate">{pinnedProduct.title}</h4>
+              <p className="text-sm font-black text-white">₹{pinnedProduct.price}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
+      <style dangerouslySetInnerHTML={{__html: `
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}} />
     </div>
   );
 }
