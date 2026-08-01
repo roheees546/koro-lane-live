@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-export default function SellerLiveDashboard() {
+export default function StoreLivePage() {
   const params = useParams();
   const router = useRouter();
+  
+  // 🚀 Dynamic Dealer ID from URL params (/store/[id]/live)
   const dealerId = params.id as string;
 
   const [pinnedProduct, setPinnedProduct] = useState<any | null>(null);
@@ -14,7 +16,7 @@ export default function SellerLiveDashboard() {
   const [chatInput, setChatInput] = useState("");
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // 1. Fetch active pinned product
+  // 1. Fetch active pinned product for this specific dealer dynamically
   useEffect(() => {
     const fetchActivePin = async () => {
       if (!dealerId) return;
@@ -30,7 +32,7 @@ export default function SellerLiveDashboard() {
     fetchActivePin();
   }, [dealerId]);
 
-  // 2. Fetch live chat & Realtime listener
+  // 2. Fetch live chat & Setup Realtime channel scoped strictly to this dealerId
   useEffect(() => {
     if (!dealerId) return;
 
@@ -47,8 +49,9 @@ export default function SellerLiveDashboard() {
 
     fetchMessages();
 
+    // Dynamic Supabase Realtime Channel Subscription
     const channel = supabase
-      .channel(`seller-chat-${dealerId}`)
+      .channel(`store-live-${dealerId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'live_messages', filter: `dealer_id=eq.${dealerId}` },
@@ -70,17 +73,17 @@ export default function SellerLiveDashboard() {
     }
   }, [chatMessages]);
 
-  // Host send message
+  // Send message bound to this specific dealer
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || !dealerId) return;
 
     const newMessage = {
       dealer_id: dealerId,
-      user_name: "KoRo Lane (Host)",
-      avatar: "🏪",
+      user_name: "Viewer", 
+      avatar: "👤",
       text: chatInput.trim(),
-      is_host: true,
+      is_host: false,
     };
 
     const { error } = await supabase.from('live_messages').insert([newMessage]);
@@ -101,23 +104,23 @@ export default function SellerLiveDashboard() {
       <div className="relative w-full p-4 flex justify-between items-center z-20">
         <div className="bg-red-600 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase flex items-center gap-1.5 animate-pulse">
           <div className="w-2 h-2 bg-white rounded-full"></div>
-          SELLER LIVE DASHBOARD
+          LIVE STREAM
         </div>
-        <button onClick={() => window.history.back()} className="w-9 h-9 bg-black/40 rounded-full flex items-center justify-center border border-white/10 text-white">
+        <button onClick={() => router.back()} className="w-9 h-9 bg-black/40 rounded-full flex items-center justify-center border border-white/10 text-white">
           ✕
         </button>
       </div>
 
-      {/* MIDDLE / BOTTOM OVERLAYS CONTAINER */}
+      {/* CHAT & CONTROLS CONTAINER */}
       <div className="relative z-20 flex flex-col px-4 pb-4 space-y-3 mt-auto">
         
         {/* CHAT MESSAGES FEED */}
         <div 
           ref={chatContainerRef}
-          className="w-full h-40 overflow-y-auto flex flex-col space-y-2 pr-1 hide-scrollbar bg-black/60 backdrop-blur-md p-3 rounded-2xl border border-white/10"
+          className="w-full h-48 overflow-y-auto flex flex-col space-y-2 pr-1 hide-scrollbar bg-black/80 backdrop-blur-md p-3 rounded-2xl border border-white/10"
         >
           {chatMessages.length === 0 ? (
-            <div className="text-gray-400 text-xs text-center my-auto">No messages yet. Waiting for buyers...</div>
+            <div className="text-gray-400 text-xs text-center my-auto">No messages yet. Say hello to the store! 👋</div>
           ) : (
             chatMessages.map((msg, idx) => (
               <div key={msg.id || idx} className="text-xs leading-snug">
@@ -134,20 +137,23 @@ export default function SellerLiveDashboard() {
             type="text"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Type message as Host..."
-            className="flex-1 bg-black/80 border border-white/20 text-xs text-white px-4 py-2.5 rounded-xl outline-none focus:border-[#00e599]"
+            placeholder="Type a message..."
+            className="flex-1 bg-black/90 border border-white/20 text-xs text-white px-4 py-2.5 rounded-xl outline-none focus:border-[#00e599]"
           />
           <button type="submit" className="bg-[#00e599] text-black font-black text-xs px-4 py-2.5 rounded-xl">
             Send
           </button>
         </form>
 
-        {/* PINNED PRODUCT CARD */}
+        {/* PINNED PRODUCT CARD (Clickable to Checkout/Product Page) */}
         {pinnedProduct && (
-          <div className="bg-[#121214]/90 backdrop-blur-xl border border-[#00e599]/60 rounded-2xl p-3 flex items-center gap-3">
+          <div 
+            onClick={() => router.push(`/product/${pinnedProduct.id}`)}
+            className="bg-[#121214]/90 backdrop-blur-xl border border-[#00e599]/60 rounded-2xl p-3 flex items-center gap-3 cursor-pointer hover:border-[#00e599] transition shadow-lg"
+          >
             <img src={pinnedProduct.image_url || "https://placehold.co/100"} alt="Pinned" className="w-10 h-10 rounded-xl object-cover bg-gray-900 border border-white/10" />
             <div className="flex-1 min-w-0">
-              <p className="text-[8px] font-black uppercase text-[#00e599]">Pinned Product</p>
+              <p className="text-[8px] font-black uppercase text-[#00e599]">Pinned by Store</p>
               <h4 className="text-xs font-bold text-white truncate">{pinnedProduct.title}</h4>
               <p className="text-xs font-black text-white">₹{pinnedProduct.price}</p>
             </div>
