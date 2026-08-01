@@ -2,18 +2,40 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function LiveShoppingPage() {
   const router = useRouter();
   const [chatInput, setChatInput] = useState("");
   const [likes, setLikes] = useState(152);
+  const [pinnedProduct, setPinnedProduct] = useState<any | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Yeh function user ko seedha naye 2-Step Checkout page par bhej dega!
-  const handleVideoClick = () => {
-    // Abhi ke liye hum yahan '12345' (dummy dealer id) bhej rahe hain.
-    // Jab backend judega, tab yahan asli seller ki ID aayegi.
-    router.push("/store/12345/live");
+  // Temporary hardcoded dealer id for live stream master feed simulation (Can be made dynamic based on active live seller later)
+  const dealerId = "e2b9fc73-379b-4eb4-95bc-177aec9563b3";
+
+  // Fetch active pinned product from Supabase in real-time
+  useEffect(() => {
+    const fetchActivePin = async () => {
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .eq('dealer_id', dealerId)
+        .limit(1)
+        .single();
+      
+      if (data) setPinnedProduct(data);
+    };
+    fetchActivePin();
+  }, [dealerId]);
+
+  // Handle click on the Now Showing Widget to go to Product Page
+  const handleProductClick = () => {
+    if (pinnedProduct) {
+      router.push(`/product/${pinnedProduct.id}`);
+    } else {
+      router.push(`/store/${dealerId}/live`);
+    }
   };
 
   // Dummy Chat Messages
@@ -46,12 +68,11 @@ export default function LiveShoppingPage() {
   return (
     <div className="relative w-full h-[100dvh] bg-[#050505] font-sans text-white overflow-hidden max-w-[450px] mx-auto pb-[70px]">
       
-      {/* 🎥 BACKGROUND STREAM (Clickable) */}
+      {/* 🎥 BACKGROUND STREAM */}
       <img 
-        onClick={handleVideoClick}
         src="https://images.unsplash.com/photo-1607083206968-13611e3d76db?q=80&w=800&auto=format&fit=crop" 
         alt="Live Stream" 
-        className="absolute inset-0 w-full h-full object-cover z-0 opacity-60 cursor-pointer" 
+        className="absolute inset-0 w-full h-full object-cover z-0 opacity-60" 
       />
       
       {/* Dark Gradients for Readability */}
@@ -96,23 +117,25 @@ export default function LiveShoppingPage() {
         </button>
       </div>
 
-      {/* 🛍️ NOW SHOWING WIDGET (Top Right Floating - Clickable) */}
-      <div className="absolute top-20 right-4 z-30 pointer-events-auto" onClick={handleVideoClick}>
-        <div className="w-[110px] bg-[#0a0a0c]/90 backdrop-blur-xl border border-white/5 rounded-2xl p-2 flex flex-col shadow-2xl hover:border-[#00e599]/30 transition cursor-pointer group">
-          <div className="flex items-center gap-1 mb-1.5">
-            <span className="w-1.5 h-1.5 bg-[#00e599] rounded-full animate-pulse"></span>
-            <span className="text-[#00e599] text-[7px] font-black uppercase tracking-widest">Now</span>
-          </div>
-          <div className="w-full aspect-square rounded-lg overflow-hidden mb-2 relative">
-            <img src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=300&auto=format&fit=crop" alt="Current Item" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-          </div>
-          <h3 className="text-[8px] font-black uppercase leading-tight text-white mb-1 line-clamp-2">VINTAGE CARHARTT JACKET</h3>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black text-[#00e599]">₹2499</span>
-            <svg className="w-3 h-3 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+      {/* 🛍️ NOW SHOWING WIDGET (Dynamic from Supabase Pinned Product) */}
+      {pinnedProduct && (
+        <div className="absolute top-20 right-4 z-30 pointer-events-auto" onClick={handleProductClick}>
+          <div className="w-[110px] bg-[#0a0a0c]/90 backdrop-blur-xl border border-white/5 rounded-2xl p-2 flex flex-col shadow-2xl hover:border-[#00e599]/30 transition cursor-pointer group">
+            <div className="flex items-center gap-1 mb-1.5">
+              <span className="w-1.5 h-1.5 bg-[#00e599] rounded-full animate-pulse"></span>
+              <span className="text-[#00e599] text-[7px] font-black uppercase tracking-widest">Now Showing</span>
+            </div>
+            <div className="w-full aspect-square rounded-lg overflow-hidden mb-2 relative bg-zinc-900">
+              <img src={pinnedProduct.image_url || "https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=300&auto=format&fit=crop"} alt="Current Item" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
+            </div>
+            <h3 className="text-[8px] font-black uppercase leading-tight text-white mb-1 line-clamp-2">{pinnedProduct.title}</h3>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black text-[#00e599]">₹{pinnedProduct.price}</span>
+              <svg className="w-3 h-3 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 💬 BOTTOM CONTENT AREA */}
       <div className="absolute inset-0 z-20 flex flex-col justify-end px-4 pb-4 pointer-events-none">
