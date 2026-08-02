@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 export default function PreLiveStudio() {
   const router = useRouter();
   const [streamTitle, setStreamTitle] = useState("");
-  const [youtubeStreamKey, setYoutubeStreamKey] = useState(""); // 👈 Added YouTube Stream Key state
+  const [youtubeStreamKey, setYoutubeStreamKey] = useState("");
   const [isLive, setIsLive] = useState(false);
   const [inventory, setInventory] = useState<any[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -22,6 +22,10 @@ export default function PreLiveStudio() {
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+
+  // 🚀 Naye Refs: Streaming aur WebSocket ke liye
+  const socketRef = useRef<WebSocket | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   useEffect(() => {
     const fetchInventoryAndCamera = async () => {
@@ -38,12 +42,14 @@ export default function PreLiveStudio() {
     fetchInventoryAndCamera();
 
     return () => {
+      stopStreaming(); // Component unmount hone par stream rok do
       if (mediaStream) {
         mediaStream.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
 
+  // Real-time Chat Listener
   useEffect(() => {
     if (!dealerId) return;
 
@@ -124,16 +130,68 @@ export default function PreLiveStudio() {
     );
   };
 
+  // 🔴 STOP STREAMING FUNCTION
+  const stopStreaming = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (socketRef.current) {
+      socketRef.current.close();
+    }
+    setIsLive(false);
+  };
+
+  // 🟢 GO LIVE FUNCTION (Connects to our Node.js Server)
   const handleGoLive = () => {
     if (!streamTitle) {
       alert("Bawa, pehle Drop ka title toh daal!");
       return;
     }
-    // Yahan YouTube stream key save ya broadcast trigger kar sakte hain
-    if (youtubeStreamKey) {
-      console.log("Broadcasting to YouTube with key:", youtubeStreamKey);
+    if (!youtubeStreamKey) {
+      alert("YouTube Stream Key zaruri hai stream karne ke liye!");
+      return;
     }
-    setIsLive(true);
+    if (!mediaStream) {
+      alert("Camera feed ready nahi hai!");
+      return;
+    }
+
+    // 1. WebSocket connect kar rahe hain Local Backend (Port 8000) se
+    const wsUrl = `ws://localhost:8000/?key=${encodeURIComponent(youtubeStreamKey)}`;
+    const ws = new WebSocket(wsUrl);
+    socketRef.current = ws;
+
+    ws.onopen = () => {
+      console.log("Connected to streaming backend!");
+      
+      // 2. MediaRecorder setup (Video chunks banana)
+      // Browsers generally support webm format for recording
+      const options = { mimeType: 'video/webm;codecs=vp8,opus' };
+      const mediaRecorder = new MediaRecorder(mediaStream, options);
+      mediaRecorderRef.current = mediaRecorder;
+
+      // Jab chunk ready ho, backend ko bhej do
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+          ws.send(e.data);
+        }
+      };
+
+      // 1000ms (1 sec) ke video chunks bhejenge
+      mediaRecorder.start(1000); 
+      setIsLive(true);
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket Error: Backend server shayed chal nahi raha hai.", error);
+      alert("Connection fail ho gaya! Kya tumhara Node.js server (port 8000) chal raha hai?");
+      stopStreaming();
+    };
+
+    ws.onclose = () => {
+      console.log("Disconnected from backend.");
+      stopStreaming();
+    };
   };
 
   return (
@@ -155,6 +213,7 @@ export default function PreLiveStudio() {
       <div className="absolute top-0 w-full p-4 pt-safe-top flex justify-between items-start bg-gradient-to-b from-black/90 to-transparent z-20 h-32">
         <div className="flex flex-col gap-3">
           <button onClick={() => {
+            stopStreaming();
             if(mediaStream) mediaStream.getTracks().forEach(t => t.stop());
             router.back();
           }} className="w-10 h-10 bg-black/45 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white">
@@ -194,9 +253,9 @@ export default function PreLiveStudio() {
               />
             </div>
 
-            {/* YouTube Stream Key Input */}
+            {/* YouTube Stream Key Input (Ab Mandatory aur updated hai) */}
             <div>
-              <label className="text-[10px] font-bold text-red-400 uppercase tracking-widest ml-1">YouTube Stream Key (Optional)</label>
+              <label className="text-[10px] font-bold text-red-400 uppercase tracking-widest ml-1">YouTube Stream Key</label>
               <input 
                 type="password" 
                 placeholder="Paste YouTube RTMP Stream Key..." 
@@ -270,10 +329,7 @@ export default function PreLiveStudio() {
             <button onClick={() => setShowProductModal(true)} className="flex-1 bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-xl py-3 flex items-center justify-center gap-2 text-white font-bold text-xs uppercase hover:bg-gray-900 transition">
               Pin Product
             </button>
-            <button onClick={() => {
-              if(mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-              setIsLive(false);
-            }} className="w-12 bg-red-600/20 border border-red-600/50 text-red-500 rounded-xl flex items-center justify-center">
+            <button onClick={() => stopStreaming()} className="w-12 bg-red-600/20 border border-red-600/50 text-red-500 rounded-xl flex items-center justify-center">
               ✕
             </button>
           </div>
