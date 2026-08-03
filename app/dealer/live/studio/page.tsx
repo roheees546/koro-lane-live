@@ -195,7 +195,8 @@ export default function PreLiveStudio() {
       return;
     }
 
-    const wsUrl = `ws://localhost:8000/?key=${encodeURIComponent(youtubeStreamKey)}`;
+    // 👇 Bawa, yahan pe tera naya Render wala address update kar diya hai!
+    const wsUrl = `wss://koro-lane-live.onrender.com/?key=${encodeURIComponent(youtubeStreamKey)}`;
     const ws = new WebSocket(wsUrl);
     socketRef.current = ws;
 
@@ -234,7 +235,7 @@ export default function PreLiveStudio() {
 
     ws.onerror = (error) => {
       console.error("WebSocket Error:", error);
-      alert("Connection fail! Kya Node.js server (port 8000) chal raha hai?");
+      alert("Connection fail! Kya server chal raha hai?");
       stopStreaming();
     };
 
