@@ -25,15 +25,13 @@ wss.on('connection', (ws, req) => {
 
   const ffmpeg = spawn(ffmpegPath, [
     '-fflags', '+nobuffer',
-    '-analyzeduration', '0',
-    '-probesize', '1024',
-    '-f', 'matroska', 
+    '-f', 'webm',
     '-i', '-', 
     '-c:v', 'libx264', 
-    '-preset', 'veryfast',
+    '-preset', 'ultrafast',
     '-tune', 'zerolatency',
     '-maxrate', '2500k',
-    '-bufsize', '2500k',
+    '-bufsize', '5000k',
     '-pix_fmt', 'yuv420p',
     '-g', '50', 
     '-c:a', 'aac', 
@@ -56,10 +54,9 @@ wss.on('connection', (ws, req) => {
     console.log('⚠️ FFmpeg stdin error:', e.message);
   });
 
-  // 👇 Yahan hum check kar rahe hain ki browser se data aa raha hai ya nahi
   ws.on('message', (msg) => {
     if (Buffer.isBuffer(msg)) {
-      console.log(`📦 Received chunk from browser: ${msg.length} bytes`); // 👈 Ye print hona chahiye!
+      console.log(`📦 Received chunk from browser: ${msg.length} bytes`);
       ffmpeg.stdin.write(msg);
     } else {
       console.log('Received non-binary message:', msg);
@@ -79,6 +76,3 @@ const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
   console.log(`🔥 Rohes' Streaming Server is running on port ${PORT}`);
 });
-
-// --- RENDER FIX DEPLOYMENT TRIGGER ---
-// Bawa, ye line bas Git ko jagane ke liye add ki hai taaki usko lage code update hua hai! 🚀
