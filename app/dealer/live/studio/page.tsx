@@ -25,7 +25,7 @@ export default function PreLiveStudio() {
 
   const socketRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioCtxRef = useRef<any>(null); // 👈 Naya ref audio track ko uthane ke liye
+  const audioCtxRef = useRef<any>(null); 
 
   useEffect(() => {
     const fetchInventoryAndCamera = async () => {
@@ -129,7 +129,7 @@ export default function PreLiveStudio() {
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
         if (AudioContextClass) {
           const audioCtx = new AudioContextClass();
-          audioCtxRef.current = audioCtx; // 👈 AudioContext ko save kar liya
+          audioCtxRef.current = audioCtx; 
           
           const oscillator = audioCtx.createOscillator();
           const gainNode = audioCtx.createGain();
@@ -185,7 +185,6 @@ export default function PreLiveStudio() {
     setIsLive(false);
   };
 
-  // 👇 Yahan async add kiya hai taaki audio ko resume kar sakein
   const handleGoLive = async () => { 
     if (!streamTitle) {
       alert("Bawa, pehle Drop ka title toh daal!");
@@ -200,7 +199,6 @@ export default function PreLiveStudio() {
       return;
     }
 
-    // 👇 Audio track ko neend se jaga rahe hain taaki MediaRecorder shuru ho sake
     if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
       try {
         await audioCtxRef.current.resume();
@@ -210,7 +208,8 @@ export default function PreLiveStudio() {
       }
     }
 
-    const wsUrl = `wss://koro-lane-live.onrender.com/?key=${encodeURIComponent(youtubeStreamKey)}`;
+    // 👇 Render ko hata kar localhost kar diya hai abhi ke liye
+    const wsUrl = `ws://localhost:8000/?key=${encodeURIComponent(youtubeStreamKey)}`;
     const ws = new WebSocket(wsUrl);
     socketRef.current = ws;
 
