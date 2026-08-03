@@ -20,15 +20,11 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
-  // 👇 Yahan rtmp ki jagah rtmps kar diya hai taaki Render ka firewall block na kare!
   const rtmpsUrl = `rtmps://a.rtmp.youtube.com:443/live2/${streamKey}`;
   console.log(`🚀 Starting secure stream to YouTube (RTMPS)...`);
 
   const ffmpeg = spawn(ffmpegPath, [
-    '-fflags', '+nobuffer',
-    '-flags', 'low_delay',
-    '-f', 'webm',
-    '-i', '-', 
+    '-i', '-',          // FFmpeg will auto-detect stream format from browser pipe
     '-c:v', 'libx264', 
     '-preset', 'ultrafast',
     '-tune', 'zerolatency',
