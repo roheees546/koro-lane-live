@@ -25,6 +25,7 @@ export default function PreLiveStudio() {
 
   const socketRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioCtxRef = useRef<any>(null); // 👈 Naya ref audio track ko uthane ke liye
 
   useEffect(() => {
     const fetchInventoryAndCamera = async () => {
@@ -125,22 +126,25 @@ export default function PreLiveStudio() {
       const dummyStream = canvas.captureStream(30);
 
       try {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        const audioCtx = new AudioContext();
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume();
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) {
+          const audioCtx = new AudioContextClass();
+          audioCtxRef.current = audioCtx; // 👈 AudioContext ko save kar liya
+          
+          const oscillator = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+          gainNode.gain.value = 0.01; 
+          oscillator.connect(gainNode);
+          const dest = audioCtx.createMediaStreamDestination();
+          gainNode.connect(dest);
+          oscillator.start();
+          
+          if (dest.stream.getAudioTracks().length > 0) {
+            dummyStream.addTrack(dest.stream.getAudioTracks()[0]);
+          }
         }
-        const dst = audioCtx.createMediaStreamDestination();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        gainNode.gain.value = 0;
-        oscillator.connect(gainNode);
-        gainNode.connect(dst);
-        oscillator.start();
-        
-        dummyStream.addTrack(dst.stream.getAudioTracks()[0]);
       } catch (e) {
-        console.error("Fake audio error:", e);
+        console.error("Dummy audio track error:", e);
       }
 
       setMediaStream(dummyStream);
@@ -181,7 +185,8 @@ export default function PreLiveStudio() {
     setIsLive(false);
   };
 
-  const handleGoLive = () => {
+  // 👇 Yahan async add kiya hai taaki audio ko resume kar sakein
+  const handleGoLive = async () => { 
     if (!streamTitle) {
       alert("Bawa, pehle Drop ka title toh daal!");
       return;
@@ -195,7 +200,16 @@ export default function PreLiveStudio() {
       return;
     }
 
-    // 👇 Bawa, yahan pe tera naya Render wala address update kar diya hai!
+    // 👇 Audio track ko neend se jaga rahe hain taaki MediaRecorder shuru ho sake
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      try {
+        await audioCtxRef.current.resume();
+        console.log("🔊 AudioContext woke up successfully!");
+      } catch (err) {
+        console.error("Failed to resume audio:", err);
+      }
+    }
+
     const wsUrl = `wss://koro-lane-live.onrender.com/?key=${encodeURIComponent(youtubeStreamKey)}`;
     const ws = new WebSocket(wsUrl);
     socketRef.current = ws;
