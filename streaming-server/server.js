@@ -6,10 +6,16 @@ const ffmpegPath = require('ffmpeg-static');
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ noServer: true });
+
+server.on('upgrade', (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
+});
 
 wss.on('connection', (ws, req) => {
-  console.log('🎥 Frontend Connected to WebSocket!');
+  console.log('🎥 Frontend Connected to WebSocket successfully!');
 
   const url = new URL(req.url, `http://${req.headers.host}`);
   const streamKey = url.searchParams.get('key');
@@ -25,7 +31,7 @@ wss.on('connection', (ws, req) => {
 
   const ffmpeg = spawn(ffmpegPath, [
     '-fflags', '+nobuffer',
-    '-f', 'webm',             // 👈 Browser input ke liye WebM format batana zaroori hai
+    '-f', 'webm',
     '-i', '-', 
     '-c:v', 'libx264', 
     '-preset', 'ultrafast',
