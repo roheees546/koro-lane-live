@@ -23,7 +23,6 @@ export default function PreLiveStudio() {
   const [isMuted, setIsMuted] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
 
-  // 🚀 Naye Refs: Streaming aur WebSocket ke liye
   const socketRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
@@ -42,14 +41,13 @@ export default function PreLiveStudio() {
     fetchInventoryAndCamera();
 
     return () => {
-      stopStreaming(); // Component unmount hone par stream rok do
+      stopStreaming();
       if (mediaStream) {
         mediaStream.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
 
-  // Real-time Chat Listener
   useEffect(() => {
     if (!dealerId) return;
 
@@ -104,8 +102,51 @@ export default function PreLiveStudio() {
         videoRef.current.srcObject = stream;
       }
     } catch (error) {
-      console.error("Camera access error:", error);
-      alert("Camera/Mic access denied.");
+      console.warn("Hardware Camera nahi mila! Dummy Stream chalu kar rahe hain...");
+      
+      const canvas = document.createElement("canvas");
+      canvas.width = 1280;
+      canvas.height = 720;
+      const ctx = canvas.getContext("2d");
+      
+      let hue = 0;
+      setInterval(() => {
+        if (!ctx) return;
+        ctx.fillStyle = `hsl(${hue}, 100%, 40%)`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.font = "bold 60px Arial";
+        ctx.fillText("🔥 Rohes Dummy Stream 🔥", 250, 300);
+        ctx.font = "30px Arial";
+        ctx.fillText("Testing YouTube Pipeline Without Hardware", 320, 380);
+        hue = (hue + 1) % 360;
+      }, 1000 / 30);
+      
+      const dummyStream = canvas.captureStream(30);
+
+      try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        const audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const dst = audioCtx.createMediaStreamDestination();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 0;
+        oscillator.connect(gainNode);
+        gainNode.connect(dst);
+        oscillator.start();
+        
+        dummyStream.addTrack(dst.stream.getAudioTracks()[0]);
+      } catch (e) {
+        console.error("Fake audio error:", e);
+      }
+
+      setMediaStream(dummyStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = dummyStream;
+      }
     }
   };
 
@@ -130,7 +171,6 @@ export default function PreLiveStudio() {
     );
   };
 
-  // 🔴 STOP STREAMING FUNCTION
   const stopStreaming = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
@@ -141,7 +181,6 @@ export default function PreLiveStudio() {
     setIsLive(false);
   };
 
-  // 🟢 GO LIVE FUNCTION (Connects to our Node.js Server)
   const handleGoLive = () => {
     if (!streamTitle) {
       alert("Bawa, pehle Drop ka title toh daal!");
@@ -156,7 +195,6 @@ export default function PreLiveStudio() {
       return;
     }
 
-    // 1. WebSocket connect kar rahe hain Local Backend (Port 8000) se
     const wsUrl = `ws://localhost:8000/?key=${encodeURIComponent(youtubeStreamKey)}`;
     const ws = new WebSocket(wsUrl);
     socketRef.current = ws;
@@ -164,27 +202,39 @@ export default function PreLiveStudio() {
     ws.onopen = () => {
       console.log("Connected to streaming backend!");
       
-      // 2. MediaRecorder setup (Video chunks banana)
-      // Browsers generally support webm format for recording
-      const options = { mimeType: 'video/webm;codecs=vp8,opus' };
-      const mediaRecorder = new MediaRecorder(mediaStream, options);
-      mediaRecorderRef.current = mediaRecorder;
+      try {
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+          ? 'video/webm;codecs=vp8,opus'
+          : MediaRecorder.isTypeSupported('video/webm')
+          ? 'video/webm'
+          : '';
 
-      // Jab chunk ready ho, backend ko bhej do
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-          ws.send(e.data);
-        }
-      };
+        const options = mimeType ? { mimeType } : undefined;
+        const mediaRecorder = new MediaRecorder(mediaStream, options);
+        mediaRecorderRef.current = mediaRecorder;
 
-      // 1000ms (1 sec) ke video chunks bhejenge
-      mediaRecorder.start(1000); 
-      setIsLive(true);
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+            console.log("📤 Sending chunk, size:", e.data.size);
+            ws.send(e.data);
+          }
+        };
+
+        mediaRecorder.onerror = (err) => {
+          console.error("❌ MediaRecorder Error:", err);
+        };
+
+        mediaRecorder.start(1000); 
+        setIsLive(true);
+      } catch (err: any) {
+        console.error("❌ Failed to start MediaRecorder:", err);
+        alert("MediaRecorder exception: " + err.message);
+      }
     };
 
     ws.onerror = (error) => {
-      console.error("WebSocket Error: Backend server shayed chal nahi raha hai.", error);
-      alert("Connection fail ho gaya! Kya tumhara Node.js server (port 8000) chal raha hai?");
+      console.error("WebSocket Error:", error);
+      alert("Connection fail! Kya Node.js server (port 8000) chal raha hai?");
       stopStreaming();
     };
 
@@ -253,7 +303,6 @@ export default function PreLiveStudio() {
               />
             </div>
 
-            {/* YouTube Stream Key Input (Ab Mandatory aur updated hai) */}
             <div>
               <label className="text-[10px] font-bold text-red-400 uppercase tracking-widest ml-1">YouTube Stream Key</label>
               <input 
