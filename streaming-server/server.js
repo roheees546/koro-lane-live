@@ -30,22 +30,24 @@ wss.on('connection', (ws, req) => {
   console.log(`🚀 Starting secure stream to YouTube (RTMPS)...`);
 
   const ffmpeg = spawn(ffmpegPath, [
-    // 🚨 INPUT SETTINGS (Browser se aane wala data)
-    '-f', 'webm',                // 👈 Ye tag FFmpeg ko guess karne se rokega
+    // 🚨 MAGIC FLAG FOR BROWSER CHUNKS 🚨
+    '-use_wallclock_as_timestamps', '1', // 👈 Browser ke kharab time ko ignore karega
     '-i', '-', 
     
-    // 🚨 OUTPUT SETTINGS (YouTube ko bhejne wala data)
+    // Output Settings
     '-c:v', 'libx264', 
     '-preset', 'ultrafast',
     '-tune', 'zerolatency',
-    '-threads', '1',             // 👈 Render Free Tier RAM limit ke liye sirf 1 thread
-    '-max_muxing_queue_size', '1024', // 👈 Buffer overflow (SIGSEGV) rokne ke liye RAM limit
-    '-b:v', '1500k',             // 👈 Bitrate thoda kam kiya taaki stream stable rahe
+    '-max_muxing_queue_size', '1024',
+    '-b:v', '2000k',
     '-pix_fmt', 'yuv420p',
-    '-g', '30',                  // 👈 Keyframe interval
+    '-g', '30', 
+    
+    // Audio Settings
     '-c:a', 'aac', 
     '-b:a', '128k',
     '-ar', '44100',
+    
     '-f', 'flv', 
     rtmpsUrl
   ]);
@@ -66,12 +68,10 @@ wss.on('connection', (ws, req) => {
   ws.on('message', (msg) => {
     if (Buffer.isBuffer(msg)) {
       console.log(`📦 Received chunk from browser: ${msg.length} bytes`);
-      // Jab tak pipe open hai tabhi data bhejenge
+      // Jab tak pipe zinda hai, tabhi data daalo
       if (ffmpeg.stdin.writable) {
         ffmpeg.stdin.write(msg);
       }
-    } else {
-      console.log('Received non-binary message:', msg);
     }
   });
 
