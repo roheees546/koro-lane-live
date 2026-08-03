@@ -24,7 +24,9 @@ wss.on('connection', (ws, req) => {
   console.log(`🚀 Starting secure stream to YouTube (RTMPS)...`);
 
   const ffmpeg = spawn(ffmpegPath, [
-    '-i', '-',          // FFmpeg will auto-detect stream format from browser pipe
+    '-fflags', '+nobuffer',
+    '-f', 'webm',             // 👈 Browser input ke liye WebM format batana zaroori hai
+    '-i', '-', 
     '-c:v', 'libx264', 
     '-preset', 'ultrafast',
     '-tune', 'zerolatency',
