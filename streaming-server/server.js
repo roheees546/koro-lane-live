@@ -20,8 +20,9 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
-  const rtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${streamKey}`;
-  console.log(`🚀 Starting stream to YouTube...`);
+  // 👇 Yahan rtmp ki jagah rtmps kar diya hai taaki Render ka firewall block na kare!
+  const rtmpsUrl = `rtmps://a.rtmp.youtube.com:443/live2/${streamKey}`;
+  console.log(`🚀 Starting secure stream to YouTube (RTMPS)...`);
 
   const ffmpeg = spawn(ffmpegPath, [
     '-fflags', '+nobuffer',
@@ -35,12 +36,12 @@ wss.on('connection', (ws, req) => {
     '-bufsize', '5000k',
     '-pix_fmt', 'yuv420p',
     '-g', '50', 
-    '-r', '30',           // 👈 YouTube ke liye frame rate fix
+    '-r', '30',
     '-c:a', 'aac', 
     '-b:a', '128k',
     '-ar', '44100',
     '-f', 'flv', 
-    rtmpUrl
+    rtmpsUrl
   ]);
 
   ffmpeg.stderr.on('data', (data) => {
