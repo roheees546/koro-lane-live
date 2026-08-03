@@ -25,6 +25,7 @@ wss.on('connection', (ws, req) => {
 
   const ffmpeg = spawn(ffmpegPath, [
     '-fflags', '+nobuffer',
+    '-flags', 'low_delay',
     '-f', 'webm',
     '-i', '-', 
     '-c:v', 'libx264', 
@@ -34,6 +35,7 @@ wss.on('connection', (ws, req) => {
     '-bufsize', '5000k',
     '-pix_fmt', 'yuv420p',
     '-g', '50', 
+    '-r', '30',           // 👈 YouTube ke liye frame rate fix
     '-c:a', 'aac', 
     '-b:a', '128k',
     '-ar', '44100',
