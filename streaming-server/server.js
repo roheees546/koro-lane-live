@@ -30,18 +30,19 @@ wss.on('connection', (ws, req) => {
   console.log(`🚀 Starting secure stream to YouTube (RTMPS)...`);
 
   const ffmpeg = spawn(ffmpegPath, [
-    // 👇 Naye Safety Flags (Crash rokne ke liye)
-    '-fflags', '+genpts',        // Missing timestamps ko fix karega
-    '-thread_queue_size', '512', // Data buffer karega taaki crash na ho
+    // 🚨 INPUT SETTINGS (Browser se aane wala data)
+    '-f', 'webm',                // 👈 Ye tag FFmpeg ko guess karne se rokega
     '-i', '-', 
+    
+    // 🚨 OUTPUT SETTINGS (YouTube ko bhejne wala data)
     '-c:v', 'libx264', 
     '-preset', 'ultrafast',
     '-tune', 'zerolatency',
-    '-threads', '2',             // 👇 Render Free Tier par memory limit fix karega
-    '-maxrate', '2500k',
-    '-bufsize', '5000k',
+    '-threads', '1',             // 👈 Render Free Tier RAM limit ke liye sirf 1 thread
+    '-max_muxing_queue_size', '1024', // 👈 Buffer overflow (SIGSEGV) rokne ke liye RAM limit
+    '-b:v', '1500k',             // 👈 Bitrate thoda kam kiya taaki stream stable rahe
     '-pix_fmt', 'yuv420p',
-    '-g', '60', 
+    '-g', '30',                  // 👈 Keyframe interval
     '-c:a', 'aac', 
     '-b:a', '128k',
     '-ar', '44100',
@@ -65,7 +66,7 @@ wss.on('connection', (ws, req) => {
   ws.on('message', (msg) => {
     if (Buffer.isBuffer(msg)) {
       console.log(`📦 Received chunk from browser: ${msg.length} bytes`);
-      // FFmpeg ko data tabhi bhejo jab tak wo zinda ho (Writable ho)
+      // Jab tak pipe open hai tabhi data bhejenge
       if (ffmpeg.stdin.writable) {
         ffmpeg.stdin.write(msg);
       }
@@ -80,7 +81,7 @@ wss.on('connection', (ws, req) => {
       ffmpeg.stdin.end();
     }
     if (ffmpeg.kill) {
-        ffmpeg.kill('SIGKILL'); // Force kill taaki RAM free ho jaye
+        ffmpeg.kill('SIGKILL');
     }
   });
 });
