@@ -30,17 +30,18 @@ wss.on('connection', (ws, req) => {
   console.log(`🚀 Starting secure stream to YouTube (RTMPS)...`);
 
   const ffmpeg = spawn(ffmpegPath, [
-    '-fflags', '+nobuffer',
-    '-f', 'webm',
+    // 👇 Naye Safety Flags (Crash rokne ke liye)
+    '-fflags', '+genpts',        // Missing timestamps ko fix karega
+    '-thread_queue_size', '512', // Data buffer karega taaki crash na ho
     '-i', '-', 
     '-c:v', 'libx264', 
     '-preset', 'ultrafast',
     '-tune', 'zerolatency',
+    '-threads', '2',             // 👇 Render Free Tier par memory limit fix karega
     '-maxrate', '2500k',
     '-bufsize', '5000k',
     '-pix_fmt', 'yuv420p',
-    '-g', '50', 
-    '-r', '30',
+    '-g', '60', 
     '-c:a', 'aac', 
     '-b:a', '128k',
     '-ar', '44100',
@@ -64,7 +65,10 @@ wss.on('connection', (ws, req) => {
   ws.on('message', (msg) => {
     if (Buffer.isBuffer(msg)) {
       console.log(`📦 Received chunk from browser: ${msg.length} bytes`);
-      ffmpeg.stdin.write(msg);
+      // FFmpeg ko data tabhi bhejo jab tak wo zinda ho (Writable ho)
+      if (ffmpeg.stdin.writable) {
+        ffmpeg.stdin.write(msg);
+      }
     } else {
       console.log('Received non-binary message:', msg);
     }
@@ -72,9 +76,11 @@ wss.on('connection', (ws, req) => {
 
   ws.on('close', () => {
     console.log('🔌 Browser disconnected. Stopping stream...');
-    ffmpeg.stdin.end();
+    if (ffmpeg.stdin.writable) {
+      ffmpeg.stdin.end();
+    }
     if (ffmpeg.kill) {
-        ffmpeg.kill('SIGINT');
+        ffmpeg.kill('SIGKILL'); // Force kill taaki RAM free ho jaye
     }
   });
 });
