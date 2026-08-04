@@ -209,7 +209,7 @@ export default function PreLiveStudio() {
     }
 
     // 👇 Localtunnel URL for PC streaming
-    const wsUrl = `wss://pink-parrots-shout.loca.lt/?key=${encodeURIComponent(youtubeStreamKey)}`;
+  const wsUrl = `wss://korolane-live-backend.loca.lt/?key=${encodeURIComponent(youtubeStreamKey)}`;
     const ws = new WebSocket(wsUrl);
     socketRef.current = ws;
 
@@ -222,6 +222,7 @@ export default function PreLiveStudio() {
           : MediaRecorder.isTypeSupported('video/webm')
           ? 'video/webm'
           : '';
+
 
         const options = mimeType ? { mimeType } : undefined;
         const mediaRecorder = new MediaRecorder(mediaStream, options);
