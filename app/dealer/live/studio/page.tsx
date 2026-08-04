@@ -209,7 +209,7 @@ export default function PreLiveStudio() {
     }
 
     // 👇 Localtunnel URL for PC streaming
-  const wsUrl = `wss://korolane-live-backend.loca.lt/?key=${encodeURIComponent(youtubeStreamKey)}`;
+ const wsUrl = `wss://rohes-korolane-live.loca.lt/?key=${encodeURIComponent(youtubeStreamKey)}`;
     const ws = new WebSocket(wsUrl);
     socketRef.current = ws;
 
