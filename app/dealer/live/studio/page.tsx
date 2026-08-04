@@ -208,8 +208,8 @@ export default function PreLiveStudio() {
       }
     }
 
-    // 👇 Render ko hata kar localhost kar diya hai abhi ke liye
-    const wsUrl = `ws://localhost:8000/?key=${encodeURIComponent(youtubeStreamKey)}`;
+    // 👇 Localtunnel URL for PC streaming
+    const wsUrl = `wss://pink-parrots-shout.loca.lt/?key=${encodeURIComponent(youtubeStreamKey)}`;
     const ws = new WebSocket(wsUrl);
     socketRef.current = ws;
 

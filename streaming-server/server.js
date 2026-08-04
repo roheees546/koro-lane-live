@@ -27,27 +27,20 @@ wss.on('connection', (ws, req) => {
   }
 
   const rtmpsUrl = `rtmps://a.rtmp.youtube.com:443/live2/${streamKey}`;
-  console.log(`🚀 Starting secure stream to YouTube (RTMPS)...`);
+  console.log(`🚀 Starting secure stream to YouTube...`);
 
   const ffmpeg = spawn(ffmpegPath, [
-    // 🚨 MAGIC FLAG FOR BROWSER CHUNKS 🚨
-    '-use_wallclock_as_timestamps', '1', // 👈 Browser ke kharab time ko ignore karega
+    '-use_wallclock_as_timestamps', '1',
     '-i', '-', 
-    
-    // Output Settings
     '-c:v', 'libx264', 
     '-preset', 'ultrafast',
     '-tune', 'zerolatency',
-    '-max_muxing_queue_size', '1024',
-    '-b:v', '2000k',
+    '-b:v', '2500k',
     '-pix_fmt', 'yuv420p',
     '-g', '30', 
-    
-    // Audio Settings
     '-c:a', 'aac', 
     '-b:a', '128k',
     '-ar', '44100',
-    
     '-f', 'flv', 
     rtmpsUrl
   ]);
@@ -56,19 +49,13 @@ wss.on('connection', (ws, req) => {
     console.log(`🛠️ FFmpeg Debug: ${data.toString()}`);
   });
 
-  ffmpeg.on('close', (code, signal) => {
-    console.log(`🛑 FFmpeg process closed (Code: ${code}, Signal: ${signal})`);
+  ffmpeg.on('close', (code) => {
+    console.log(`🛑 FFmpeg closed (Code: ${code})`);
     ws.close();
-  });
-
-  ffmpeg.stdin.on('error', (e) => {
-    console.log('⚠️ FFmpeg stdin error:', e.message);
   });
 
   ws.on('message', (msg) => {
     if (Buffer.isBuffer(msg)) {
-      console.log(`📦 Received chunk from browser: ${msg.length} bytes`);
-      // Jab tak pipe zinda hai, tabhi data daalo
       if (ffmpeg.stdin.writable) {
         ffmpeg.stdin.write(msg);
       }
@@ -86,7 +73,7 @@ wss.on('connection', (ws, req) => {
   });
 });
 
-const PORT = process.env.PORT || 8000;
+const PORT = 8000;
 server.listen(PORT, () => {
-  console.log(`🔥 Rohes' Streaming Server is running on port ${PORT}`);
+  console.log(`🔥 Rohes' PC Streaming Server is running on port ${PORT}`);
 });
