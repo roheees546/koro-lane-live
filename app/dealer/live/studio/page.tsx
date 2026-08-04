@@ -224,8 +224,18 @@ export default function PreLiveStudio() {
           : '';
 
 
-        const options = mimeType ? { mimeType } : undefined;
-        const mediaRecorder = new MediaRecorder(mediaStream, options);
+        let options;
+    if (MediaRecorder.isTypeSupported('video/webm; codecs=vp8,opus')) {
+        options = { mimeType: 'video/webm; codecs=vp8,opus' };
+    } else if (MediaRecorder.isTypeSupported('video/webm; codecs=vp8')) {
+        options = { mimeType: 'video/webm; codecs=vp8' };
+    } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+        options = { mimeType: 'video/mp4' }; // Safari/iOS ke liye backup
+    } else {
+        options = undefined; // Agar kuch na mile toh browser khud chhu lega
+    }
+    
+    const mediaRecorder = new MediaRecorder(mediaStream, options);
         mediaRecorderRef.current = mediaRecorder;
 
         mediaRecorder.ondataavailable = (e) => {
