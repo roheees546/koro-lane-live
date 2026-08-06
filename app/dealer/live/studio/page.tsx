@@ -11,6 +11,7 @@ export default function PreLiveStudio() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
   const [pinnedProduct, setPinnedProduct] = useState<any | null>(null);
+  const [streamKeyInput, setStreamKeyInput] = useState(""); // 🔑 YouTube Stream Key State
   
   const [dealerId, setDealerId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
@@ -76,8 +77,13 @@ export default function PreLiveStudio() {
     );
   };
 
-  // 🎥 THE MASTER FUNCTION: Go Live Using Ngrok WebSocket Tunnel
+  // 🎥 THE MASTER FUNCTION: Go Live Using Ngrok WebSocket Tunnel + YouTube Key
   const startLiveStream = async () => {
+    if (!streamKeyInput.trim()) {
+      alert("Bhai YouTube ki Stream Key daalna zaroori hai!");
+      return;
+    }
+
     try {
       // 1. Camera aur Mic chalu karo
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -95,8 +101,8 @@ export default function PreLiveStudio() {
 
       ws.onopen = () => {
         console.log('✅ Connected to Ngrok Stream Server!');
-        // Dummy Stream Key (Testing phase)
-        ws.send(JSON.stringify({ streamKey: "TESTING_KEY" }));
+        // Send actual YouTube Stream Key to Backend Node Server
+        ws.send(JSON.stringify({ streamKey: streamKeyInput.trim() }));
 
         // 3. Video ko 250ms chunks me kaato aur bhejo
         const mediaRecorder = new MediaRecorder(stream, {
@@ -145,7 +151,7 @@ export default function PreLiveStudio() {
         <video 
           ref={videoRef} 
           autoPlay 
-          muted // Muted taaki seller ko khud ki awaz wapas na sunai de (echo)
+          muted 
           playsInline
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -172,9 +178,21 @@ export default function PreLiveStudio() {
       {!isLive && (
         <div className="absolute bottom-0 w-full p-5 bg-gradient-to-t from-black via-black/90 to-transparent z-20 pt-16">
           <div className="space-y-4">
-            <div className="text-center mb-4">
+            <div className="text-center mb-2">
               <h2 className="text-lg font-black uppercase tracking-widest text-[#00e599]">Studio Ready</h2>
-              <p className="text-xs text-gray-400">Directly go live from Korolane Engine.</p>
+              <p className="text-xs text-gray-400">Directly go live to YouTube via Korolane Engine.</p>
+            </div>
+
+            {/* 🔑 YouTube Stream Key Input */}
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">YouTube Stream Key</label>
+              <input 
+                type="password"
+                value={streamKeyInput}
+                onChange={(e) => setStreamKeyInput(e.target.value)}
+                placeholder="Paste stream key here..."
+                className="w-full bg-[#121214]/90 border border-gray-800 text-white text-xs px-4 py-3 rounded-xl outline-none focus:border-[#00e599]"
+              />
             </div>
 
             <button 
