@@ -76,7 +76,7 @@ export default function PreLiveStudio() {
     );
   };
 
-  // 🎥 THE MASTER FUNCTION: Go Live Without StreamYard
+  // 🎥 THE MASTER FUNCTION: Go Live Using Ngrok WebSocket Tunnel
   const startLiveStream = async () => {
     try {
       // 1. Camera aur Mic chalu karo
@@ -89,13 +89,13 @@ export default function PreLiveStudio() {
         videoRef.current.srcObject = stream;
       }
 
-      // 2. Apne PC wale Node Server se connect karo (The Tunnel)
-      const ws = new WebSocket('ws://localhost:8080');
+      // 2. Ngrok Tunnel WebSocket Server se connect karo
+      const ws = new WebSocket('wss://tubby-unisexual-lesser.ngrok-free.dev');
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('✅ Connected to Node Server!');
-        // Dummy Stream Key (Abhi sirf test kar rahe hain)
+        console.log('✅ Connected to Ngrok Stream Server!');
+        // Dummy Stream Key (Testing phase)
         ws.send(JSON.stringify({ streamKey: "TESTING_KEY" }));
 
         // 3. Video ko 250ms chunks me kaato aur bhejo
@@ -106,7 +106,7 @@ export default function PreLiveStudio() {
 
         mediaRecorder.ondataavailable = (e) => {
           if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-            ws.send(e.data); // Sending chunk to server!
+            ws.send(e.data); // Sending chunk to PC server via tunnel!
           }
         };
 
@@ -115,7 +115,7 @@ export default function PreLiveStudio() {
       };
 
       ws.onerror = () => {
-        alert("Server se connect nahi ho paya. Kya tera Node.js server chalu hai?");
+        alert("Ngrok server se connect nahi ho paya. Kya tera Ngrok tunnel chalu hai?");
       };
 
     } catch (err) {
@@ -140,7 +140,7 @@ export default function PreLiveStudio() {
   return (
     <div className="relative h-[100dvh] w-full max-w-[450px] mx-auto bg-black text-white overflow-hidden selection:bg-[#00e599] selection:text-black">
       
-      {/* 🔴 NEW CAMERA ENGINE (Iframe Hata Diya) 🔴 */}
+      {/* 🔴 CAMERA ENGINE BACKGROUND 🔴 */}
       <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center overflow-hidden">
         <video 
           ref={videoRef} 
@@ -193,7 +193,7 @@ export default function PreLiveStudio() {
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
             </button>
             
-            {/* 🔴 GO LIVE BUTTON (Now triggers Camera & WebSockets) */}
+            {/* 🔴 GO LIVE BUTTON */}
             <button 
               onClick={startLiveStream}
               className="w-full bg-[#00e599] hover:bg-[#00c987] text-black font-black uppercase tracking-widest py-3.5 rounded-xl transition flex justify-center items-center gap-2 shadow-lg"
