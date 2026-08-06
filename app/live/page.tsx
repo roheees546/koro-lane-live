@@ -113,12 +113,17 @@ export default function LiveShoppingPage() {
   return (
     <div className="relative w-full h-[100dvh] bg-[#050505] font-sans text-white overflow-hidden max-w-[450px] mx-auto pb-[70px]">
       
-      {/* 🎥 BACKGROUND STREAM */}
-      <img 
-        src="https://images.unsplash.com/photo-1607083206968-13611e3d76db?q=80&w=800&auto=format&fit=crop" 
-        alt="Live Stream" 
-        className="absolute inset-0 w-full h-full object-cover z-0 opacity-60" 
-      />
+      {/* 🎥 BACKGROUND YOUTUBE LIVE STREAM FOR BUYERS */}
+      <div className="absolute inset-0 w-full h-full z-0 bg-zinc-950 overflow-hidden">
+        <iframe
+          src="https://www.youtube.com/embed/live_stream?channel=UCKvhbhHCaOf_FwA-GAciOCw&autoplay=1&mute=0&controls=0&modestbranding=1&playsinline=1"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none scale-125"
+          frameBorder="0"
+          allow="autoplay; encrypted-media"
+          allowFullScreen
+        ></iframe>
+        <div className="absolute inset-0 bg-black/40 pointer-events-none"></div>
+      </div>
       
       <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black z-10 pointer-events-none"></div>
       <div className="absolute bottom-0 w-full h-[60%] bg-gradient-to-t from-[#050505] via-[#050505]/90 to-transparent z-10 pointer-events-none"></div>
