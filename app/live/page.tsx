@@ -10,6 +10,7 @@ export default function LiveShoppingPage() {
   const [likes, setLikes] = useState(152);
   const [pinnedProduct, setPinnedProduct] = useState<any | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null); // 🎥 Dynamic YouTube Video ID State
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const dealerId = "e2b9fc73-379b-4eb4-95bc-177aec9563b3";
@@ -29,7 +30,41 @@ export default function LiveShoppingPage() {
     fetchActivePin();
   }, [dealerId]);
 
-  // 2. Fetch initial chat messages & Setup Supabase Realtime Listener
+  // 2. Fetch Active YouTube Live Video ID from live_bookings & Realtime Listener
+  useEffect(() => {
+    const fetchActiveLive = async () => {
+      const { data } = await supabase
+        .from('live_bookings')
+        .select('youtube_video_id')
+        .eq('dealer_id', dealerId)
+        .single();
+      
+      if (data && data.youtube_video_id) {
+        setActiveVideoId(data.youtube_video_id);
+      }
+    };
+    fetchActiveLive();
+
+    // Realtime subscription for live video ID changes
+    const liveChannel = supabase
+      .channel('live-video-channel')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'live_bookings', filter: `dealer_id=eq.${dealerId}` },
+        (payload: any) => {
+          if (payload.new && payload.new.youtube_video_id) {
+            setActiveVideoId(payload.new.youtube_video_id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(liveChannel);
+    };
+  }, [dealerId]);
+
+  // 3. Fetch initial chat messages & Setup Supabase Realtime Listener
   useEffect(() => {
     const fetchMessages = async () => {
       const { data } = await supabase
@@ -42,7 +77,6 @@ export default function LiveShoppingPage() {
       if (data && data.length > 0) {
         setChatMessages(data);
       } else {
-        // Fallback default messages if table is empty
         setChatMessages([
           { id: 4, user_name: "KoRo Lane", avatar: "🏪", text: "It's Size L & in perfect condition ✅", is_host: true },
           { id: 5, user_name: "Ravi", avatar: "👨🏽", text: "Shipping to Delhi?", is_host: false },
@@ -53,7 +87,6 @@ export default function LiveShoppingPage() {
 
     fetchMessages();
 
-    // Realtime subscription for incoming messages
     const channel = supabase
       .channel('realtime-chat')
       .on(
@@ -77,7 +110,6 @@ export default function LiveShoppingPage() {
     }
   }, [chatMessages]);
 
-  // Handle sending a new message to Supabase
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -113,15 +145,21 @@ export default function LiveShoppingPage() {
   return (
     <div className="relative w-full h-[100dvh] bg-[#050505] font-sans text-white overflow-hidden max-w-[450px] mx-auto pb-[70px]">
       
-      {/* 🎥 BACKGROUND YOUTUBE LIVE STREAM FOR BUYERS */}
+      {/* 🎥 DYNAMIC BACKGROUND YOUTUBE LIVE STREAM FOR BUYERS */}
       <div className="absolute inset-0 w-full h-full z-0 bg-zinc-950 overflow-hidden">
-        <iframe
-          src="https://www.youtube.com/embed/live_stream?channel=UCKvhbhHCaOf_FwA-GAciOCw&autoplay=1&mute=0&controls=0&modestbranding=1&playsinline=1"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none scale-125"
-          frameBorder="0"
-          allow="autoplay; encrypted-media"
-          allowFullScreen
-        ></iframe>
+        {activeVideoId ? (
+          <iframe
+            src={`https://www.youtube.com/embed/${activeVideoId}?autoplay=1&mute=0&controls=0&modestbranding=1&playsinline=1`}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none scale-125"
+            frameBorder="0"
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+          ></iframe>
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-500 text-xs uppercase tracking-widest">
+            No Live Broadcast Right Now
+          </div>
+        )}
         <div className="absolute inset-0 bg-black/40 pointer-events-none"></div>
       </div>
       

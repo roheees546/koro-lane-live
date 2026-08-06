@@ -11,7 +11,8 @@ export default function PreLiveStudio() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
   const [pinnedProduct, setPinnedProduct] = useState<any | null>(null);
-  const [streamKeyInput, setStreamKeyInput] = useState(""); // 🔑 YouTube Stream Key State
+  const [streamKeyInput, setStreamKeyInput] = useState(""); 
+  const [videoIdInput, setVideoIdInput] = useState(""); // 🔑 YouTube Video ID State
   
   const [dealerId, setDealerId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
@@ -77,15 +78,23 @@ export default function PreLiveStudio() {
     );
   };
 
-  // 🎥 THE MASTER FUNCTION: Go Live Using Ngrok WebSocket Tunnel + YouTube Key
+  // 🎥 THE MASTER FUNCTION: Go Live Using Ngrok WebSocket Tunnel + YouTube Key & Video ID
   const startLiveStream = async () => {
-    if (!streamKeyInput.trim()) {
-      alert("Bhai YouTube ki Stream Key daalna zaroori hai!");
+    if (!streamKeyInput.trim() || !videoIdInput.trim()) {
+      alert("Bhai YouTube ki Stream Key aur Video ID dono daalna zaroori hai!");
       return;
     }
 
     try {
-      // 1. Camera aur Mic chalu karo
+      // 1. Save Video ID in Supabase live_bookings table
+      if (dealerId) {
+        await supabase
+          .from('live_bookings')
+          .update({ youtube_video_id: videoIdInput.trim() })
+          .eq('dealer_id', dealerId);
+      }
+
+      // 2. Camera aur Mic chalu karo
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 1280, height: 720, frameRate: 30 },
         audio: true,
@@ -95,16 +104,15 @@ export default function PreLiveStudio() {
         videoRef.current.srcObject = stream;
       }
 
-      // 2. Ngrok Tunnel WebSocket Server se connect karo
+      // 3. Ngrok Tunnel WebSocket Server se connect karo
       const ws = new WebSocket('wss://tubby-unisexual-lesser.ngrok-free.dev');
       wsRef.current = ws;
 
       ws.onopen = () => {
         console.log('✅ Connected to Ngrok Stream Server!');
-        // Send actual YouTube Stream Key to Backend Node Server
         ws.send(JSON.stringify({ streamKey: streamKeyInput.trim() }));
 
-        // 3. Video ko 250ms chunks me kaato aur bhejo
+        // 4. Video ko 250ms chunks me kaato aur bhejo
         const mediaRecorder = new MediaRecorder(stream, {
           mimeType: 'video/webm; codecs=vp8,opus',
         });
@@ -112,12 +120,12 @@ export default function PreLiveStudio() {
 
         mediaRecorder.ondataavailable = (e) => {
           if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-            ws.send(e.data); // Sending chunk to PC server via tunnel!
+            ws.send(e.data); 
           }
         };
 
         mediaRecorder.start(250);
-        setIsLive(true); // UI ko Live mode me daal do
+        setIsLive(true); 
       };
 
       ws.onerror = () => {
@@ -177,8 +185,8 @@ export default function PreLiveStudio() {
       {/* PRE-LIVE: Setup Screen */}
       {!isLive && (
         <div className="absolute bottom-0 w-full p-5 bg-gradient-to-t from-black via-black/90 to-transparent z-20 pt-16">
-          <div className="space-y-4">
-            <div className="text-center mb-2">
+          <div className="space-y-3">
+            <div className="text-center mb-1">
               <h2 className="text-lg font-black uppercase tracking-widest text-[#00e599]">Studio Ready</h2>
               <p className="text-xs text-gray-400">Directly go live to YouTube via Korolane Engine.</p>
             </div>
@@ -191,16 +199,28 @@ export default function PreLiveStudio() {
                 value={streamKeyInput}
                 onChange={(e) => setStreamKeyInput(e.target.value)}
                 placeholder="Paste stream key here..."
-                className="w-full bg-[#121214]/90 border border-gray-800 text-white text-xs px-4 py-3 rounded-xl outline-none focus:border-[#00e599]"
+                className="w-full bg-[#121214]/90 border border-gray-800 text-white text-xs px-3 py-2.5 rounded-xl outline-none focus:border-[#00e599]"
+              />
+            </div>
+
+            {/* 🔑 YouTube Video ID Input */}
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">YouTube Video ID</label>
+              <input 
+                type="text"
+                value={videoIdInput}
+                onChange={(e) => setVideoIdInput(e.target.value)}
+                placeholder="e.g. dQw4w9WgXcQ"
+                className="w-full bg-[#121214]/90 border border-gray-800 text-white text-xs px-3 py-2.5 rounded-xl outline-none focus:border-[#00e599]"
               />
             </div>
 
             <button 
               onClick={() => setShowProductModal(true)}
-              className="w-full bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-xl p-3.5 flex items-center justify-between"
+              className="w-full bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-xl p-3 flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-gray-900 rounded-lg flex items-center justify-center text-[#00e599]">
+                <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center text-[#00e599]">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                 </div>
                 <div className="text-left">
@@ -214,7 +234,7 @@ export default function PreLiveStudio() {
             {/* 🔴 GO LIVE BUTTON */}
             <button 
               onClick={startLiveStream}
-              className="w-full bg-[#00e599] hover:bg-[#00c987] text-black font-black uppercase tracking-widest py-3.5 rounded-xl transition flex justify-center items-center gap-2 shadow-lg"
+              className="w-full bg-[#00e599] hover:bg-[#00c987] text-black font-black uppercase tracking-widest py-3 rounded-xl transition flex justify-center items-center gap-2 shadow-lg"
             >
               Start Live Broadcast
             </button>
