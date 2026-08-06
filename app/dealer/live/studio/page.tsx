@@ -16,6 +16,11 @@ export default function PreLiveStudio() {
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  // 🔴 NAYE ENGINE KE REFS (Camera aur WebSocket ke liye)
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+
   useEffect(() => {
     const fetchInventory = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -26,7 +31,6 @@ export default function PreLiveStudio() {
         if (data) setInventory(data);
       }
     };
-
     fetchInventory();
   }, []);
 
@@ -40,10 +44,8 @@ export default function PreLiveStudio() {
         .eq('dealer_id', dealerId)
         .order('created_at', { ascending: true })
         .limit(50);
-      
       if (data) setChatMessages(data);
     };
-
     fetchMessages();
 
     const channel = supabase
@@ -74,26 +76,86 @@ export default function PreLiveStudio() {
     );
   };
 
+  // 🎥 THE MASTER FUNCTION: Go Live Without StreamYard
+  const startLiveStream = async () => {
+    try {
+      // 1. Camera aur Mic chalu karo
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 1280, height: 720, frameRate: 30 },
+        audio: true,
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+
+      // 2. Apne PC wale Node Server se connect karo (The Tunnel)
+      const ws = new WebSocket('ws://localhost:8080');
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log('✅ Connected to Node Server!');
+        // Dummy Stream Key (Abhi sirf test kar rahe hain)
+        ws.send(JSON.stringify({ streamKey: "TESTING_KEY" }));
+
+        // 3. Video ko 250ms chunks me kaato aur bhejo
+        const mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'video/webm; codecs=vp8,opus',
+        });
+        mediaRecorderRef.current = mediaRecorder;
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+            ws.send(e.data); // Sending chunk to server!
+          }
+        };
+
+        mediaRecorder.start(250);
+        setIsLive(true); // UI ko Live mode me daal do
+      };
+
+      ws.onerror = () => {
+        alert("Server se connect nahi ho paya. Kya tera Node.js server chalu hai?");
+      };
+
+    } catch (err) {
+      console.error("Camera access denied!", err);
+      alert("Camera/Mic ki permission do bhai!");
+    }
+  };
+
+  // 🛑 Stream Band Karne Ka Function
+  const stopLiveStream = () => {
+    if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
+    if (wsRef.current) wsRef.current.close();
+    
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsLive(false);
+  };
+
   return (
     <div className="relative h-[100dvh] w-full max-w-[450px] mx-auto bg-black text-white overflow-hidden selection:bg-[#00e599] selection:text-black">
       
-      {/* 🔴 NEW YOUTUBE IFRAME BACKGROUND 🔴 */}
+      {/* 🔴 NEW CAMERA ENGINE (Iframe Hata Diya) 🔴 */}
       <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center overflow-hidden">
-        <iframe
-          src="https://www.youtube.com/embed/live_stream?channel=UCKvhbhHCaOf_FwA-GAciOCw&autoplay=1&mute=1&controls=0"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          frameBorder="0"
-          allow="autoplay; encrypted-media"
-          allowFullScreen
-        ></iframe>
-        {/* Dark overlay to make UI text visible */}
+        <video 
+          ref={videoRef} 
+          autoPlay 
+          muted // Muted taaki seller ko khud ki awaz wapas na sunai de (echo)
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        />
         <div className="absolute inset-0 bg-black/30 pointer-events-none"></div>
       </div>
 
       {/* Top Navigation Bar */}
       <div className="absolute top-0 w-full p-4 pt-safe-top flex justify-between items-start bg-gradient-to-b from-black/90 to-transparent z-20 h-32 pointer-events-none">
         <div className="flex flex-col gap-3 pointer-events-auto">
-          <button onClick={() => router.back()} className="w-10 h-10 bg-black/45 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white">
+          <button onClick={() => { stopLiveStream(); router.back(); }} className="w-10 h-10 bg-black/45 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
           
@@ -112,7 +174,7 @@ export default function PreLiveStudio() {
           <div className="space-y-4">
             <div className="text-center mb-4">
               <h2 className="text-lg font-black uppercase tracking-widest text-[#00e599]">Studio Ready</h2>
-              <p className="text-xs text-gray-400">StreamYard se go live karo, fir yahan enter karo.</p>
+              <p className="text-xs text-gray-400">Directly go live from Korolane Engine.</p>
             </div>
 
             <button 
@@ -131,11 +193,12 @@ export default function PreLiveStudio() {
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
             </button>
             
+            {/* 🔴 GO LIVE BUTTON (Now triggers Camera & WebSockets) */}
             <button 
-              onClick={() => setIsLive(true)}
+              onClick={startLiveStream}
               className="w-full bg-[#00e599] hover:bg-[#00c987] text-black font-black uppercase tracking-widest py-3.5 rounded-xl transition flex justify-center items-center gap-2 shadow-lg"
             >
-              Enter Live Studio
+              Start Live Broadcast
             </button>
           </div>
         </div>
@@ -184,7 +247,7 @@ export default function PreLiveStudio() {
             <button onClick={() => setShowProductModal(true)} className="flex-1 bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-xl py-3 flex items-center justify-center gap-2 text-white font-bold text-xs uppercase hover:bg-gray-900 transition">
               Pin Product
             </button>
-            <button onClick={() => setIsLive(false)} className="w-12 bg-red-600/20 border border-red-600/50 text-red-500 rounded-xl flex items-center justify-center">
+            <button onClick={stopLiveStream} className="w-12 bg-red-600/20 border border-red-600/50 text-red-500 rounded-xl flex items-center justify-center">
               ✕
             </button>
           </div>
