@@ -86,17 +86,17 @@ export default function PreLiveStudio() {
     }
 
     try {
-      // 1. Save Video ID in Supabase live_bookings table (FOOLPROOF UPSERT)
+      // 1. Save Video ID in Supabase live_bookings table (FOOLPROOF UPDATE)
       if (dealerId) {
         const { error } = await supabase
           .from('live_bookings')
-          .upsert({ 
-            dealer_id: dealerId, 
+          .update({ 
             youtube_video_id: videoIdInput.trim(),
             status: 'live' 
-          }, { onConflict: 'dealer_id' });
+          })
+          .eq('dealer_id', dealerId);
           
-        if (error) console.error("Supabase upsert error:", error.message);
+        if (error) console.error("Supabase update error:", error.message);
       }
 
       // 2. Camera aur Mic chalu karo
@@ -158,11 +158,11 @@ export default function PreLiveStudio() {
     if (dealerId) {
       await supabase
         .from('live_bookings')
-        .upsert({ 
-          dealer_id: dealerId, 
+        .update({ 
           youtube_video_id: null,
           status: 'ended'
-        }, { onConflict: 'dealer_id' });
+        })
+        .eq('dealer_id', dealerId);
     }
 
     setIsLive(false);

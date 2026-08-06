@@ -33,11 +33,18 @@ export default function LiveShoppingPage() {
   // 2. Fetch Active YouTube Live Video ID from live_bookings & Realtime Listener
   useEffect(() => {
     const fetchActiveLive = async () => {
-      const { data } = await supabase
+      // 🛠️ FIX: order by created_at aur limit(1) taaki error na aaye agar multiple rows hon
+      const { data, error } = await supabase
         .from('live_bookings')
         .select('youtube_video_id')
         .eq('dealer_id', dealerId)
+        .order('created_at', { ascending: false }) 
+        .limit(1)
         .single();
+      
+      if (error) {
+        console.error("Error fetching live booking:", error.message);
+      }
       
       if (data && data.youtube_video_id) {
         setActiveVideoId(data.youtube_video_id);
@@ -52,7 +59,7 @@ export default function LiveShoppingPage() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'live_bookings', filter: `dealer_id=eq.${dealerId}` },
         (payload: any) => {
-          if (payload.new && payload.new.youtube_video_id) {
+          if (payload.new && payload.new.youtube_video_id !== undefined) {
             setActiveVideoId(payload.new.youtube_video_id);
           }
         }
