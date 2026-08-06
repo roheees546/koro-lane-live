@@ -86,12 +86,17 @@ export default function PreLiveStudio() {
     }
 
     try {
-      // 1. Save Video ID in Supabase live_bookings table
+      // 1. Save Video ID in Supabase live_bookings table (FOOLPROOF UPSERT)
       if (dealerId) {
-        await supabase
+        const { error } = await supabase
           .from('live_bookings')
-          .update({ youtube_video_id: videoIdInput.trim() })
-          .eq('dealer_id', dealerId);
+          .upsert({ 
+            dealer_id: dealerId, 
+            youtube_video_id: videoIdInput.trim(),
+            status: 'live' 
+          }, { onConflict: 'dealer_id' });
+          
+        if (error) console.error("Supabase upsert error:", error.message);
       }
 
       // 2. Camera aur Mic chalu karo
@@ -139,7 +144,7 @@ export default function PreLiveStudio() {
   };
 
   // 🛑 Stream Band Karne Ka Function
-  const stopLiveStream = () => {
+  const stopLiveStream = async () => {
     if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
     if (wsRef.current) wsRef.current.close();
     
@@ -148,6 +153,18 @@ export default function PreLiveStudio() {
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
+    
+    // 🔥 Remove Video ID from database so buyers see "Offline"
+    if (dealerId) {
+      await supabase
+        .from('live_bookings')
+        .upsert({ 
+          dealer_id: dealerId, 
+          youtube_video_id: null,
+          status: 'ended'
+        }, { onConflict: 'dealer_id' });
+    }
+
     setIsLive(false);
   };
 
@@ -169,7 +186,7 @@ export default function PreLiveStudio() {
       {/* Top Navigation Bar */}
       <div className="absolute top-0 w-full p-4 pt-safe-top flex justify-between items-start bg-gradient-to-b from-black/90 to-transparent z-20 h-32 pointer-events-none">
         <div className="flex flex-col gap-3 pointer-events-auto">
-          <button onClick={() => { stopLiveStream(); router.back(); }} className="w-10 h-10 bg-black/45 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white">
+          <button onClick={async () => { await stopLiveStream(); router.back(); }} className="w-10 h-10 bg-black/45 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
           
@@ -285,7 +302,7 @@ export default function PreLiveStudio() {
             <button onClick={() => setShowProductModal(true)} className="flex-1 bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-xl py-3 flex items-center justify-center gap-2 text-white font-bold text-xs uppercase hover:bg-gray-900 transition">
               Pin Product
             </button>
-            <button onClick={stopLiveStream} className="w-12 bg-red-600/20 border border-red-600/50 text-red-500 rounded-xl flex items-center justify-center">
+            <button onClick={async () => await stopLiveStream()} className="w-12 bg-red-600/20 border border-red-600/50 text-red-500 rounded-xl flex items-center justify-center">
               ✕
             </button>
           </div>
