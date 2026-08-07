@@ -21,6 +21,9 @@ export default function PreLiveStudio() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  
+  // 🔥 NAYA HATHIYAR: Anti-Sleep Engine Ref
+  const wakeLockRef = useRef<any>(null);
 
   useEffect(() => {
     const fetchInventory = async () => {
@@ -83,13 +86,12 @@ export default function PreLiveStudio() {
     }
 
     try {
-      // 🔥 FIX 1: Save both Video ID & Stream Key in Supabase
       if (dealerId) {
         const { error } = await supabase
           .from('live_bookings')
           .update({ 
             youtube_video_id: videoIdInput.trim(),
-            stream_key: streamKeyInput.trim(), // ADDED
+            stream_key: streamKeyInput.trim(), 
             status: 'live' 
           })
           .eq('dealer_id', dealerId);
@@ -126,6 +128,18 @@ export default function PreLiveStudio() {
 
         mediaRecorder.start(250);
         setIsLive(true); 
+
+        // 🔥 NAYA HATHIYAR: Screen ko ON rakhne ka code
+        try {
+          if ('wakeLock' in navigator) {
+            (navigator as any).wakeLock.request('screen').then((lock: any) => {
+              wakeLockRef.current = lock;
+              console.log('✅ Screen Wake Lock Active (Phone sleep nahi hoga)');
+            }).catch((err: any) => console.log('Wake lock fail:', err));
+          }
+        } catch (err) {
+          console.log('Wake lock error:', err);
+        }
       };
 
       ws.onerror = () => {
@@ -148,13 +162,19 @@ export default function PreLiveStudio() {
       videoRef.current.srcObject = null;
     }
     
-    // 🔥 FIX 2: Clear BOTH Video ID and Stream Key on stop
+    // 🔥 NAYA HATHIYAR: Live band hone par Screen Lock wapas hata lo
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release();
+      wakeLockRef.current = null;
+      console.log('🛑 Screen Wake Lock Released');
+    }
+
     if (dealerId) {
       await supabase
         .from('live_bookings')
         .update({ 
           youtube_video_id: null,
-          stream_key: null, // CLEARED
+          stream_key: null, 
           status: 'ended'
         })
         .eq('dealer_id', dealerId);
