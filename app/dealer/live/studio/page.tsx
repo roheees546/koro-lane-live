@@ -4,26 +4,19 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-export default function PreLiveStudio() {
+export default function UploadReelStudio() {
   const router = useRouter();
-  const [isLive, setIsLive] = useState(false);
   const [inventory, setInventory] = useState<any[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [pinnedProduct, setPinnedProduct] = useState<any | null>(null);
-  const [streamKeyInput, setStreamKeyInput] = useState(""); 
-  const [videoIdInput, setVideoIdInput] = useState(""); 
-  
   const [dealerId, setDealerId] = useState<string | null>(null);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   
-  // 🔥 NAYA HATHIYAR: Anti-Sleep Engine Ref
-  const wakeLockRef = useRef<any>(null);
+  // Naye Upload States
+  const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchInventory = async () => {
@@ -38,40 +31,13 @@ export default function PreLiveStudio() {
     fetchInventory();
   }, []);
 
-  useEffect(() => {
-    if (!dealerId) return;
-    const fetchMessages = async () => {
-      const { data } = await supabase
-        .from('live_messages')
-        .select('*')
-        .eq('dealer_id', dealerId)
-        .order('created_at', { ascending: true })
-        .limit(50);
-      if (data) setChatMessages(data);
-    };
-    fetchMessages();
-
-    const channel = supabase
-      .channel(`studio-chat-${dealerId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'live_messages', filter: `dealer_id=eq.${dealerId}` },
-        (payload) => {
-          setChatMessages((prev) => [...prev, payload.new]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [dealerId]);
-
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedVideo(file);
+      setVideoPreviewUrl(URL.createObjectURL(file));
     }
-  }, [chatMessages]);
+  };
 
   const toggleProductSelection = (productId: string) => {
     setSelectedProducts(prev => 
@@ -79,236 +45,188 @@ export default function PreLiveStudio() {
     );
   };
 
-  const startLiveStream = async () => {
-    if (!streamKeyInput.trim() || !videoIdInput.trim()) {
-      alert("Bhai YouTube ki Stream Key aur Video ID dono daalna zaroori hai!");
+  const uploadReel = async () => {
+    if (!selectedVideo) {
+      alert("Bhai pehle drop ki video toh select kar!");
+      return;
+    }
+    if (selectedProducts.length === 0) {
+      alert("Kam se kam ek product toh pin kar feed ke liye!");
       return;
     }
 
+    setIsUploading(true);
+
     try {
-      if (dealerId) {
-        const { error } = await supabase
-          .from('live_bookings')
-          .update({ 
-            youtube_video_id: videoIdInput.trim(),
-            stream_key: streamKeyInput.trim(), 
-            status: 'live' 
-          })
-          .eq('dealer_id', dealerId);
-          
-        if (error) console.error("Supabase update error:", error.message);
-      }
+      // 1. Upload Video to Supabase Storage Bucket ('reels_videos')
+      const fileExt = selectedVideo.name.split('.').pop();
+      const fileName = `${dealerId}-${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('reels_videos')
+        .upload(fileName, selectedVideo);
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720, frameRate: 30 },
-        audio: true,
-      });
+      if (uploadError) throw uploadError;
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      // 2. Get Public URL of the uploaded video
+      const { data: publicUrlData } = supabase.storage
+        .from('reels_videos')
+        .getPublicUrl(fileName);
 
-      const ws = new WebSocket('wss://tubby-unisexual-lesser.ngrok-free.dev');
-      wsRef.current = ws;
+      const videoUrl = publicUrlData.publicUrl;
 
-      ws.onopen = () => {
-        console.log('✅ Connected to Ngrok Stream Server!');
-        ws.send(JSON.stringify({ streamKey: streamKeyInput.trim() }));
-
-        const mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'video/webm; codecs=vp8,opus',
-        });
-        mediaRecorderRef.current = mediaRecorder;
-
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-            ws.send(e.data); 
+      // 3. Save to 'reels' database table
+      const { error: dbError } = await supabase
+        .from('reels')
+        .insert([
+          {
+            dealer_id: dealerId,
+            video_url: videoUrl,
+            product_ids: selectedProducts 
           }
-        };
+        ]);
 
-        mediaRecorder.start(250);
-        setIsLive(true); 
+      if (dbError) throw dbError;
 
-        // 🔥 NAYA HATHIYAR: Screen ko ON rakhne ka code
-        try {
-          if ('wakeLock' in navigator) {
-            (navigator as any).wakeLock.request('screen').then((lock: any) => {
-              wakeLockRef.current = lock;
-              console.log('✅ Screen Wake Lock Active (Phone sleep nahi hoga)');
-            }).catch((err: any) => console.log('Wake lock fail:', err));
-          }
-        } catch (err) {
-          console.log('Wake lock error:', err);
-        }
-      };
-
-      ws.onerror = () => {
-        alert("Ngrok server se connect nahi ho paya. Kya tera Ngrok tunnel chalu hai?");
-      };
-
-    } catch (err) {
-      console.error("Camera access denied!", err);
-      alert("Camera/Mic ki permission do bhai!");
+      alert("🚀 Reel successfully published to feed!");
+      router.back(); // Upload hone ke baad wapas dashboard
+      
+    } catch (err: any) {
+      console.error("Upload Error:", err);
+      alert("Upload fail ho gaya bawa: " + err.message);
+    } finally {
+      setIsUploading(false);
     }
-  };
-
-  const stopLiveStream = async () => {
-    if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
-    if (wsRef.current) wsRef.current.close();
-    
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    
-    // 🔥 NAYA HATHIYAR: Live band hone par Screen Lock wapas hata lo
-    if (wakeLockRef.current) {
-      wakeLockRef.current.release();
-      wakeLockRef.current = null;
-      console.log('🛑 Screen Wake Lock Released');
-    }
-
-    if (dealerId) {
-      await supabase
-        .from('live_bookings')
-        .update({ 
-          youtube_video_id: null,
-          stream_key: null, 
-          status: 'ended'
-        })
-        .eq('dealer_id', dealerId);
-    }
-
-    setIsLive(false);
   };
 
   return (
     <div className="relative h-[100dvh] w-full max-w-[450px] mx-auto bg-black text-white overflow-hidden selection:bg-[#00e599] selection:text-black">
       
+      {/* 🎥 Background Video Preview */}
       <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center overflow-hidden">
-        <video 
-          ref={videoRef} 
-          autoPlay 
-          muted 
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/30 pointer-events-none"></div>
+        {videoPreviewUrl ? (
+          <video 
+            src={videoPreviewUrl} 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover opacity-90"
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center opacity-30">
+            <svg className="w-16 h-16 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+            <p className="text-xs uppercase tracking-widest">No Video Selected</p>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/90 pointer-events-none"></div>
       </div>
 
-      <div className="absolute top-0 w-full p-4 pt-safe-top flex justify-between items-start bg-gradient-to-b from-black/90 to-transparent z-20 h-32 pointer-events-none">
+      {/* 🚀 TOP HEADER */}
+      <div className="absolute top-0 w-full p-4 pt-safe-top flex justify-between items-start z-20 h-32 pointer-events-none">
         <div className="flex flex-col gap-3 pointer-events-auto">
-          <button onClick={async () => { await stopLiveStream(); router.back(); }} className="w-10 h-10 bg-black/45 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white">
+          <button onClick={() => router.back()} className="w-10 h-10 bg-black/45 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
-          
-          {isLive && (
-            <div className="bg-red-600 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase flex items-center gap-1.5 animate-pulse shadow-lg">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
-              LIVE
-            </div>
-          )}
         </div>
       </div>
 
-      {!isLive && (
-        <div className="absolute bottom-0 w-full p-5 bg-gradient-to-t from-black via-black/90 to-transparent z-20 pt-16">
-          <div className="space-y-3">
-            <div className="text-center mb-1">
-              <h2 className="text-lg font-black uppercase tracking-widest text-[#00e599]">Studio Ready</h2>
-              <p className="text-xs text-gray-400">Directly go live to YouTube via Korolane Engine.</p>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">YouTube Stream Key</label>
-              <input 
-                type="password"
-                value={streamKeyInput}
-                onChange={(e) => setStreamKeyInput(e.target.value)}
-                placeholder="Paste stream key here..."
-                className="w-full bg-[#121214]/90 border border-gray-800 text-white text-xs px-3 py-2.5 rounded-xl outline-none focus:border-[#00e599]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">YouTube Video ID</label>
-              <input 
-                type="text"
-                value={videoIdInput}
-                onChange={(e) => setVideoIdInput(e.target.value)}
-                placeholder="e.g. dQw4w9WgXcQ"
-                className="w-full bg-[#121214]/90 border border-gray-800 text-white text-xs px-3 py-2.5 rounded-xl outline-none focus:border-[#00e599]"
-              />
-            </div>
-
-            <button 
-              onClick={() => setShowProductModal(true)}
-              className="w-full bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-xl p-3 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center text-[#00e599]">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-                </div>
-                <div className="text-left">
-                  <h4 className="text-xs font-bold text-white">Link Inventory</h4>
-                  <p className="text-[9px] text-[#00e599] font-bold uppercase">{selectedProducts.length} items selected</p>
-                </div>
-              </div>
-              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-            </button>
-            
-            <button 
-              onClick={startLiveStream}
-              className="w-full bg-[#00e599] hover:bg-[#00c987] text-black font-black uppercase tracking-widest py-3 rounded-xl transition flex justify-center items-center gap-2 shadow-lg"
-            >
-              Start Live Broadcast
-            </button>
-          </div>
-        </div>
-      )}
-
-      {isLive && (
-        <div className="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black via-black/90 to-transparent z-20 pt-16 flex flex-col gap-3">
+      {/* 🛠️ BOTTOM CONTROLS */}
+      <div className="absolute bottom-0 w-full p-5 bg-gradient-to-t from-black via-black/90 to-transparent z-20 pt-16">
+        <div className="space-y-3">
           
-          <div 
-            ref={chatContainerRef}
-            className="w-full h-40 overflow-y-auto flex flex-col space-y-2 pr-1 hide-scrollbar bg-black/70 backdrop-blur-md p-3 rounded-2xl border border-white/10"
+          <div className="text-center mb-2">
+            <h2 className="text-lg font-black uppercase tracking-widest text-[#00e599]">Drop Studio</h2>
+            <p className="text-xs text-gray-400">Upload a reel and pin your products.</p>
+          </div>
+
+          <input 
+            type="file" 
+            accept="video/*" 
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-xl p-3 flex items-center justify-center gap-2 text-white text-xs font-bold uppercase transition hover:border-[#00e599]/50"
           >
-            {chatMessages.length === 0 ? (
-              <div className="text-gray-400 text-xs text-center my-auto">Waiting for viewer comments...</div>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+            {selectedVideo ? "Change Video" : "Select Video File"}
+          </button>
+
+          <button 
+            onClick={() => setShowProductModal(true)}
+            className="w-full bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-xl p-3 flex items-center justify-between transition hover:border-[#00e599]/50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center text-[#00e599]">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+              </div>
+              <div className="text-left">
+                <h4 className="text-xs font-bold text-white">Pin Products</h4>
+                <p className="text-[9px] text-[#00e599] font-bold uppercase">{selectedProducts.length} items pinned</p>
+              </div>
+            </div>
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+          
+          <button 
+            onClick={uploadReel}
+            disabled={isUploading}
+            className={`w-full font-black uppercase tracking-widest py-3.5 rounded-xl transition flex justify-center items-center gap-2 shadow-lg ${
+              isUploading ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#00e599] hover:bg-[#00c987] text-black'
+            }`}
+          >
+            {isUploading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin w-4 h-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Uploading...
+              </span>
             ) : (
-              chatMessages.map((msg, idx) => (
-                <div key={msg.id || idx} className="text-xs leading-snug">
-                  <span className={`font-bold mr-1.5 ${msg.is_host ? 'text-[#00e599]' : 'text-gray-300'}`}>{msg.user_name}:</span>
-                  <span className="text-white">{msg.text}</span>
+              "Publish Drop"
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* 🛍️ PRODUCT SELECTION MODAL */}
+      {showProductModal && (
+        <div className="absolute inset-0 bg-black/90 z-50 flex flex-col pt-safe-top">
+          <div className="p-4 flex justify-between items-center border-b border-gray-800">
+            <h3 className="text-sm font-bold uppercase tracking-wider">Select Items to Pin</h3>
+            <button onClick={() => setShowProductModal(false)} className="text-gray-400 hover:text-white">✕</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {inventory.length === 0 ? (
+              <p className="text-center text-xs text-gray-500 mt-10">No products found in inventory.</p>
+            ) : (
+              inventory.map((item) => (
+                <div 
+                  key={item.id} 
+                  onClick={() => toggleProductSelection(item.id)}
+                  className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition ${
+                    selectedProducts.includes(item.id) ? 'bg-[#00e599]/10 border-[#00e599]' : 'bg-[#121214] border-gray-800'
+                  }`}
+                >
+                  <img src={item.image_url || "https://placehold.co/100"} alt="" className="w-12 h-12 rounded-lg object-cover bg-gray-900" />
+                  <div className="flex-1">
+                    <h4 className="text-xs font-bold text-white line-clamp-1">{item.title}</h4>
+                    <p className="text-[10px] font-black text-[#00e599]">₹{item.price}</p>
+                  </div>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                    selectedProducts.includes(item.id) ? 'bg-[#00e599] border-[#00e599] text-black' : 'border-gray-600'
+                  }`}>
+                    {selectedProducts.includes(item.id) && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
+                  </div>
                 </div>
               ))
             )}
           </div>
-
-          {pinnedProduct ? (
-            <div className="bg-[#121214]/90 backdrop-blur-md border border-[#00e599]/50 rounded-xl p-2.5 flex items-center gap-3 relative">
-              <button onClick={() => setPinnedProduct(null)} className="absolute -top-2 -right-2 w-5 h-5 bg-gray-900 border border-gray-700 rounded-full flex items-center justify-center text-gray-400 text-xs">✕</button>
-              <img src={pinnedProduct.image_url || "https://placehold.co/100"} alt="Pinned" className="w-10 h-10 rounded-lg object-cover bg-gray-900" />
-              <div className="flex-1 min-w-0">
-                <span className="text-[7px] font-black uppercase text-[#00e599]">Pinned</span>
-                <h4 className="text-xs font-bold text-white truncate">{pinnedProduct.title}</h4>
-                <p className="text-xs font-black text-white">₹{pinnedProduct.price}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center pb-1">
-              <p className="text-[9px] text-gray-400 font-bold uppercase">No product pinned</p>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <button onClick={() => setShowProductModal(true)} className="flex-1 bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-xl py-3 flex items-center justify-center gap-2 text-white font-bold text-xs uppercase hover:bg-gray-900 transition">
-              Pin Product
-            </button>
-            <button onClick={async () => await stopLiveStream()} className="w-12 bg-red-600/20 border border-red-600/50 text-red-500 rounded-xl flex items-center justify-center">
-              ✕
+          <div className="p-4 border-t border-gray-800">
+            <button onClick={() => setShowProductModal(false)} className="w-full bg-white text-black font-black uppercase text-xs py-3 rounded-xl">
+              Confirm Selection ({selectedProducts.length})
             </button>
           </div>
         </div>
