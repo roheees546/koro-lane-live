@@ -10,7 +10,7 @@ export default function LiveShoppingPage() {
   const [likes, setLikes] = useState(152);
   const [pinnedProduct, setPinnedProduct] = useState<any | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
-  const [activeVideoId, setActiveVideoId] = useState<string | null>(null); // 🎥 Dynamic YouTube Video ID State
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null); 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const dealerId = "e2b9fc73-379b-4eb4-95bc-177aec9563b3";
@@ -33,14 +33,15 @@ export default function LiveShoppingPage() {
   // 2. Fetch Active YouTube Live Video ID from live_bookings & Realtime Listener
   useEffect(() => {
     const fetchActiveLive = async () => {
-      // 🛠️ FIX: order by created_at aur limit(1) taaki error na aaye agar multiple rows hon
+      // 🔥 FIX 1: Sirf wahi stream lao jiska status sach mein 'live' ho
       const { data, error } = await supabase
         .from('live_bookings')
-        .select('youtube_video_id')
+        .select('youtube_video_id, status')
         .eq('dealer_id', dealerId)
+        .eq('status', 'live') // <-- Ye line missing thi!
         .order('created_at', { ascending: false }) 
         .limit(1)
-        .single();
+        .maybeSingle(); // 🔥 FIX 2: 'single()' ki jagah 'maybeSingle()' taaki stream offline hone par error na fete
       
       if (error) {
         console.error("Error fetching live booking:", error.message);
@@ -48,19 +49,28 @@ export default function LiveShoppingPage() {
       
       if (data && data.youtube_video_id) {
         setActiveVideoId(data.youtube_video_id);
+      } else {
+        setActiveVideoId(null);
       }
     };
     fetchActiveLive();
 
-    // Realtime subscription for live video ID changes
+    // 🔥 FIX 3: Realtime subscription ko smart bana diya
     const liveChannel = supabase
       .channel('live-video-channel')
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'live_bookings', filter: `dealer_id=eq.${dealerId}` },
         (payload: any) => {
-          if (payload.new && payload.new.youtube_video_id !== undefined) {
-            setActiveVideoId(payload.new.youtube_video_id);
+          if (payload.new) {
+            // Agar status live hua, toh video chala do
+            if (payload.new.status === 'live' && payload.new.youtube_video_id) {
+              setActiveVideoId(payload.new.youtube_video_id);
+            } 
+            // Agar status ended hua, toh video turant hata do
+            else if (payload.new.status === 'ended') {
+              setActiveVideoId(null);
+            }
           }
         }
       )
