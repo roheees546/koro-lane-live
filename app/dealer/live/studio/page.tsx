@@ -4,201 +4,234 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-export default function DropsReelsFeed() {
+export default function UploadReelStudio() {
   const router = useRouter();
-  const [reels, setReels] = useState<any[]>([]);
-  const [productsMap, setProductsMap] = useState<Record<string, any>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [inventory, setInventory] = useState<any[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [dealerId, setDealerId] = useState<string | null>(null);
+  
+  // Naye Upload States
+  const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const fetchReelsAndProducts = async () => {
-      try {
-        // 1. Fetch saari reels database se (latest first)
-        const { data: reelsData, error: reelsError } = await supabase
-          .from('reels')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (reelsError) throw reelsError;
-
-        if (reelsData && reelsData.length > 0) {
-          setReels(reelsData);
-
-          // 2. Saare unique product IDs nikal lo jo reels mein pin hain
-          const productIds = new Set<string>();
-          reelsData.forEach(reel => {
-            if (reel.product_ids && reel.product_ids.length > 0) {
-              reel.product_ids.forEach((id: string) => productIds.add(id));
-            }
-          });
-
-          // 3. Un sabhi products ka data fetch kar lo
-          if (productIds.size > 0) {
-            const { data: productsData, error: productsError } = await supabase
-              .from('products')
-              .select('id, title, price, image_url, status')
-              .in('id', Array.from(productIds));
-
-            if (!productsError && productsData) {
-              const pMap: Record<string, any> = {};
-              productsData.forEach(p => {
-                pMap[p.id] = p;
-              });
-              setProductsMap(pMap);
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching feed:", err);
-      } finally {
-        setIsLoading(false);
+    const fetchInventory = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const id = session.user.id;
+        setDealerId(id);
+        const { data } = await supabase.from('products').select('*').eq('dealer_id', id);
+        if (data) setInventory(data);
       }
     };
-
-    fetchReelsAndProducts();
+    fetchInventory();
   }, []);
 
-  // 🎯 THE MAGIC ROUTER: Seedha tere existing product/checkout page pe bhejne ke liye
-  const handleProductClick = (productId: string) => {
-    router.push(`/product/${productId}`);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedVideo(file);
+      setVideoPreviewUrl(URL.createObjectURL(file));
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className="h-[100dvh] w-full bg-black flex items-center justify-center">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="w-10 h-10 border-4 border-[#00e599] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-[#00e599] text-xs font-black uppercase tracking-widest mt-4">Loading Drops...</p>
-        </div>
-      </div>
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProducts(prev => 
+      prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]
     );
-  }
+  };
 
-  if (reels.length === 0) {
-    return (
-      <div className="h-[100dvh] w-full bg-black flex flex-col items-center justify-center text-white">
-        <h2 className="text-xl font-black text-gray-500 uppercase">No Drops Yet</h2>
-        <p className="text-xs text-gray-600 mt-2">Check back later for new thrift items.</p>
-      </div>
-    );
-  }
+  const uploadReel = async () => {
+    if (!selectedVideo) {
+      alert("Bhai pehle drop ki video toh select kar!");
+      return;
+    }
+    if (selectedProducts.length === 0) {
+      alert("Kam se kam ek product toh pin kar feed ke liye!");
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const fileExt = selectedVideo.name.split('.').pop();
+      const fileName = `${dealerId}-${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('reels_videos')
+        .upload(fileName, selectedVideo);
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('reels_videos')
+        .getPublicUrl(fileName);
+
+      const videoUrl = publicUrlData.publicUrl;
+
+      const { error: dbError } = await supabase
+        .from('reels')
+        .insert([
+          {
+            dealer_id: dealerId,
+            video_url: videoUrl,
+            product_ids: selectedProducts 
+          }
+        ]);
+
+      if (dbError) throw dbError;
+
+      alert("🚀 Reel successfully published to feed!");
+      router.back(); 
+      
+    } catch (err: any) {
+      console.error("Upload Error:", err);
+      alert("Upload fail ho gaya bawa: " + err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
-    <div 
-      className="relative w-full h-[100dvh] bg-black font-sans text-white overflow-y-scroll snap-y snap-mandatory hide-scrollbar max-w-[450px] mx-auto"
-    >
-      {reels.map((reel) => {
-        // Reel ka pehla pinned product utha rahe hain
-        const pinnedProductId = reel.product_ids?.[0];
-        const product = pinnedProductId ? productsMap[pinnedProductId] : null;
-
-        return (
-          <div key={reel.id} className="relative w-full h-[100dvh] snap-start bg-zinc-950 flex-shrink-0">
-            
-            {/* 🎥 THE VIDEO PLAYER */}
-            <video 
-              src={reel.video_url}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none"></div>
-
-            {/* 🚀 TOP HEADER */}
-            <div className="absolute top-0 left-0 w-full z-30 p-4 pt-safe-top flex justify-between items-start pointer-events-none">
-              <div className="flex items-center gap-3 pointer-events-auto">
-                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-black font-black text-xs shrink-0 shadow-lg">
-                  KL
-                </div>
-                <div className="flex flex-col drop-shadow-md">
-                  <div className="flex items-center gap-1">
-                    <span className="font-bold text-sm">KoRo Lane</span>
-                    <svg className="w-3.5 h-3.5 text-[#00e599]" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                  </div>
-                  <span className="text-xs text-gray-300">Live Thrift Drop 🌿</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 🛍️ "NOW SHOWING" MAGIC WIDGET */}
-            {product && (
-              <div 
-                className="absolute top-24 right-4 z-30 pointer-events-auto cursor-pointer group animate-fade-in-up" 
-                onClick={() => handleProductClick(product.id)}
-              >
-                <div className="w-[110px] bg-[#0a0a0c]/90 backdrop-blur-xl border border-white/5 rounded-2xl p-2 flex flex-col shadow-2xl hover:border-[#00e599]/50 transition-all duration-300">
-                  <div className="flex items-center gap-1 mb-1.5">
-                    <span className="w-1.5 h-1.5 bg-[#00e599] rounded-full animate-pulse"></span>
-                    <span className="text-[#00e599] text-[7px] font-black uppercase tracking-widest">
-                      {product.status === 'on_hold' ? 'ON HOLD' : product.status === 'sold' ? 'SOLD OUT' : 'NOW SHOWING'}
-                    </span>
-                  </div>
-                  
-                  <div className="w-full aspect-square rounded-lg overflow-hidden mb-2 relative bg-zinc-900">
-                    <img src={product.image_url || "https://placehold.co/100"} alt="Current Item" className={`w-full h-full object-cover transition duration-500 ${product.status !== 'available' ? 'grayscale opacity-50' : 'group-hover:scale-110'}`} />
-                    {product.status !== 'available' && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                        <span className="text-[10px] font-black text-white px-2 py-1 bg-black/80 rounded backdrop-blur-sm">
-                          {product.status === 'on_hold' ? 'HELD' : 'SOLD'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <h3 className="text-[9px] font-black uppercase leading-tight text-white mb-1 line-clamp-1">{product.title}</h3>
-                  
-                  <div className="flex items-center justify-between mt-1">
-                    <span className={`text-[11px] font-black ${product.status === 'available' ? 'text-[#00e599]' : 'text-gray-500 line-through'}`}>
-                      ₹{product.price}
-                    </span>
-                    {product.status === 'available' && (
-                      <div className="bg-[#00e599] text-black rounded-full p-1 group-hover:scale-110 transition">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"></path></svg>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 💬 BOTTOM ENGAGEMENT UI */}
-            <div className="absolute bottom-20 right-4 z-20 flex flex-col items-center gap-4 pointer-events-auto">
-              <button className="flex flex-col items-center gap-1 group">
-                <div className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 group-active:scale-95 transition">
-                  <svg className="w-5 h-5 text-white group-hover:text-red-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                </div>
-                <span className="text-[10px] font-bold text-white shadow-black drop-shadow-md">1.2k</span>
-              </button>
-              
-              <button className="flex flex-col items-center gap-1 group">
-                <div className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 group-active:scale-95 transition">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
-                </div>
-                <span className="text-[10px] font-bold text-white shadow-black drop-shadow-md">Share</span>
-              </button>
-            </div>
-
-            <div className="absolute bottom-6 left-4 right-20 z-20 pointer-events-auto">
-               <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-4 py-2.5 text-xs text-gray-300">
-                  Awesome thrift drop! 🔥 Add a comment...
-               </div>
-            </div>
-
+    <div className="relative h-[100dvh] w-full max-w-[450px] mx-auto bg-black text-white overflow-hidden selection:bg-[#00e599] selection:text-black">
+      
+      {/* 🎥 Background Video Preview */}
+      <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center overflow-hidden">
+        {videoPreviewUrl ? (
+          <video 
+            src={videoPreviewUrl} 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover opacity-90"
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center opacity-30">
+            <svg className="w-16 h-16 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+            <p className="text-xs uppercase tracking-widest">No Video Selected</p>
           </div>
-        );
-      })}
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/90 pointer-events-none"></div>
+      </div>
+
+      {/* 🚀 TOP HEADER */}
+      <div className="absolute top-0 w-full p-4 pt-safe-top flex justify-between items-start z-20 h-32 pointer-events-none">
+        <div className="flex flex-col gap-3 pointer-events-auto">
+          <button onClick={() => router.back()} className="w-10 h-10 bg-black/45 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      {/* 🛠️ BOTTOM CONTROLS */}
+      <div className="absolute bottom-0 w-full p-5 bg-gradient-to-t from-black via-black/90 to-transparent z-20 pt-16">
+        <div className="space-y-3">
+          
+          <div className="text-center mb-2">
+            <h2 className="text-lg font-black uppercase tracking-widest text-[#00e599]">Drop Studio</h2>
+            <p className="text-xs text-gray-400">Upload a reel and pin your products.</p>
+          </div>
+
+          <input 
+            type="file" 
+            accept="video/*" 
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-xl p-3 flex items-center justify-center gap-2 text-white text-xs font-bold uppercase transition hover:border-[#00e599]/50"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+            {selectedVideo ? "Change Video" : "Select Video File"}
+          </button>
+
+          <button 
+            onClick={() => setShowProductModal(true)}
+            className="w-full bg-[#121214]/80 backdrop-blur-md border border-gray-800 rounded-xl p-3 flex items-center justify-between transition hover:border-[#00e599]/50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center text-[#00e599]">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+              </div>
+              <div className="text-left">
+                <h4 className="text-xs font-bold text-white">Pin Products</h4>
+                <p className="text-[9px] text-[#00e599] font-bold uppercase">{selectedProducts.length} items pinned</p>
+              </div>
+            </div>
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+          
+          <button 
+            onClick={uploadReel}
+            disabled={isUploading}
+            className={`w-full font-black uppercase tracking-widest py-3.5 rounded-xl transition flex justify-center items-center gap-2 shadow-lg ${
+              isUploading ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#00e599] hover:bg-[#00c987] text-black'
+            }`}
+          >
+            {isUploading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin w-4 h-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Uploading...
+              </span>
+            ) : (
+              "Publish Drop"
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* 🛍️ PRODUCT SELECTION MODAL */}
+      {showProductModal && (
+        <div className="absolute inset-0 bg-black/90 z-50 flex flex-col pt-safe-top">
+          <div className="p-4 flex justify-between items-center border-b border-gray-800">
+            <h3 className="text-sm font-bold uppercase tracking-wider">Select Items to Pin</h3>
+            <button onClick={() => setShowProductModal(false)} className="text-gray-400 hover:text-white">✕</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {inventory.length === 0 ? (
+              <p className="text-center text-xs text-gray-500 mt-10">No products found in inventory.</p>
+            ) : (
+              inventory.map((item) => (
+                <div 
+                  key={item.id} 
+                  onClick={() => toggleProductSelection(item.id)}
+                  className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition ${
+                    selectedProducts.includes(item.id) ? 'bg-[#00e599]/10 border-[#00e599]' : 'bg-[#121214] border-gray-800'
+                  }`}
+                >
+                  <img src={item.image_url || "https://placehold.co/100"} alt="" className="w-12 h-12 rounded-lg object-cover bg-gray-900" />
+                  <div className="flex-1">
+                    <h4 className="text-xs font-bold text-white line-clamp-1">{item.title}</h4>
+                    <p className="text-[10px] font-black text-[#00e599]">₹{item.price}</p>
+                  </div>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                    selectedProducts.includes(item.id) ? 'bg-[#00e599] border-[#00e599] text-black' : 'border-gray-600'
+                  }`}>
+                    {selectedProducts.includes(item.id) && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="p-4 border-t border-gray-800">
+            <button onClick={() => setShowProductModal(false)} className="w-full bg-white text-black font-black uppercase text-xs py-3 rounded-xl">
+              Confirm Selection ({selectedProducts.length})
+            </button>
+          </div>
+        </div>
+      )}
 
       <style dangerouslySetInnerHTML={{__html: `
         .hide-scrollbar::-webkit-scrollbar { display: none; } 
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
       `}} />
     </div>
   );
