@@ -27,7 +27,7 @@ export default function DealerDashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPayoutsOpen, setIsPayoutsOpen] = useState(false);
   const [isHowToMeasureOpen, setIsHowToMeasureOpen] = useState(false);
-const [todayBooking, setTodayBooking] = useState<any>(null);
+
   // Add Product Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [itemName, setItemName] = useState("");
@@ -142,22 +142,6 @@ const [todayBooking, setTodayBooking] = useState<any>(null);
    setPipeline({ new: newCount, packing: packingCount, shipped: shippedCount, done: doneCount });
     setStats({ todaySale: todayTotal, pending: newCount, totalSales: totalCount, liveStock: liveStockCount });
 
-    // 👇 YAHAN MAINE TERA NAYA CODE SET KAR DIYA HAI 👇
-    const now = new Date();
-    const currentDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    
-    const { data: booking } = await supabase
-      .from('live_bookings')
-      .select('*')
-      .eq('dealer_id', session.user.id)
-      .eq('booking_date', currentDateStr)
-      .single();
-      
-    if (booking) {
-      setTodayBooking(booking);
-    }
-    // 👆 NAYA CODE END 👆
-
     setLoading(false);
   };
 
@@ -250,7 +234,7 @@ const [todayBooking, setTodayBooking] = useState<any>(null);
       image_urls: uploadedUrls,
       color: itemColor || null,
       material: itemMaterial || null,
-      measurements: finalMeasurements // 🔥 JSONB Storage
+      measurements: finalMeasurements
     }]);
 
     if (!error) {
@@ -299,7 +283,6 @@ const [todayBooking, setTodayBooking] = useState<any>(null);
           {/* 🔥 TERA NAYA LIVE NOTIFICATION BELL YAHAN AAGAYA */}
           {userId && <SellerNotifications sellerId={userId} />}
 
-          {/* Settings wala button waisa ka waisa hi hai */}
           <button onClick={() => setIsSettingsOpen(true)} className="text-gray-400 hover:text-white transition">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
           </button>
@@ -436,26 +419,22 @@ const [todayBooking, setTodayBooking] = useState<any>(null);
               </div>
             </div>
 
-            {/* 🔥 Updated Go Live Button */}
-           {/* 🔥 SMART Go Live Button */}
+            {/* 🔥 NEW CLEAN DROP STUDIO BUTTON */}
             <div 
-              onClick={() => router.push(todayBooking ? '/dealer/live/studio' : '/dealer/live')} 
-              className={`bg-[#121214] border p-4 rounded-2xl flex items-center gap-3 cursor-pointer transition ${todayBooking ? 'border-[#00e599]/50 hover:bg-[#00e599]/10' : 'border-gray-800/60 hover:border-purple-500/50'}`}
+              onClick={() => router.push('/dealer/live')} 
+              className="bg-[#121214] border border-gray-800/60 p-4 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-[#00e599]/50 transition"
             >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${todayBooking ? 'bg-[#00e599] text-black' : 'bg-[#1a1a1d] text-purple-500'}`}>
-                {todayBooking ? (
-                  <svg className="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                )}
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#1a1a1d] text-[#00e599]">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white">{todayBooking ? 'Enter Studio' : 'Go live'}</h4>
-                <p className={`text-[10px] ${todayBooking ? 'text-[#00e599] font-bold' : 'text-gray-400'}`}>
-                  {todayBooking ? 'Slot booked for today' : 'Tap to schedule'}
-                </p>
+                <h4 className="text-sm font-bold text-white">Upload Reel</h4>
+                <p className="text-[10px] text-gray-400">Post a new reel</p>
               </div>
             </div>
+            
           </div>
         </div>
 
