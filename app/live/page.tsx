@@ -21,7 +21,7 @@ export default function DropsReelsFeed() {
   ]);
   const [newComment, setNewComment] = useState("");
 
- useEffect(() => {
+  useEffect(() => {
     const fetchFeed = async () => {
       try {
         // 1. Fetch reels
@@ -40,16 +40,15 @@ export default function DropsReelsFeed() {
           reelsData.forEach(reel => {
             sellerIds.add(reel.dealer_id);
             
-           let pIds: string[] = [];
+            let pIds: string[] = [];
             if (Array.isArray(reel.product_ids)) {
               pIds = reel.product_ids.map((id: any) => String(id));
             } else if (typeof reel.product_ids === 'string') {
               pIds = reel.product_ids.replace(/[\[\]"]/g, '').split(',');
-            
             }
             
             // Sirf valid lambi IDs (UUID) ko aage jaane do
-          pIds = pIds.filter(id => id.length === 36 && id.includes('-'));
+            pIds = pIds.filter(id => id.length === 36 && id.includes('-'));
             
             pIds.forEach((id: string) => productIds.add(id));
             reel.parsed_product_ids = pIds; 
@@ -100,8 +99,9 @@ export default function DropsReelsFeed() {
     setLikedReels(prev => ({ ...prev, [reelId]: !prev[reelId] }));
   };
 
-  const handleProductClick = (productId: string) => {
-    router.push(`/product/${productId}`);
+  const handleProductClick = () => {
+    // Dummy click for now
+    alert("Bawa! Ye abhi dummy hai. Design check kar, zinda baad mein karenge!");
   };
 
   const handleStoreClick = (dealerId: string) => {
@@ -112,7 +112,7 @@ export default function DropsReelsFeed() {
     const shareData = {
       title: 'Koro Lane Drop',
       text: 'Check out this awesome thrift drop!',
-      url: window.location.href, // You can make this specific to the reel later
+      url: window.location.href, 
     };
     try {
       if (navigator.share) {
@@ -158,9 +158,6 @@ export default function DropsReelsFeed() {
       {/* 📱 REELS SCROLL CONTAINER */}
       <div className="absolute inset-0 w-full h-full overflow-y-scroll snap-y snap-mandatory hide-scrollbar pb-[70px]">
         {reels.map((reel) => {
-          // Get data
-          const pinnedProductId = reel.parsed_product_ids?.[0];
-          const product = pinnedProductId ? productsMap[pinnedProductId] : null;
           const seller = sellersMap[reel.dealer_id];
           const isLiked = likedReels[reel.id];
 
@@ -237,56 +234,45 @@ export default function DropsReelsFeed() {
                 </button>
               </div>
 
-              {/* 🛍️ SELLER'S PINNED PRODUCT CARD (NOW SHOWING) */}
-              {product && (
-                <div 
-                  className="absolute bottom-24 left-4 z-30 pointer-events-auto cursor-pointer animate-fade-in-up" 
-                  onClick={() => handleProductClick(product.id)}
-                >
-                  <div className="w-[140px] bg-[#0a0a0c]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex flex-col shadow-2xl hover:border-[#00e599]/50 transition-all duration-300">
-                    
-                    {/* Status Indicator */}
-                    <div className="flex items-center gap-1.5 mb-2 px-1">
-                      <span className={`w-2 h-2 rounded-full animate-pulse ${product.status === 'available' ? 'bg-[#00e599]' : 'bg-red-500'}`}></span>
-                      <span className={`text-[9px] font-black uppercase tracking-widest ${product.status === 'available' ? 'text-[#00e599]' : 'text-red-500'}`}>
-                        {product.status === 'on_hold' ? 'ON HOLD' : product.status === 'sold' ? 'SOLD OUT' : 'NOW SHOWING'}
+              {/* 🛍️ DUMMY PINNED PRODUCT CARD (UI DESIGN) - HARDCODED FOR TESTING */}
+              <div 
+                className="absolute bottom-24 left-4 z-30 pointer-events-auto cursor-pointer animate-fade-in-up" 
+                onClick={handleProductClick}
+              >
+                <div className="w-[140px] bg-[#0a0a0c]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex flex-col shadow-2xl hover:border-[#00e599]/50 transition-all duration-300">
+                  
+                  {/* Status Indicator */}
+                  <div className="flex items-center gap-1.5 mb-2 px-1">
+                    <span className="w-2 h-2 rounded-full animate-pulse bg-[#00e599]"></span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-[#00e599]">
+                      NOW SHOWING
+                    </span>
+                  </div>
+                  
+                  {/* Product Image */}
+                  <div className="w-full aspect-square rounded-xl overflow-hidden mb-2 relative bg-zinc-900 border border-white/5">
+                    <img 
+                      src="https://placehold.co/400x400/121214/00e599?text=Vintage+Tee" 
+                      alt="Dummy Product" 
+                      className="w-full h-full object-cover transition duration-500" 
+                    />
+                  </div>
+                  
+                  {/* Title & Price */}
+                  <div className="px-1 pb-1">
+                    <h3 className="text-[10px] font-bold leading-tight text-white mb-1 line-clamp-1">Vintage Graphic Tee</h3>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-black text-white">
+                        ₹699
                       </span>
-                    </div>
-                    
-                    {/* Product Image */}
-                    <div className="w-full aspect-square rounded-xl overflow-hidden mb-2 relative bg-zinc-900 border border-white/5">
-                      <img 
-                        src={product.image_url || "https://placehold.co/100"} 
-                        alt={product.title} 
-                        className={`w-full h-full object-cover transition duration-500 ${product.status !== 'available' ? 'grayscale opacity-40' : ''}`} 
-                      />
-                      {product.status !== 'available' && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                          <span className="text-[10px] font-black text-white px-2 py-1 bg-black/80 rounded border border-white/10">
-                            {product.status === 'on_hold' ? 'HELD' : 'SOLD'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Title & Price */}
-                    <div className="px-1 pb-1">
-                      <h3 className="text-[10px] font-bold leading-tight text-white mb-1 line-clamp-1">{product.title}</h3>
-                      <div className="flex items-center justify-between">
-                        <span className={`text-sm font-black ${product.status === 'available' ? 'text-white' : 'text-gray-500 line-through'}`}>
-                          ₹{product.price}
-                        </span>
-                        {product.status === 'available' && (
-                          <div className="bg-[#00e599] text-black rounded-full p-1.5 shadow-[0_0_10px_rgba(0,229,153,0.3)]">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"></path></svg>
-                          </div>
-                        )}
+                      <div className="bg-[#00e599] text-black rounded-full p-1.5 shadow-[0_0_10px_rgba(0,229,153,0.3)]">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"></path></svg>
                       </div>
                     </div>
-
                   </div>
+
                 </div>
-              )}
+              </div>
 
               {/* Bottom Gradient */}
               <div className="absolute bottom-0 w-full h-[150px] bg-gradient-to-t from-black via-black/60 to-transparent z-10 pointer-events-none"></div>
