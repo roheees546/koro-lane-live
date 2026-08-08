@@ -40,21 +40,24 @@ export default function DropsReelsFeed() {
           reelsData.forEach(reel => {
             sellerIds.add(reel.dealer_id);
             
-            // 🔥 BULLETPROOF PARSER: Supabase string de ya array, ye ID nikal lega
+            // 🔥 AGGRESSIVE PARSER: Sirf letters, numbers aur hyphens (-) bachenge
             let pIds: string[] = [];
+            
             if (Array.isArray(reel.product_ids)) {
-              pIds = reel.product_ids;
+              // Agar native array hai toh uske andar ke quotes saaf karo
+              pIds = reel.product_ids.map(id => id.replace(/[^a-zA-Z0-9-]/g, ''));
             } else if (typeof reel.product_ids === 'string') {
-              // Har tarah ke brackets {}, [], "" ko hata kar clean ID nikalta hai
+              // Agar string hai toh brackets/quotes hatao aur split karo
               pIds = reel.product_ids
-                .replace(/[{}[\]"]/g, '')
-                .split(',')
-                .map((id: string) => id.trim())
-                .filter(Boolean);
+                .replace(/[^a-zA-Z0-9-,]/g, '')
+                .split(',');
             }
             
+            // Sirf valid lambi IDs (UUID) ko aage jaane do
+            pIds = pIds.filter(id => id.length > 20); 
+            
             pIds.forEach((id: string) => productIds.add(id));
-            reel.parsed_product_ids = pIds; // Save parsed version
+            reel.parsed_product_ids = pIds; 
           });
 
           setReels(reelsData);
