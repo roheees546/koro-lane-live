@@ -54,7 +54,7 @@ export default function DropsReelsFeed() {
             }
             
             // Sirf valid lambi IDs (UUID) ko aage jaane do
-            pIds = pIds.filter(id => id.length > 20); 
+          pIds = pIds.filter(id => id.length === 36 && id.includes('-'));
             
             pIds.forEach((id: string) => productIds.add(id));
             reel.parsed_product_ids = pIds; 
