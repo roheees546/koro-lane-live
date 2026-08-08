@@ -21,7 +21,7 @@ export default function DropsReelsFeed() {
   ]);
   const [newComment, setNewComment] = useState("");
 
-  useEffect(() => {
+ useEffect(() => {
     const fetchFeed = async () => {
       try {
         // 1. Fetch reels
@@ -40,15 +40,21 @@ export default function DropsReelsFeed() {
           reelsData.forEach(reel => {
             sellerIds.add(reel.dealer_id);
             
-            // Safe JSON Parse for product_ids (Ye fix karega tera pin na dikhne wala issue)
-            let pIds = reel.product_ids;
-            if (typeof pIds === 'string') {
-              try { pIds = JSON.parse(pIds); } catch(e) { pIds = []; }
+            // 🔥 BULLETPROOF PARSER: Supabase string de ya array, ye ID nikal lega
+            let pIds: string[] = [];
+            if (Array.isArray(reel.product_ids)) {
+              pIds = reel.product_ids;
+            } else if (typeof reel.product_ids === 'string') {
+              // Har tarah ke brackets {}, [], "" ko hata kar clean ID nikalta hai
+              pIds = reel.product_ids
+                .replace(/[{}[\]"]/g, '')
+                .split(',')
+                .map((id: string) => id.trim())
+                .filter(Boolean);
             }
-            if (Array.isArray(pIds)) {
-              pIds.forEach((id: string) => productIds.add(id));
-            }
-            reel.parsed_product_ids = pIds || []; // Save parsed version
+            
+            pIds.forEach((id: string) => productIds.add(id));
+            reel.parsed_product_ids = pIds; // Save parsed version
           });
 
           setReels(reelsData);
