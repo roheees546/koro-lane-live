@@ -45,7 +45,7 @@ export default function DropsReelsFeed() {
             
             if (Array.isArray(reel.product_ids)) {
               // Agar native array hai toh uske andar ke quotes saaf karo
-              pIds = reel.product_ids.map(id => id.replace(/[^a-zA-Z0-9-]/g, ''));
+            pIds = reel.product_ids.map((id: any) => String(id).replace(/[^a-zA-Z0-9-]/g, ''));
             } else if (typeof reel.product_ids === 'string') {
               // Agar string hai toh brackets/quotes hatao aur split karo
               pIds = reel.product_ids
