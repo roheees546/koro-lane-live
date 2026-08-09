@@ -22,6 +22,10 @@ export default function DealerDashboard() {
   const [stats, setStats] = useState({ todaySale: 0, pending: 0, totalSales: 0, liveStock: 0 });
   const [pipeline, setPipeline] = useState({ new: 0, packing: 0, shipped: 0, done: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+
+  // 🔥 ZINDA ACTIVE REELS DATA
+  const [activeReels, setActiveReels] = useState<any[]>([]);
+  const [now, setNow] = useState(Date.now());
   
   // Modals & UI States
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -55,6 +59,12 @@ export default function DealerDashboard() {
     { name: "Red", hex: "#FF0000" }, { name: "Olive", hex: "#808000" },
     { name: "Brown", hex: "#A52A2A" }, { name: "Beige", hex: "#F5F5DC" }
   ];
+
+  // Live Timer Clock Update
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
@@ -108,6 +118,17 @@ export default function DealerDashboard() {
       setJoinDate(`Joined ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`);
     }
 
+    // 🔥 48-HOURS REELS FETCH LOGIC
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const { data: reelsData } = await supabase
+      .from("reels")
+      .select("*")
+      .eq("dealer_id", session.user.id)
+      .gte("created_at", fortyEightHoursAgo)
+      .order("created_at", { ascending: false });
+    
+    setActiveReels(reelsData || []);
+
     const { data: inventory } = await supabase.from("products").select("*").eq("dealer_id", session.user.id).order("created_at", { ascending: false });
     const liveStockCount = inventory ? inventory.length : 0;
     const { data: orders } = await supabase.from("orders").select("*").eq("dealer_id", session.user.id).order("created_at", { ascending: false });
@@ -143,6 +164,15 @@ export default function DealerDashboard() {
     setStats({ todaySale: todayTotal, pending: newCount, totalSales: totalCount, liveStock: liveStockCount });
 
     setLoading(false);
+  };
+
+  const getRemainingTime = (createdAt: string) => {
+    const expiresAt = new Date(createdAt).getTime() + (48 * 60 * 60 * 1000);
+    const diff = expiresAt - now;
+    if (diff <= 0) return "Expired";
+    const h = Math.floor(diff / (1000 * 60 * 60));
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m`;
   };
 
   const handlePackItem = async (orderId: string) => {
@@ -419,7 +449,6 @@ export default function DealerDashboard() {
               </div>
             </div>
 
-            {/* 🔥 NEW CLEAN DROP STUDIO BUTTON */}
             <div 
               onClick={() => router.push('/dealer/live')} 
               className="bg-[#121214] border border-gray-800/60 p-4 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-[#00e599]/50 transition"
@@ -438,95 +467,64 @@ export default function DealerDashboard() {
           </div>
         </div>
 
-        {/* 🔥 ACTIVE DROPS SECTION (DUMMY UI DESIGN) */}
+        {/* 🔥 ACTIVE REELS SECTION (ZINDA DATA) */}
         <div className="mt-6 mb-6">
           <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="text-[11px] font-black text-gray-500 uppercase tracking-wider">Active Drops 🔴</h3>
-            <span className="text-[10px] text-[#00e599] font-bold cursor-pointer hover:underline">View All</span>
+            <h3 className="text-[11px] font-black text-gray-500 uppercase tracking-wider">Active Reels 🔴</h3>
+            {activeReels.length > 0 && <span className="text-[10px] text-[#00e599] font-bold cursor-pointer hover:underline">View All</span>}
           </div>
 
           <div className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar">
             
-            {/* Dummy Card 1 (Safe Time) */}
-            <div className="relative w-[130px] h-[200px] rounded-2xl overflow-hidden shrink-0 border border-white/10 bg-zinc-900 group cursor-pointer shadow-lg hover:border-[#00e599]/40 transition-all">
-              {/* Background Image / Thumbnail */}
-              <img 
-                src="https://placehold.co/400x600/121214/00e599?text=Thrift+Drop" 
-                alt="Thumbnail" 
-                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition duration-500"
-              />
-              {/* Gradient Overlay for Text */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90"></div>
-              
-              {/* Top Status */}
-              <div className="absolute top-2 left-2 right-2 flex justify-between items-center">
-                <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-white/10 flex items-center gap-1.5 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                  <span className="text-[8px] font-black text-white tracking-wider">LIVE</span>
-                </div>
-              </div>
+            {activeReels.map(reel => {
+              const remainingTime = getRemainingTime(reel.created_at);
+              const isExpiringSoon = remainingTime !== "Expired" && parseInt(remainingTime.split('h')[0]) < 12;
 
-              {/* Bottom Info */}
-              <div className="absolute bottom-2 left-2 right-2 flex flex-col gap-2">
-                {/* Timer */}
-                <div className="bg-[#00e599]/10 backdrop-blur-md border border-[#00e599]/30 rounded-lg px-2 py-1.5 flex items-center justify-center gap-1.5 shadow-[0_0_10px_rgba(0,229,153,0.1)]">
-                  <svg className="w-3 h-3 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  <span className="text-[10px] font-black text-[#00e599] tracking-wide">46h 12m</span>
-                </div>
-                
-                {/* Stats (Views & Likes) */}
-                <div className="flex justify-between items-center px-1">
-                  <div className="flex items-center gap-1">
-                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                    <span className="text-[9px] font-bold text-gray-300">124</span>
+              return (
+                <div key={reel.id} onClick={() => router.push('/live')} className={`relative w-[130px] h-[200px] rounded-2xl overflow-hidden shrink-0 border border-white/10 bg-zinc-900 group cursor-pointer shadow-lg transition-all ${isExpiringSoon ? 'hover:border-orange-500/40' : 'hover:border-[#00e599]/40'}`}>
+                  
+                  {/* Real Video background for actual preview */}
+                  <video 
+                    src={reel.video_url} 
+                    className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition duration-500" 
+                    preload="metadata" 
+                    muted 
+                    playsInline 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90"></div>
+                  
+                  {/* Top Status */}
+                  <div className="absolute top-2 left-2 right-2 flex justify-between items-center">
+                    <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-white/10 flex items-center gap-1.5 shadow-sm">
+                      <span className={`w-1.5 h-1.5 rounded-full ${remainingTime === "Expired" ? 'bg-gray-500' : 'bg-red-500 animate-pulse'}`}></span>
+                      <span className="text-[8px] font-black text-white tracking-wider">{remainingTime === "Expired" ? 'ENDED' : 'LIVE'}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                    <span className="text-[9px] font-bold text-gray-300">15</span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Dummy Card 2 (Expiring Soon - Orange/Red warning) */}
-            <div className="relative w-[130px] h-[200px] rounded-2xl overflow-hidden shrink-0 border border-white/10 bg-zinc-900 group cursor-pointer shadow-lg hover:border-orange-500/40 transition-all">
-              <img 
-                src="https://placehold.co/400x600/121214/f97316?text=Vintage+Tee" 
-                alt="Thumbnail" 
-                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90"></div>
-              
-              <div className="absolute top-2 left-2 right-2 flex justify-between items-center">
-                <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-white/10 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                  <span className="text-[8px] font-black text-white tracking-wider">LIVE</span>
-                </div>
-              </div>
-
-              <div className="absolute bottom-2 left-2 right-2 flex flex-col gap-2">
-                <div className="bg-orange-500/10 backdrop-blur-md border border-orange-500/30 rounded-lg px-2 py-1.5 flex items-center justify-center gap-1.5 shadow-[0_0_10px_rgba(249,115,22,0.1)]">
-                  <svg className="w-3 h-3 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  <span className="text-[10px] font-black text-orange-500 tracking-wide">02h 15m</span>
-                </div>
-                <div className="flex justify-between items-center px-1">
-                  <div className="flex items-center gap-1">
-                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                    <span className="text-[9px] font-bold text-gray-300">340</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                    <span className="text-[9px] font-bold text-gray-300">45</span>
+                  {/* Bottom Info */}
+                  <div className="absolute bottom-2 left-2 right-2 flex flex-col gap-2">
+                    <div className={`${remainingTime === "Expired" ? 'bg-gray-500/10 border-gray-500/30' : isExpiringSoon ? 'bg-orange-500/10 border-orange-500/30' : 'bg-[#00e599]/10 border-[#00e599]/30'} backdrop-blur-md border rounded-lg px-2 py-1.5 flex items-center justify-center gap-1.5 shadow-sm`}>
+                      <svg className={`w-3 h-3 ${remainingTime === "Expired" ? 'text-gray-500' : isExpiringSoon ? 'text-orange-500' : 'text-[#00e599]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                      <span className={`text-[10px] font-black tracking-wide ${remainingTime === "Expired" ? 'text-gray-500' : isExpiringSoon ? 'text-orange-500' : 'text-[#00e599]'}`}>{remainingTime}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center px-1">
+                      <div className="flex items-center gap-1">
+                        <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        <span className="text-[9px] font-bold text-gray-300">-</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                        <span className="text-[9px] font-bold text-gray-300">{reel.likes_count || 0}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              );
+            })}
 
             {/* Add New Drop Button */}
-            <div 
-              onClick={() => router.push('/dealer/live')} 
-              className="relative w-[130px] h-[200px] rounded-2xl overflow-hidden shrink-0 border border-dashed border-gray-700 bg-black/40 flex flex-col items-center justify-center cursor-pointer hover:border-[#00e599]/50 hover:bg-[#00e599]/5 transition group"
-            >
+            <div onClick={() => router.push('/dealer/live')} className="relative w-[130px] h-[200px] rounded-2xl overflow-hidden shrink-0 border border-dashed border-gray-700 bg-black/40 flex flex-col items-center justify-center cursor-pointer hover:border-[#00e599]/50 hover:bg-[#00e599]/5 transition group">
               <div className="w-10 h-10 rounded-full bg-gray-900 border border-gray-800 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg">
                 <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"></path></svg>
               </div>
