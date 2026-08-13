@@ -18,17 +18,16 @@ export default function DropsReelsFeed() {
   // 🔴 Interactions States
   const [likedReels, setLikedReels] = useState<Record<string, boolean>>({});
   const [activeCommentsReel, setActiveCommentsReel] = useState<string | null>(null);
-  const [dummyComments, setDummyComments] = useState<any[]>([
-    { id: 1, user: "Aman", text: "Bhai kya price hai iska?" },
-    { id: 2, user: "Sneha", text: "Looks dope! 🔥" },
-    { id: 3, user: "Rahul", text: "Is this size L?" }
-  ]);
+  
+  // 🟢 LIVE COMMENTS STATE (Replaced Dummy Comments)
+  const [realComments, setRealComments] = useState<any[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState("");
 
+  // 🟢 FETCH MAIN FEED
   useEffect(() => {
     const fetchFeed = async () => {
       try {
-        // 1. Fetch reels
         const { data: reelsData, error: reelsError } = await supabase
           .from('reels')
           .select('*')
@@ -40,7 +39,6 @@ export default function DropsReelsFeed() {
           const productIds = new Set<string>();
           const sellerIds = new Set<string>();
 
-          // Process each reel
           reelsData.forEach(reel => {
             sellerIds.add(reel.dealer_id);
             
@@ -58,7 +56,6 @@ export default function DropsReelsFeed() {
 
           setReels(reelsData);
 
-          // 2. Fetch Products
           if (productIds.size > 0) {
             const { data: productsData } = await supabase
               .from('products')
@@ -72,7 +69,6 @@ export default function DropsReelsFeed() {
             }
           }
 
-          // 3. Fetch Sellers (Profile)
           if (sellerIds.size > 0) {
             const { data: sellersData } = await supabase
               .from('profiles')
@@ -95,6 +91,27 @@ export default function DropsReelsFeed() {
 
     fetchFeed();
   }, []);
+
+  // 🟢 FETCH REAL COMMENTS (Jab Modal khule)
+  useEffect(() => {
+    if (!activeCommentsReel) return;
+    
+    const fetchComments = async () => {
+      setIsLoadingComments(true);
+      const { data, error } = await supabase
+        .from('reel_comments')
+        .select('*')
+        .eq('reel_id', activeCommentsReel)
+        .order('created_at', { ascending: true }); // Purane upar, naye neeche
+
+      if (!error && data) {
+        setRealComments(data);
+      }
+      setIsLoadingComments(false);
+    };
+
+    fetchComments();
+  }, [activeCommentsReel]);
 
   // Full Screen open hone par clicked reel par scroll scroll down
   useEffect(() => {
@@ -145,11 +162,30 @@ export default function DropsReelsFeed() {
     }
   };
 
-  const postComment = (e: React.FormEvent) => {
+  // 🟢 REAL POST COMMENT LOGIC
+  const postComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(!newComment.trim()) return;
-    setDummyComments([...dummyComments, { id: Date.now(), user: "You", text: newComment }]);
-    setNewComment("");
+    if(!newComment.trim() || !activeCommentsReel) return;
+
+    const currentText = newComment;
+    setNewComment(""); // Clear input instantly for snappy UI
+
+    // Optimistic Update: Show immediately on UI
+    const tempComment = { id: Date.now(), user_name: "You", comment_text: currentText };
+    setRealComments(prev => [...prev, tempComment]);
+
+    // Save to Supabase
+    const { error } = await supabase
+      .from('reel_comments')
+      .insert({
+        reel_id: activeCommentsReel,
+        user_name: "Thrift Lover", // TODO: Replace with real user's name later
+        comment_text: currentText
+      });
+
+    if (error) {
+      console.error("Error posting comment:", error);
+    }
   };
 
   if (isLoading) {
@@ -196,18 +232,14 @@ export default function DropsReelsFeed() {
               onClick={() => setSelectedReelIndex(index)}
               className="relative aspect-[9/16] bg-black group overflow-hidden cursor-pointer"
             >
-              {/* 🎥 VIDEO MINI PREVIEW */}
               <video 
                 src={reel.video_url}
                 muted
                 playsInline
                 className="absolute inset-0 w-full h-full object-cover transition duration-500 group-hover:scale-105"
               />
-              
-              {/* Dark Overlays */}
               <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80 pointer-events-none"></div>
 
-              {/* 🏪 SELLER AVATAR */}
               {seller && (
                 <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
                   <div className="w-5 h-5 rounded-full bg-gray-900 border border-[#00e599]/50 overflow-hidden shadow-lg">
@@ -220,7 +252,6 @@ export default function DropsReelsFeed() {
                 </div>
               )}
 
-              {/* 🛍️ PRODUCT INFO (Bottom) */}
               {product && (
                 <div className="absolute bottom-2 left-2 right-2 z-10 flex flex-col gap-0.5 pointer-events-none">
                   <div className="flex items-center gap-1">
@@ -245,7 +276,6 @@ export default function DropsReelsFeed() {
       {selectedReelIndex !== null && (
         <div className="fixed inset-0 z-50 bg-black max-w-[450px] mx-auto overflow-hidden animate-fade-in">
           
-          {/* ✕ CLOSE BUTTON */}
           <button 
             onClick={() => setSelectedReelIndex(null)}
             className="absolute top-4 right-4 z-50 w-9 h-9 bg-black/60 backdrop-blur-md rounded-full border border-white/20 flex items-center justify-center text-white text-base active:scale-90 transition"
@@ -253,7 +283,6 @@ export default function DropsReelsFeed() {
             ✕
           </button>
 
-          {/* 📜 SWIPEABLE CONTAINER */}
           <div 
             ref={fullScreenContainerRef}
             className="w-full h-full overflow-y-scroll snap-y snap-mandatory hide-scrollbar"
@@ -269,7 +298,6 @@ export default function DropsReelsFeed() {
                   key={reel.id} 
                   className="relative w-full h-[100dvh] snap-start bg-zinc-950 flex-shrink-0 flex items-center justify-center overflow-hidden"
                 >
-                  {/* 🎥 FULL SCREEN VIDEO PLAYER */}
                   <video 
                     src={reel.video_url}
                     autoPlay
@@ -279,10 +307,8 @@ export default function DropsReelsFeed() {
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                   
-                  {/* Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none"></div>
 
-                  {/* 🚀 TOP SELLER HEADER */}
                   <div className="absolute top-0 left-0 w-full z-30 p-4 pt-6 flex justify-between items-start pointer-events-none">
                     <div 
                       onClick={(e) => handleStoreClick(e, reel.dealer_id)}
@@ -305,9 +331,7 @@ export default function DropsReelsFeed() {
                     </div>
                   </div>
 
-                  {/* 💬 RIGHT SIDE ACTION BUTTONS */}
                   <div className="absolute bottom-32 right-4 z-30 flex flex-col items-center gap-6 pointer-events-auto">
-                    {/* Like */}
                     <button onClick={(e) => toggleLike(e, reel.id)} className="flex flex-col items-center gap-1 group active:scale-95 transition">
                       <div className="w-11 h-11 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition">
                         <svg className={`w-6 h-6 transition ${isLiked ? 'text-red-500 fill-red-500 animate-bounce' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -317,7 +341,6 @@ export default function DropsReelsFeed() {
                       <span className="text-[10px] font-bold text-white drop-shadow-md">{isLiked ? '1' : '0'}</span>
                     </button>
 
-                    {/* Comment */}
                     <button onClick={(e) => handleCommentClick(e, reel.id)} className="flex flex-col items-center gap-1 group active:scale-95 transition">
                       <div className="w-11 h-11 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition">
                         <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,7 +350,6 @@ export default function DropsReelsFeed() {
                       <span className="text-[10px] font-bold text-white drop-shadow-md">Chat</span>
                     </button>
 
-                    {/* Share */}
                     <button onClick={(e) => handleShare(e, reel.id)} className="flex flex-col items-center gap-1 group active:scale-95 transition">
                       <div className="w-11 h-11 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition">
                         <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,7 +360,6 @@ export default function DropsReelsFeed() {
                     </button>
                   </div>
 
-                  {/* 🛍️ PINNED PRODUCT CARD (Clicking this opens Product Detail) */}
                   {product && (
                     <div 
                       className="absolute bottom-24 left-4 z-30 pointer-events-auto cursor-pointer animate-fade-in-up" 
@@ -346,7 +367,6 @@ export default function DropsReelsFeed() {
                     >
                       <div className="w-[140px] bg-[#0a0a0c]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex flex-col shadow-2xl hover:border-[#00e599]/50 transition-all duration-300">
                         
-                        {/* Status Indicator */}
                         <div className="flex items-center gap-1.5 mb-2 px-1">
                           <span className={`w-2 h-2 rounded-full animate-pulse ${product.status === 'available' ? 'bg-[#00e599]' : 'bg-red-500'}`}></span>
                           <span className={`text-[9px] font-black uppercase tracking-widest ${product.status === 'available' ? 'text-[#00e599]' : 'text-red-500'}`}>
@@ -354,7 +374,6 @@ export default function DropsReelsFeed() {
                           </span>
                         </div>
                         
-                        {/* Product Image */}
                         <div className="w-full aspect-square rounded-xl overflow-hidden mb-2 relative bg-zinc-900 border border-white/5">
                           <img 
                             src={product.image_url || "https://placehold.co/400x400/121214/00e599?text=No+Image"} 
@@ -370,7 +389,6 @@ export default function DropsReelsFeed() {
                           )}
                         </div>
                         
-                        {/* Title & Price */}
                         <div className="px-1 pb-1">
                           <h3 className="text-[10px] font-bold leading-tight text-white mb-1 line-clamp-1">{product.title}</h3>
                           <div className="flex items-center justify-between">
@@ -389,7 +407,6 @@ export default function DropsReelsFeed() {
                     </div>
                   )}
 
-                  {/* Bottom Gradient */}
                   <div className="absolute bottom-0 w-full h-[150px] bg-gradient-to-t from-black via-black/60 to-transparent z-10 pointer-events-none"></div>
                 </div>
               );
@@ -402,12 +419,10 @@ export default function DropsReelsFeed() {
       {/* 💬 3. COMMENTS BOTTOM SHEET MODAL (Works in Full Screen too) */}
       {activeCommentsReel && (
         <div className="fixed inset-0 z-[60] flex flex-col justify-end pointer-events-auto">
-          {/* Backdrop Click to close */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActiveCommentsReel(null)}></div>
           
           <div className="relative w-full h-[60%] bg-[#121214] rounded-t-3xl border-t border-gray-800 flex flex-col animate-slide-up shadow-[0_-10px_40px_rgba(0,0,0,0.5)] max-w-[450px] mx-auto">
             
-            {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-800">
               <h3 className="font-black text-sm text-white flex items-center gap-2">
                 <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
@@ -416,22 +431,32 @@ export default function DropsReelsFeed() {
               <button onClick={() => setActiveCommentsReel(null)} className="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-gray-400 hover:text-white">✕</button>
             </div>
 
-            {/* Comments List */}
+            {/* 🟢 REAL COMMENTS LIST */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 hide-scrollbar">
-              {dummyComments.map((comment) => (
-                <div key={comment.id} className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">
-                    {comment.user.charAt(0)}
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-500">{comment.user}</span>
-                    <p className="text-xs text-white mt-0.5">{comment.text}</p>
-                  </div>
+              {isLoadingComments ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-[#00e599] border-t-transparent rounded-full animate-spin"></div>
                 </div>
-              ))}
+              ) : realComments.length === 0 ? (
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
+                  <span className="text-2xl mb-2">✨</span>
+                  <p className="text-xs font-bold">Be the first to comment!</p>
+                </div>
+              ) : (
+                realComments.map((comment) => (
+                  <div key={comment.id} className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">
+                      {comment.user_name?.charAt(0) || "U"}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-gray-500">{comment.user_name || "User"}</span>
+                      <p className="text-xs text-white mt-0.5">{comment.comment_text}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
-            {/* Add Comment Input */}
             <div className="p-4 border-t border-gray-800 bg-[#0a0a0c]">
               <form onSubmit={postComment} className="flex gap-2">
                 <input 
