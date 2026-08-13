@@ -19,10 +19,22 @@ export default function DropsReelsFeed() {
   const [likedReels, setLikedReels] = useState<Record<string, boolean>>({});
   const [activeCommentsReel, setActiveCommentsReel] = useState<string | null>(null);
   
-  // 🟢 LIVE COMMENTS STATE (Replaced Dummy Comments)
+  // 🟢 LIVE COMMENTS STATE
   const [realComments, setRealComments] = useState<any[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState("");
+
+  // 🟢 LOAD LIKES FROM LOCAL STORAGE ON MOUNT
+  useEffect(() => {
+    const savedLikes = localStorage.getItem("koro_liked_reels");
+    if (savedLikes) {
+      try {
+        setLikedReels(JSON.parse(savedLikes));
+      } catch (e) {
+        console.error("Error loading likes:", e);
+      }
+    }
+  }, []);
 
   // 🟢 FETCH MAIN FEED
   useEffect(() => {
@@ -92,7 +104,7 @@ export default function DropsReelsFeed() {
     fetchFeed();
   }, []);
 
-  // 🟢 FETCH REAL COMMENTS (Jab Modal khule)
+  // 🟢 FETCH REAL COMMENTS
   useEffect(() => {
     if (!activeCommentsReel) return;
     
@@ -102,7 +114,7 @@ export default function DropsReelsFeed() {
         .from('reel_comments')
         .select('*')
         .eq('reel_id', activeCommentsReel)
-        .order('created_at', { ascending: true }); // Purane upar, naye neeche
+        .order('created_at', { ascending: true }); 
 
       if (!error && data) {
         setRealComments(data);
@@ -113,7 +125,7 @@ export default function DropsReelsFeed() {
     fetchComments();
   }, [activeCommentsReel]);
 
-  // Full Screen open hone par clicked reel par scroll scroll down
+  // Full Screen open hone par clicked reel par scroll down
   useEffect(() => {
     if (selectedReelIndex !== null && fullScreenContainerRef.current) {
       const targetElement = fullScreenContainerRef.current.children[selectedReelIndex] as HTMLElement;
@@ -124,9 +136,15 @@ export default function DropsReelsFeed() {
   }, [selectedReelIndex]);
 
   // Handlers
+  
+  // 🟢 TOGGLE LIKE & SAVE TO BROWSER STORAGE
   const toggleLike = (e: React.MouseEvent, reelId: string) => {
     e.stopPropagation();
-    setLikedReels(prev => ({ ...prev, [reelId]: !prev[reelId] }));
+    setLikedReels(prev => {
+      const newState = { ...prev, [reelId]: !prev[reelId] };
+      localStorage.setItem("koro_liked_reels", JSON.stringify(newState));
+      return newState;
+    });
   };
 
   const handleProductClick = (e: React.MouseEvent, productId: string) => {
@@ -168,18 +186,16 @@ export default function DropsReelsFeed() {
     if(!newComment.trim() || !activeCommentsReel) return;
 
     const currentText = newComment;
-    setNewComment(""); // Clear input instantly for snappy UI
+    setNewComment(""); 
 
-    // Optimistic Update: Show immediately on UI
     const tempComment = { id: Date.now(), user_name: "You", comment_text: currentText };
     setRealComments(prev => [...prev, tempComment]);
 
-    // Save to Supabase
     const { error } = await supabase
       .from('reel_comments')
       .insert({
         reel_id: activeCommentsReel,
-        user_name: "Thrift Lover", // TODO: Replace with real user's name later
+        user_name: "Thrift Lover", 
         comment_text: currentText
       });
 
@@ -416,7 +432,7 @@ export default function DropsReelsFeed() {
         </div>
       )}
 
-      {/* 💬 3. COMMENTS BOTTOM SHEET MODAL (Works in Full Screen too) */}
+      {/* 💬 3. COMMENTS BOTTOM SHEET MODAL */}
       {activeCommentsReel && (
         <div className="fixed inset-0 z-[60] flex flex-col justify-end pointer-events-auto">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActiveCommentsReel(null)}></div>
@@ -431,7 +447,6 @@ export default function DropsReelsFeed() {
               <button onClick={() => setActiveCommentsReel(null)} className="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-gray-400 hover:text-white">✕</button>
             </div>
 
-            {/* 🟢 REAL COMMENTS LIST */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 hide-scrollbar">
               {isLoadingComments ? (
                 <div className="w-full h-full flex items-center justify-center">
