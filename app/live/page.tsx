@@ -36,13 +36,17 @@ export default function DropsReelsFeed() {
     }
   }, []);
 
-  // 🟢 FETCH MAIN FEED
+  // 🟢 FETCH MAIN FEED (WITH 48 HOUR FILTER)
   useEffect(() => {
     const fetchFeed = async () => {
       try {
+        // Calculate the time exactly 48 hours ago
+        const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+
         const { data: reelsData, error: reelsError } = await supabase
           .from('reels')
           .select('*')
+          .gte('created_at', fortyEightHoursAgo) // 🔴 THE FIX: Only fetch reels newer than 48 hours
           .order('created_at', { ascending: false });
 
         if (reelsError) throw reelsError;
@@ -93,6 +97,9 @@ export default function DropsReelsFeed() {
               setSellersMap(sMap);
             }
           }
+        } else {
+          // If no data returned after filter, set empty array
+          setReels([]);
         }
       } catch (err) {
         console.error("Error fetching feed:", err);
@@ -439,13 +446,15 @@ export default function DropsReelsFeed() {
           
           <div className="relative w-full h-[60%] bg-[#121214] rounded-t-3xl border-t border-gray-800 flex flex-col animate-slide-up shadow-[0_-10px_40px_rgba(0,0,0,0.5)] max-w-[450px] mx-auto">
             
-            <div className="flex items-center justify-between p-4 border-b border-gray-800">
-              <h3 className="font-black text-sm text-white flex items-center gap-2">
-                <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                Comments
-              </h3>
-              <button onClick={() => setActiveCommentsReel(null)} className="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-gray-400 hover:text-white">✕</button>
-            </div>
+          <div className="flex items-center justify-between p-4 border-b border-gray-800">
+  <h3 className="font-black text-sm text-white flex items-center gap-2">
+    <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    </svg>
+    Comments
+  </h3>
+  <button onClick={() => setActiveCommentsReel(null)} className="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-gray-400 hover:text-white">✕</button>
+</div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 hide-scrollbar">
               {isLoadingComments ? (
