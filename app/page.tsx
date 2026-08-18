@@ -212,6 +212,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 🚀 LATEST DROPS (NOW 3-COLUMN GRID) */}
       <section className="pb-8">
         <div className="flex justify-between items-center px-5 mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
@@ -220,12 +221,12 @@ export default function Home() {
           <Link href="/shop" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View all</Link>
         </div>
         
-        <div className="flex overflow-x-auto hide-scrollbar px-5 gap-4 snap-x snap-mandatory pb-4">
+        <div className="grid grid-cols-3 gap-2 px-5 pb-4">
           {products.length === 0 ? (
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest text-center w-full py-4">No drops available.</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest text-center w-full col-span-3 py-4">No drops available.</p>
           ) : (
             products.map((product) => (
-              <div key={product.id} onClick={() => handleCardClick(product)} className="w-[140px] shrink-0 snap-start bg-[#0a0a0c] border border-gray-900 rounded-xl overflow-hidden relative cursor-pointer hover:border-gray-700 transition flex flex-col">
+              <div key={product.id} onClick={() => handleCardClick(product)} className="w-full bg-[#0a0a0c] border border-gray-900 rounded-xl overflow-hidden relative cursor-pointer hover:border-gray-700 transition flex flex-col">
                 <div className="relative aspect-[4/5] bg-gray-900">
                   <div className="absolute top-2 right-2 z-30">
                     <WishlistButton productId={product.id} onRequireAuth={() => setIsAuthModalOpen(true)} />
@@ -245,7 +246,7 @@ export default function Home() {
 
                   <img src={product.image_urls?.[0] || product.image_url} alt={product.title} className="w-full h-full object-cover" />
                 </div>
-                <div className="p-3 flex flex-col flex-grow justify-between bg-gradient-to-t from-black to-[#0a0a0c]">
+                <div className="p-2 flex flex-col flex-grow justify-between bg-gradient-to-t from-black to-[#0a0a0c]">
                   <div>
                     <h4 className="text-[10px] font-bold uppercase truncate text-gray-200">{product.title}</h4>
                     <p className="text-[8px] text-gray-500 mt-0.5">{product.size || 'Free Size'}</p>
@@ -264,7 +265,7 @@ export default function Home() {
                       }} 
                       className={`w-full text-[8px] font-black uppercase py-1.5 rounded transition ${product.isOnHold ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : product.is_sold ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-[#00e599]/10 text-[#00e599] hover:bg-[#00e599] hover:text-black border border-[#00e599]/20'}`}
                     >
-                      {product.isOnHold ? 'On Hold ⏳' : product.is_sold ? 'Sold Out 🚫' : 'Buy Now'}
+                      {product.isOnHold ? 'On Hold' : product.is_sold ? 'Sold Out' : 'Buy Now'}
                     </button>
                   </div>
                 </div>
@@ -274,13 +275,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🔴 LIVE SHOPPING BLOCK */}
+      {/* 🔴 FEED BLOCK */}
       <section className="px-5 pb-8">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
-             <span className="text-red-500 animate-pulse">🔴</span> LIVE SHOPPING
+             <span className="text-[#00e599] animate-pulse">⚡</span> FEED
           </h3>
-          <Link href="/live" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View live</Link>
+          <Link href="/live" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View feed</Link>
         </div>
         
         <div className="bg-[#0a0a0c] border border-gray-900 rounded-2xl p-5 flex flex-col relative overflow-hidden">
@@ -301,7 +302,7 @@ export default function Home() {
           </div>
           
           <Link href="/live" className="w-full text-center bg-white text-black text-[9px] font-black uppercase tracking-widest py-3.5 rounded-xl hover:bg-gray-200 transition z-10 shadow-[0_0_15px_rgba(255,255,255,0.1)] active:scale-[0.98]">
-            Enter Live Stream
+            Enter Feed
           </Link>
         </div>
       </section>
