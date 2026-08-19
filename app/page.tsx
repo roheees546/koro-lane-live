@@ -213,7 +213,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 LATEST DROPS (NOW 3-COLUMN GRID) */}
+      {/* 🚀 LATEST DROPS (NOW 2-COLUMN GRID) */}
       <section className="pb-8">
         <div className="flex justify-between items-center px-5 mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
@@ -222,9 +222,10 @@ export default function Home() {
           <Link href="/shop" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View all</Link>
         </div>
         
-        <div className="grid grid-cols-3 gap-2 px-5 pb-4">
+        {/* 🔴 Changed to grid-cols-2 and gap-3 for better 2-column spacing */}
+        <div className="grid grid-cols-2 gap-3 px-5 pb-4">
           {products.length === 0 ? (
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest text-center w-full col-span-3 py-4">No drops available.</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest text-center w-full col-span-2 py-4">No drops available.</p>
           ) : (
             products.map((product) => (
               <div key={product.id} onClick={() => handleCardClick(product)} className="w-full bg-[#0a0a0c] border border-gray-900 rounded-xl overflow-hidden relative cursor-pointer hover:border-gray-700 transition flex flex-col">
