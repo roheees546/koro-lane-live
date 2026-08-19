@@ -54,32 +54,31 @@ export default function ScoutTerminal() {
 
     let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
     
-    // 🔒 STRICT ROLE LOCK: Agar ye banda SELLER (dealer) hai, toh isko uske dashboard pe bhej do! Overwrite mat karo!
+    // 🔒 STRICT ROLE LOCK: Agar ye banda SELLER (dealer) hai, toh isko uske dashboard pe bhej do!
     if (profile && profile.role === 'dealer') {
       router.push("/dealer");
       return;
     }
 
-    // 🆕 NAYA BUYER CREATION (Agar profile DB mein nahi hai)
+    // 🆕 NAYA BUYER CREATION (Clean Slate)
     if (!profile) {
       const { data: newProfile } = await supabase.from("profiles").insert({
         id: session.user.id,
         email: userEmail,
         role: "scout",
-        full_name: userEmail.split("@")[0]
+        full_name: "" // 🔴 Blank chhod diya taaki fake auto-feed na ho
       }).select().single();
       
       if (newProfile) profile = newProfile;
     } else if (profile && !profile.email) {
-      // Sync email just in case
       await supabase.from("profiles").update({ email: userEmail }).eq("id", session.user.id);
       profile.email = userEmail;
     }
 
-    // Remove any memory hacks
     if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
 
-    const nameToUse = profile?.full_name || userEmail.split("@")[0];
+    // 🔴 Agar full_name nahi hai, toh auto-email lene ke bajaye "New Buyer" dikhayega
+    const nameToUse = profile?.full_name || "New Buyer";
     setFullName(nameToUse);
     
     if (profile) {
@@ -133,7 +132,7 @@ export default function ScoutTerminal() {
     setSaving(true);
     const { error } = await supabase.from("profiles").update({ full_name: editName, phone: editPhone, alt_phone: editAltPhone, address: editAddress, upi_id: editUpi, insta_id: editInsta }).eq("id", userId);
     if (!error) {
-      setFullName(editName); 
+      setFullName(editName || "New Buyer"); 
       setShowProfileModal(false);
     }
     setSaving(false);
@@ -165,9 +164,7 @@ export default function ScoutTerminal() {
     try {
       const { data: followsData } = await supabase.from("follows").select("*").eq("follower_id", userId);
       if (followsData && followsData.length > 0) {
-        // Universal ID Check: Support for multiple possible column names
         const getTargetId = (f: any) => f.seller_id || f.following_id || f.dealer_id || f.profile_id;
-        
         const sellerIds = followsData.map(f => getTargetId(f)).filter(Boolean);
         
         if (sellerIds.length > 0) {
@@ -201,7 +198,6 @@ export default function ScoutTerminal() {
   const activeCount = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled').length;
   const deliveredCount = orders.filter(o => o.status === 'delivered').length;
   const historyCount = orders.length;
-  const defaultAvatar = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=200&h=200";
 
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans pb-12 selection:bg-[#00e599] selection:text-black overflow-x-hidden">
@@ -252,7 +248,15 @@ export default function ScoutTerminal() {
             
             <div className="flex flex-col items-center justify-center mb-6">
               <label className="relative cursor-pointer group">
-                <img src={avatarUrl || defaultAvatar} className="w-24 h-24 rounded-full border-2 border-[#00e599] object-cover" />
+                {/* 🔴 MODIFIED: Conditional Avatar Rendering */}
+                {avatarUrl ? (
+                  <img src={avatarUrl} className="w-24 h-24 rounded-full border-2 border-[#00e599] object-cover" />
+                ) : (
+                  <div className="w-24 h-24 rounded-full border-2 border-[#00e599] bg-[#121214] flex items-center justify-center text-3xl font-black text-[#00e599] uppercase">
+                    {fullName && fullName !== "New Buyer" ? fullName.charAt(0) : "U"}
+                  </div>
+                )}
+                
                 <div className="absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition">
                   <svg className="w-6 h-6 text-white mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                   <span className="text-[9px] text-white font-bold uppercase">{uploading ? 'Uploading...' : 'Open Gallery'}</span>
@@ -262,7 +266,7 @@ export default function ScoutTerminal() {
             </div>
 
             <form onSubmit={handleSaveProfile} className="space-y-4">
-              <div><label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Full Name</label><input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-[#121214] border border-gray-800 rounded-xl p-3 text-sm text-white mt-1 focus:border-[#00e599] outline-none" required /></div>
+              <div><label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Full Name</label><input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-[#121214] border border-gray-800 rounded-xl p-3 text-sm text-white mt-1 focus:border-[#00e599] outline-none" required placeholder="Enter your name" /></div>
               <div><label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Full Address</label><textarea value={editAddress} onChange={e => setEditAddress(e.target.value)} rows={3} className="w-full bg-[#121214] border border-gray-800 rounded-xl p-3 text-sm text-white mt-1 focus:border-[#00e599] outline-none resize-none" placeholder="House no, Street, City, Pincode" required /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Mobile No.</label><input type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)} className="w-full bg-[#121214] border border-gray-800 rounded-xl p-3 text-sm text-white mt-1 focus:border-[#00e599] outline-none" required /></div>
@@ -313,7 +317,15 @@ export default function ScoutTerminal() {
                <div className="absolute top-0 left-0 w-32 h-32 bg-[#00e599] rounded-full blur-[80px] opacity-[0.15]"></div>
                <div className="flex items-center gap-4 relative z-10">
                   <div className="relative">
-                     <img src={avatarUrl || defaultAvatar} className="w-16 h-16 rounded-full border-2 border-[#00e599] object-cover bg-gray-900" />
+                     {/* 🔴 MODIFIED: Conditional Avatar Rendering */}
+                     {avatarUrl ? (
+                       <img src={avatarUrl} className="w-16 h-16 rounded-full border-2 border-[#00e599] object-cover bg-gray-900" />
+                     ) : (
+                       <div className="w-16 h-16 rounded-full border-2 border-[#00e599] bg-[#121214] flex items-center justify-center text-xl font-black text-[#00e599] uppercase">
+                         {fullName && fullName !== "New Buyer" ? fullName.charAt(0) : "U"}
+                       </div>
+                     )}
+                     
                      <div className="absolute bottom-0 right-0 bg-[#00e599] text-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-[#0a0a0c]">
                         <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                      </div>
@@ -323,11 +335,11 @@ export default function ScoutTerminal() {
                      <div className="flex items-center gap-1 mt-0.5 bg-[#003320] text-[#00e599] px-2 py-0.5 rounded w-max">
                        <span className="text-[8px] font-black uppercase tracking-widest">Verified Buyer ✓</span>
                      </div>
-                     <p className="text-[10px] text-gray-400 font-medium mt-1.5 leading-tight">Building my thrift wardrobe<br/>one piece at a time.</p>
-                     <p className="text-[10px] text-gray-500 font-bold mt-1.5 flex items-center gap-1">📍 {editAddress ? editAddress.split(',')[0] : "Update Address"}</p>
+                     {/* 🔴 MODIFIED: Removed hardcoded fake bio */}
+                     <p className="text-[10px] text-gray-500 font-bold mt-2.5 flex items-center gap-1">📍 {editAddress ? editAddress.split(',')[0] : "Update Address"}</p>
                   </div>
                   <div className="flex items-center gap-1 text-[9px] font-black text-gray-500 uppercase tracking-widest group-hover:text-[#00e599] transition">
-                     Edit Profile <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                     Edit <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                   </div>
                </div>
             </div>
@@ -470,7 +482,7 @@ export default function ScoutTerminal() {
           </div>
         )}
 
-        {/* 🎛️ VIEW 4: REAL FOLLOWING LIST (Clickable with Universal ID Check) */}
+        {/* 🎛️ VIEW 4: REAL FOLLOWING LIST */}
         {activeView === 'following' && (
           <div className="px-6 space-y-4 animate-in slide-in-from-right duration-300">
             <button onClick={() => setActiveView('dashboard')} className="flex items-center gap-2 text-gray-400 hover:text-white text-[10px] font-black uppercase tracking-widest mb-6 transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>Back to Dashboard</button>
