@@ -23,6 +23,7 @@ export default function ProductDetailPage() {
   const [isZoomed, setIsZoomed] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false); // 🔴 NEW: Drag tracker
   const [upiCopied, setUpiCopied] = useState(false);
 
   // Checkout States
@@ -84,27 +85,43 @@ export default function ProductDetailPage() {
     if (productId) fetchProductDetails();
   }, [productId]);
 
-  // 🔥 SWIPE GESTURE HANDLERS
-  const onTouchStart = (e: React.TouchEvent) => {
+  // 🔥 UNIFIED SWIPE & MOUSE DRAG GESTURE HANDLERS
+  const handleDragStart = (clientX: number) => {
+    setIsDragging(false);
+    setTouchStart(clientX);
     setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
   };
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-  const onTouchEndEvent = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-    const imagesArray = product.image_urls?.length > 0 ? product.image_urls : [product.image_url].filter(Boolean);
-    
-    if (isLeftSwipe) {
-      setActiveImage(prev => (prev === imagesArray.length - 1 ? 0 : prev + 1));
+
+  const handleDragMove = (clientX: number) => {
+    if (touchStart === null) return;
+    setTouchEnd(clientX);
+    if (Math.abs(touchStart - clientX) > 10) {
+      setIsDragging(true); // Tag as dragging so it doesn't zoom
     }
-    if (isRightSwipe) {
+  };
+
+  const handleDragEnd = () => {
+    if (!touchStart || !touchEnd) {
+      setTouchStart(null);
+      setTouchEnd(null);
+      return;
+    }
+    
+    const distance = touchStart - touchEnd;
+    const imagesArray = product?.image_urls?.length > 0 ? product.image_urls : [product?.image_url].filter(Boolean);
+    
+    if (distance > 50) {
+      setActiveImage(prev => (prev === imagesArray.length - 1 ? 0 : prev + 1));
+    } else if (distance < -50) {
       setActiveImage(prev => (prev === 0 ? imagesArray.length - 1 : prev - 1));
     }
+    
+    // Reset interaction state smoothly
+    setTimeout(() => {
+      setTouchStart(null);
+      setTouchEnd(null);
+      setIsDragging(false);
+    }, 50);
   };
 
   const handleShare = () => {
@@ -171,12 +188,16 @@ export default function ProductDetailPage() {
         </button>
       </header>
 
-      {/* 🔥 SWIPEABLE IMAGE CONTAINER */}
+      {/* 🔥 MOUSE & TOUCH SWIPEABLE IMAGE CONTAINER */}
       <div 
-        className="relative w-full aspect-[4/5] bg-[#121214] max-w-xl mx-auto"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEndEvent}
+        className="relative w-full aspect-[4/5] bg-[#121214] max-w-xl mx-auto overflow-hidden select-none"
+        onTouchStart={(e) => handleDragStart(e.targetTouches[0].clientX)}
+        onTouchMove={(e) => handleDragMove(e.targetTouches[0].clientX)}
+        onTouchEnd={handleDragEnd}
+        onMouseDown={(e) => handleDragStart(e.clientX)}
+        onMouseMove={(e) => handleDragMove(e.clientX)}
+        onMouseUp={handleDragEnd}
+        onMouseLeave={handleDragEnd}
       >
         {/* RIGHT SIDE ACTION BUTTONS (Share + Wishlist) */}
         <div className="absolute top-4 right-4 flex flex-col items-center gap-3 z-30 pointer-events-auto">
@@ -190,7 +211,7 @@ export default function ProductDetailPage() {
         </div>
 
         {product.is_sold && (
-          <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-sm">
+          <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-sm pointer-events-none">
             {pendingOrder ? (
               <div className="bg-yellow-600 border-2 border-black text-white text-2xl font-black uppercase px-6 py-2 tracking-widest rotate-[-15deg] shadow-2xl">ON HOLD ⏳</div>
             ) : (
@@ -200,17 +221,30 @@ export default function ProductDetailPage() {
         )}
         
         {images.length > 0 ? (
-          <img onClick={() => setIsZoomed(true)} src={images[activeImage]} alt={product.title} className="w-full h-full object-cover cursor-pointer" />
+          <img 
+            onClick={(e) => {
+              if (isDragging) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+              }
+              setIsZoomed(true);
+            }} 
+            src={images[activeImage]} 
+            alt={product.title} 
+            draggable={false}
+            className="w-full h-full object-cover cursor-pointer pointer-events-auto" 
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-700 font-bold uppercase">No Image Available</div>
         )}
         
         {images.length > 1 && (
           <div className="absolute bottom-4 left-0 w-full flex justify-center gap-2 z-10">
-            {images.map((url: any, idx: number) => <button key={idx} onClick={() => setActiveImage(idx)} className={`w-2 h-2 rounded-full transition-all ${activeImage === idx ? 'bg-[#00e599] w-6' : 'bg-white/50 hover:bg-white'}`} />)}
+            {images.map((url: any, idx: number) => <button key={idx} onClick={(e) => { e.stopPropagation(); setActiveImage(idx); }} className={`w-2 h-2 rounded-full transition-all ${activeImage === idx ? 'bg-[#00e599] w-6' : 'bg-white/50 hover:bg-white'}`} />)}
           </div>
         )}
-        <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#050505] to-transparent z-0"></div>
+        <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#050505] to-transparent z-0 pointer-events-none"></div>
       </div>
 
       <div className="px-5 w-full max-w-xl mx-auto pt-6">
@@ -219,7 +253,6 @@ export default function ProductDetailPage() {
           {product.category && <span className="bg-[#121214] text-gray-300 border border-gray-800 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-sm">{product.category}</span>}
         </div>
         
-        {/* 🔥 NEW LAYOUT: TITLE + PRICE on LEFT, SELLER BLOCK on RIGHT */}
         <div className="flex justify-between items-start mb-8 gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-black text-white uppercase tracking-tight leading-tight mb-2">{product.title}</h1>
@@ -248,7 +281,6 @@ export default function ProductDetailPage() {
             <svg className="w-5 h-5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           </div>
 
-          {/* 🔥 MISSING DETAILS GRID FIXED: Now pulling from product.measurements */}
           {(product.measurements?.chest || product.measurements?.length || product.measurements?.shoulder || product.measurements?.sleeve || product.color || product.material) && (
             <div className="grid grid-cols-2 gap-3 mt-4">
               {product.measurements?.chest && (
@@ -298,7 +330,6 @@ export default function ProductDetailPage() {
           </div>
         )}
 
-        {/* 🔥 ENGAGEMENT COMPONENT (Comments only) */}
         <div className="mt-8 mb-6">
           <ProductEngagement productId={product.id} sellerId={product.dealer_id || seller?.id} />
         </div>
@@ -401,7 +432,7 @@ export default function ProductDetailPage() {
 
                   <div className="grid grid-cols-1 gap-3">
                     <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex justify-center items-center gap-2">
-                      <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path></svg>
+                      <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path></svg>
                       <span className="text-[10px] text-[#00e599] font-bold uppercase tracking-widest">Hurry! Only 1 piece left in stock</span>
                     </div>
                   </div>
@@ -502,7 +533,7 @@ export default function ProductDetailPage() {
           <img 
             src={images[activeImage]} 
             alt="Zoomed"
-            className="w-full h-auto max-h-[90vh] object-contain animate-in zoom-in duration-300" 
+            className="w-full h-auto max-h-[90vh] object-contain animate-in zoom-in duration-300 pointer-events-none" 
           />
         </div>
       )}
