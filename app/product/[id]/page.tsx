@@ -19,12 +19,13 @@ export default function ProductDetailPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [copied, setCopied] = useState(false);
   
-  // 🔥 Image Zoom, Swipe & UPI Copy States
+  // 🔥 Image Zoom & UPI Copy States
   const [isZoomed, setIsZoomed] = useState(false);
+  const [upiCopied, setUpiCopied] = useState(false);
+
+  // Mobile Touch States for Swipe (Optional fallback)
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false); // 🔴 NEW: Drag tracker
-  const [upiCopied, setUpiCopied] = useState(false);
 
   // Checkout States
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -32,6 +33,8 @@ export default function ProductDetailPage() {
   const [timeLeft, setTimeLeft] = useState(565); 
   const [formData, setFormData] = useState({ name: '', phone: '', address: '', pincode: '' });
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const images = product?.image_urls?.length > 0 ? product.image_urls : [product?.image_url].filter(Boolean);
 
   // FOMO Timer Logic
   useEffect(() => {
@@ -85,43 +88,35 @@ export default function ProductDetailPage() {
     if (productId) fetchProductDetails();
   }, [productId]);
 
-  // 🔥 UNIFIED SWIPE & MOUSE DRAG GESTURE HANDLERS
-  const handleDragStart = (clientX: number) => {
-    setIsDragging(false);
-    setTouchStart(clientX);
+  // 🔥 ARROW NAVIGATION LOGIC
+  const handlePrevImage = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevents zooming when clicking arrow
+    if (images.length <= 1) return;
+    setActiveImage(prev => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevents zooming when clicking arrow
+    if (images.length <= 1) return;
+    setActiveImage(prev => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
+  // 🔥 MOBILE SWIPE HANDLERS (Smooth fallback for phones)
+  const handleTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
   };
-
-  const handleDragMove = (clientX: number) => {
-    if (touchStart === null) return;
-    setTouchEnd(clientX);
-    if (Math.abs(touchStart - clientX) > 10) {
-      setIsDragging(true); // Tag as dragging so it doesn't zoom
-    }
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
   };
-
-  const handleDragEnd = () => {
-    if (!touchStart || !touchEnd) {
-      setTouchStart(null);
-      setTouchEnd(null);
-      return;
-    }
-    
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
     const distance = touchStart - touchEnd;
-    const imagesArray = product?.image_urls?.length > 0 ? product.image_urls : [product?.image_url].filter(Boolean);
-    
     if (distance > 50) {
-      setActiveImage(prev => (prev === imagesArray.length - 1 ? 0 : prev + 1));
+      setActiveImage(prev => (prev === images.length - 1 ? 0 : prev + 1));
     } else if (distance < -50) {
-      setActiveImage(prev => (prev === 0 ? imagesArray.length - 1 : prev - 1));
+      setActiveImage(prev => (prev === 0 ? images.length - 1 : prev - 1));
     }
-    
-    // Reset interaction state smoothly
-    setTimeout(() => {
-      setTouchStart(null);
-      setTouchEnd(null);
-      setIsDragging(false);
-    }, 50);
   };
 
   const handleShare = () => {
@@ -172,7 +167,6 @@ export default function ProductDetailPage() {
   if (loading) return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-[#00e599] font-bold text-xs uppercase tracking-widest animate-pulse">Loading Heat...</div>;
   if (!product) return <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center text-white"><p className="mb-4 uppercase font-bold tracking-widest text-sm">Product not found</p><button onClick={() => router.back()} className="text-[#00e599] border border-[#00e599] px-6 py-2 rounded-lg font-bold text-xs uppercase">Go Back</button></div>;
 
-  const images = product.image_urls?.length > 0 ? product.image_urls : [product.image_url].filter(Boolean);
   const itemPrice = product.price || 0;
   const totalPrice = itemPrice; // Delivery free
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
@@ -188,27 +182,40 @@ export default function ProductDetailPage() {
         </button>
       </header>
 
-      {/* 🔥 MOUSE & TOUCH SWIPEABLE IMAGE CONTAINER */}
+      {/* 🔥 MAIN IMAGE CONTAINER WITH ARROWS */}
       <div 
-        className="relative w-full aspect-[4/5] bg-[#121214] max-w-xl mx-auto overflow-hidden select-none"
-        onTouchStart={(e) => handleDragStart(e.targetTouches[0].clientX)}
-        onTouchMove={(e) => handleDragMove(e.targetTouches[0].clientX)}
-        onTouchEnd={handleDragEnd}
-        onMouseDown={(e) => handleDragStart(e.clientX)}
-        onMouseMove={(e) => handleDragMove(e.clientX)}
-        onMouseUp={handleDragEnd}
-        onMouseLeave={handleDragEnd}
+        className="relative w-full aspect-[4/5] bg-[#121214] max-w-xl mx-auto overflow-hidden select-none group"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         {/* RIGHT SIDE ACTION BUTTONS (Share + Wishlist) */}
         <div className="absolute top-4 right-4 flex flex-col items-center gap-3 z-30 pointer-events-auto">
           <button onClick={handleShare} className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:text-[#00e599] transition shadow-lg">
             {copied ? <svg className="w-5 h-5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>}
           </button>
-          {/* Wishlist Button wrapped properly for vertical stacking */}
           <div className="relative w-10 flex items-center justify-center">
             <WishlistButton productId={product.id} onRequireAuth={() => alert("Please login from the Home page first to save items to your wishlist!")} />
           </div>
         </div>
+
+        {/* 🔥 MAIN SLIDER ARROWS */}
+        {images.length > 1 && (
+          <>
+            <button 
+              onClick={handlePrevImage} 
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:text-[#00e599] hover:bg-black/60 transition shadow-lg opacity-0 group-hover:opacity-100 sm:opacity-100"
+            >
+              <svg className="w-5 h-5 pr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+            <button 
+              onClick={handleNextImage} 
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:text-[#00e599] hover:bg-black/60 transition shadow-lg opacity-0 group-hover:opacity-100 sm:opacity-100"
+            >
+              <svg className="w-5 h-5 pl-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </>
+        )}
 
         {product.is_sold && (
           <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-sm pointer-events-none">
@@ -222,18 +229,11 @@ export default function ProductDetailPage() {
         
         {images.length > 0 ? (
           <img 
-            onClick={(e) => {
-              if (isDragging) {
-                e.preventDefault();
-                e.stopPropagation();
-                return;
-              }
-              setIsZoomed(true);
-            }} 
+            onClick={() => setIsZoomed(true)} 
             src={images[activeImage]} 
             alt={product.title} 
             draggable={false}
-            className="w-full h-full object-cover cursor-pointer pointer-events-auto" 
+            className="w-full h-full object-cover cursor-zoom-in pointer-events-auto" 
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-700 font-bold uppercase">No Image Available</div>
@@ -335,6 +335,7 @@ export default function ProductDetailPage() {
         </div>
 
       </div>
+
       <div className="fixed bottom-[72px] left-0 w-full bg-[#0a0a0c]/90 backdrop-blur-lg border-t border-gray-800 z-30 p-4">
         <div className="max-w-xl mx-auto flex items-center justify-between gap-4">
           <div className="flex flex-col">
@@ -353,6 +354,7 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
+      {/* 🚀 CHECKOUT MODAL (Kept Exactly Same) */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-sm">
           <div className="bg-[#050505] w-full sm:max-w-lg h-[95vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl border border-gray-800 shadow-2xl flex flex-col relative overflow-hidden animate-in slide-in-from-bottom-full duration-300">
@@ -525,15 +527,35 @@ export default function ProductDetailPage() {
         </div>
       )}
 
+      {/* 🔥 ZOOM MODAL WITH ARROWS */}
       {isZoomed && (
         <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center" onClick={() => setIsZoomed(false)}>
           <button className="absolute top-6 right-6 text-white bg-black/50 p-2 rounded-full z-50 hover:bg-black/80 transition">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
+
+          {images.length > 1 && (
+            <>
+              <button 
+                onClick={handlePrevImage} 
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-[110] w-12 h-12 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white hover:bg-black/80 hover:text-[#00e599] transition shadow-2xl"
+              >
+                <svg className="w-6 h-6 pr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
+              </button>
+              <button 
+                onClick={handleNextImage} 
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-[110] w-12 h-12 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white hover:bg-black/80 hover:text-[#00e599] transition shadow-2xl"
+              >
+                <svg className="w-6 h-6 pl-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
+              </button>
+            </>
+          )}
+
           <img 
+            onClick={(e) => e.stopPropagation()} // Keeps zoom open if clicking directly on image
             src={images[activeImage]} 
             alt="Zoomed"
-            className="w-full h-auto max-h-[90vh] object-contain animate-in zoom-in duration-300 pointer-events-none" 
+            className="w-full h-auto max-h-[90vh] object-contain animate-in zoom-in duration-300 pointer-events-auto" 
           />
         </div>
       )}
