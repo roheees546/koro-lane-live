@@ -683,10 +683,10 @@ export default function InventoryPage() {
               </form>
             </div>
             
-            {/* Footer Sticky */}
+          {/* Footer Sticky */}
             <div className="sticky bottom-0 bg-[#0a0a0c] md:bg-[#121214] z-20 px-6 py-4 border-t border-gray-800">
-              <button type="submit" form="add-product-form" disabled={isAdding || (['Top', 'Bottom'].includes(itemCategory) && !measurementsConfirmed)} className="w-full bg-[#F5A623] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] transition shadow-[0_0_15px_rgba(245,166,35,0.2)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2">
-                {isAdding ? (
+              <button type="submit" form="add-product-form" disabled={isCreating || (['Top', 'Bottom'].includes(itemCategory) && !measurementsConfirmed)} className="w-full bg-[#F5A623] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] transition shadow-[0_0_15px_rgba(245,166,35,0.2)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2">
+                {isCreating ? (
                   <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span> Publishing...</>
                 ) : (
                   <>
