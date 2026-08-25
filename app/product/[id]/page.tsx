@@ -131,9 +131,11 @@ export default function ProductDetailPage() {
     setTimeout(() => setUpiCopied(false), 2000);
   };
 
+  // 🔥 CORE LOGIC FOR ON-HOLD (I HAVE PAID)
   const handlePaymentConfirm = async () => {
     setIsProcessing(true);
     try {
+      // 1. Create the Pending Order
       const { error: orderError } = await supabase.from('orders').insert([{
         dealer_id: product.dealer_id, 
         product_id: product.id, 
@@ -151,12 +153,21 @@ export default function ProductDetailPage() {
       
       if (orderError) throw orderError;
 
+      // 2. 🔥 INSTANT HOLD LOGIC (is_sold = true)
+      // Jab tak Admin reject na kare, item baakiyo ke liye ON HOLD rahega
       const { error: productError } = await supabase.from('products').update({ is_sold: true }).eq('id', product.id);
       if (productError) throw productError;
 
       const message = `Hi, I just paid ₹${product.price} for ${product.title} (ID: ${product.id}).\n\nDelivery Details:\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}, Pincode: ${formData.pincode}\n\nPlease verify my payment screenshot attached.`;
+      
+      // Redirect to WhatsApp
       window.location.href = `https://wa.me/919027434335?text=${encodeURIComponent(message)}`;
       
+      // Update UI Instantly
+      setProduct((prev: any) => ({ ...prev, is_sold: true }));
+      setPendingOrder(true);
+      setIsCheckoutOpen(false);
+
     } catch (error: any) {
       alert("Error placing order: " + error.message);
     } finally {
@@ -354,7 +365,7 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* 🚀 CHECKOUT MODAL (Kept Exactly Same) */}
+      {/* 🚀 CHECKOUT MODAL */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-sm">
           <div className="bg-[#050505] w-full sm:max-w-lg h-[95vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl border border-gray-800 shadow-2xl flex flex-col relative overflow-hidden animate-in slide-in-from-bottom-full duration-300">
@@ -552,7 +563,7 @@ export default function ProductDetailPage() {
           )}
 
           <img 
-            onClick={(e) => e.stopPropagation()} // Keeps zoom open if clicking directly on image
+            onClick={(e) => e.stopPropagation()} 
             src={images[activeImage]} 
             alt="Zoomed"
             className="w-full h-auto max-h-[90vh] object-contain animate-in zoom-in duration-300 pointer-events-auto" 
