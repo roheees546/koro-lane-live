@@ -383,7 +383,7 @@ export default function MiniStorePage() {
           </div>
         )}
 
-        {/* 🚀 TAB: POLICIES */}
+        {/* 🚀 TAB: POLICIES (Upgraded Professional Wording) */}
         {activeTab === 'Policies' && (
           <div className="py-6 space-y-4 animate-in fade-in duration-300">
             <div className="bg-[#121214] border border-gray-800 rounded-2xl p-5">
@@ -392,7 +392,7 @@ export default function MiniStorePage() {
                 Strict No Return & No Exchange
               </h3>
               <p className="text-[10px] text-gray-400 font-medium leading-relaxed">
-                All items in this store are 1-of-1 exclusive thrift finds. We do strict quality checks before dispatching any piece. Once an order is placed, it cannot be cancelled, returned, or exchanged under any circumstances. Please double-check the size and details before buying.
+                All items curated in this store are exclusive, 1-of-1 thrifted or vintage finds. Due to the unique nature and limited availability of our inventory, we operate on a strict no-return, no-exchange, and no-cancellation policy. Once an order is successfully placed and processed, it is considered final. We urge all buyers to carefully review the provided size measurements, detailed descriptions, and product images before completing a purchase to ensure a confident buying experience.
               </p>
             </div>
 
@@ -402,7 +402,17 @@ export default function MiniStorePage() {
                 Quality Assurance
               </h3>
               <p className="text-[10px] text-gray-400 font-medium leading-relaxed">
-                Any minor flaws (if any) are always mentioned in the product description. You get exactly what you see in the pictures.
+                We uphold a rigorous quality assurance process before any item is dispatched. Because these are pre-loved garments, minor signs of wear are natural and add to the vintage character. Any significant flaws, marks, or defects will always be transparently highlighted in the product description and images. You are guaranteed to receive the exact authentic piece showcased on our platform.
+              </p>
+            </div>
+
+            <div className="bg-[#121214] border border-gray-800 rounded-2xl p-5">
+              <h3 className="text-white font-black uppercase tracking-widest text-[11px] flex items-center gap-2 mb-3">
+                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                Shipping & Dispatch
+              </h3>
+              <p className="text-[10px] text-gray-400 font-medium leading-relaxed">
+                Orders are typically processed and dispatched within 24-48 hours of successful payment confirmation. We ensure secure packaging so your exclusive drops reach you safely and in pristine condition.
               </p>
             </div>
           </div>

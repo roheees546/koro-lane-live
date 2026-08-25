@@ -88,8 +88,8 @@ export default function DealerDashboard() {
         email: sessionEmail,
         role: "dealer",
         store_name: profile?.store_name || "NEW SELLER STORE", 
-        store_address: profile?.store_address || profile?.address || "Address not set",
-        address: profile?.address || profile?.store_address || "Address not set"
+        store_address: profile?.store_address || profile?.address || "Please enter full address",
+        address: profile?.address || profile?.store_address || "Please enter full address"
       }).select().single();
 
       if (savedProfile) {
@@ -109,7 +109,7 @@ export default function DealerDashboard() {
     }
 
     setStoreName(profile.store_name || "KOROLANE STORE");
-    setStoreAddress(profile.address || profile.store_address || "Address not set");
+    setStoreAddress(profile.address || profile.store_address || "Please enter full address");
     setStoreLogo(profile.store_logo || profile.avatar_url || null);
     setUserEmail(profile.email || sessionEmail);
     
@@ -439,12 +439,13 @@ export default function DealerDashboard() {
               </div>
             </div>
 
+            {/* 🔥 MODIFIED PAYOUT BUTTON */}
             <div onClick={() => setIsPayoutsOpen(true)} className="bg-[#121214] border border-gray-800/60 p-4 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-[#F5A623]/50 transition">
               <div className="w-10 h-10 bg-[#1a1a1d] rounded-xl flex items-center justify-center text-[#00e599]">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white">Payouts</h4>
+                <h4 className="text-sm font-bold text-white">Total Payouts</h4>
                 <p className="text-[10px] text-gray-400">Dashboard</p>
               </div>
             </div>
@@ -613,7 +614,7 @@ export default function DealerDashboard() {
       {isPayoutsOpen && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsPayoutsOpen(false)}>
           <div className="bg-[#121214] border border-gray-800 rounded-3xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-             <h3 className="text-lg font-black uppercase text-white mb-2">Payouts</h3>
+             <h3 className="text-lg font-black uppercase text-white mb-2">Total Payouts</h3>
              <p className="text-[10px] text-gray-400 mb-6">Your earnings will be credited here.</p>
              <div className="bg-[#1a1a1d] border border-gray-800 rounded-2xl p-5 text-center">
                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Available Balance</p>

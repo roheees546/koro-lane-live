@@ -124,11 +124,6 @@ export default function SellersPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0c] via-[#0a0a0c]/90 to-transparent"></div>
                 </div>
 
-                {/* Heart Icon (Top Right) */}
-                <button onClick={(e) => e.preventDefault()} className="absolute top-3 right-3 z-20 text-gray-400 hover:text-[#00e599] transition">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                </button>
-
                 {/* Content Container */}
                 <div className="p-3 flex flex-col items-center w-full z-10 pt-6">
                   

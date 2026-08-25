@@ -11,6 +11,9 @@ export default function InventoryPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
+  // 🔍 SEARCH STATE
+  const [searchQuery, setSearchQuery] = useState("");
+
   // ✏️ EDIT MODAL STATES
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -242,6 +245,12 @@ export default function InventoryPage() {
     }
   };
 
+  // Filter Products based on Search Query
+  const filteredProducts = products.filter(product => 
+    product.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    product.category?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) return <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center text-[#F5A623] font-black tracking-widest text-xs uppercase">Loading Inventory...</div>;
 
   return (
@@ -265,8 +274,25 @@ export default function InventoryPage() {
         </div>
       </header>
 
-      {/* 📦 INVENTORY LIST */}
+      {/* 📦 INVENTORY LIST & SEARCH */}
       <main className="px-5 py-6 space-y-4">
+        
+        {/* 🔥 SEARCH BAR */}
+        {products.length > 0 && (
+          <div className="mb-4">
+            <div className="relative">
+              <input 
+                type="text" 
+                placeholder="Search your drops..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[#121214] border border-gray-800 rounded-xl text-white px-4 py-3.5 pl-10 text-xs outline-none focus:border-[#F5A623] transition"
+              />
+              <svg className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+          </div>
+        )}
+
         {products.length === 0 ? (
            <div className="bg-[#121214] border border-dashed border-gray-800 rounded-3xl p-10 flex flex-col items-center justify-center text-center mt-10">
              <div className="w-16 h-16 bg-[#1a1a1d] rounded-full flex items-center justify-center text-gray-600 mb-4">
@@ -278,10 +304,19 @@ export default function InventoryPage() {
                Upload First Item
              </button>
            </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="text-center py-10">
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">No matching items found</p>
+          </div>
         ) : (
-          products.map((product) => (
+          filteredProducts.map((product) => (
             <div key={product.id} className="bg-[#121214] border border-gray-800/60 rounded-3xl p-4 flex gap-4 relative group hover:border-[#F5A623]/30 transition duration-300">
-              <div className="w-24 h-32 bg-[#1a1a1d] rounded-2xl overflow-hidden shrink-0 border border-gray-800 relative">
+              
+              {/* 🔥 IMAGE PREVIEW LINK */}
+              <div 
+                onClick={() => router.push(`/product/${product.id}`)} 
+                className="w-24 h-32 bg-[#1a1a1d] rounded-2xl overflow-hidden shrink-0 border border-gray-800 relative cursor-pointer group/img"
+              >
                 {product.is_sold && (
                    <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20 backdrop-blur-[2px]">
                       <span className="text-red-500 text-[9px] font-black uppercase tracking-widest bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/30 -rotate-12 shadow-lg">Sold Out</span>
@@ -292,7 +327,12 @@ export default function InventoryPage() {
                       +{product.image_urls.length - 1}
                    </div>
                 )}
-                <img src={product.image_urls?.[0] || product.image_url || "https://placehold.co/100x120/121214/F5A623?text=SURPLUS"} alt={product.title} className="w-full h-full object-cover" />
+                <img src={product.image_urls?.[0] || product.image_url || "https://placehold.co/100x120/121214/F5A623?text=SURPLUS"} alt={product.title} className="w-full h-full object-cover group-hover/img:scale-105 transition duration-500" />
+                
+                {/* Hover Preview Overlay */}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition z-10 backdrop-blur-[1px]">
+                  <span className="text-[8px] font-black text-white uppercase tracking-widest border border-white/40 px-2 py-1 rounded">Preview</span>
+                </div>
               </div>
               
               <div className="flex flex-col flex-1 justify-between py-1">
@@ -371,6 +411,7 @@ export default function InventoryPage() {
             <div className="p-6 overflow-y-auto hide-scrollbar flex-1">
               <form id="create-product-form" onSubmit={handleCreateItem} className="space-y-6">
                 
+                {/* Basic Details */}
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[11px] text-white font-bold mb-1.5">Item Title</label>
@@ -380,21 +421,23 @@ export default function InventoryPage() {
                     </div>
                   </div>
                   
-                  <div>
-                    <label className="block text-[11px] text-white font-bold mb-1.5">Category</label>
-                    <div className="relative">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#F5A623]">
-                        {itemCategory === 'Bottom' ? (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13V6a2 2 0 00-2-2H5a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H5"></path></svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] text-white font-bold mb-1.5">Category</label>
+                      <div className="relative">
+                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#F5A623]">
+                          {itemCategory === 'Bottom' ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13V6a2 2 0 00-2-2H5a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H5"></path></svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                          )}
+                        </div>
+                        <select value={itemCategory} onChange={(e) => {setItemCategory(e.target.value); setMeasurementsConfirmed(false);}} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white pl-10 pr-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition appearance-none cursor-pointer">
+                          <option value="Top">Top</option>
+                          <option value="Bottom">Bottom</option>
+                        </select>
+                        <svg className="w-4 h-4 text-gray-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                       </div>
-                      <select value={itemCategory} onChange={(e) => {setItemCategory(e.target.value); setMeasurementsConfirmed(false);}} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white pl-10 pr-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition appearance-none cursor-pointer">
-                        <option value="Top">Top</option>
-                        <option value="Bottom">Bottom</option>
-                      </select>
-                      <svg className="w-4 h-4 text-gray-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                     </div>
                   </div>
 
@@ -430,6 +473,7 @@ export default function InventoryPage() {
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
                           </div>
                         </div>
+                        
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
                              <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
@@ -440,6 +484,7 @@ export default function InventoryPage() {
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
                           </div>
                         </div>
+
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
                              <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
@@ -450,6 +495,7 @@ export default function InventoryPage() {
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
                           </div>
                         </div>
+
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
                              <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
@@ -463,9 +509,10 @@ export default function InventoryPage() {
                       </>
                     ) : (
                       <>
+                        {/* Bottom Wear Inputs (Waist, Hip, Rise, Inseam, Outseam, Leg Opening) */}
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Waist</p><p className="text-[9px] text-gray-500">Waistband laid flat</p></div>
                           </div>
                           <div className="relative w-24">
@@ -473,9 +520,10 @@ export default function InventoryPage() {
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
                           </div>
                         </div>
+
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Hip</p><p className="text-[9px] text-gray-500">Widest part</p></div>
                           </div>
                           <div className="relative w-24">
@@ -483,6 +531,7 @@ export default function InventoryPage() {
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
                           </div>
                         </div>
+
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
                              <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
@@ -493,6 +542,7 @@ export default function InventoryPage() {
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
                           </div>
                         </div>
+
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
                              <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
@@ -503,6 +553,7 @@ export default function InventoryPage() {
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
                           </div>
                         </div>
+
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
                              <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
@@ -513,6 +564,7 @@ export default function InventoryPage() {
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
                           </div>
                         </div>
+
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
                              <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
@@ -542,9 +594,13 @@ export default function InventoryPage() {
                   </div>
                 </div>
 
+                {/* Additional Optional Details */}
                 <div className="space-y-4">
                   <div>
-                    <label className="flex items-center gap-1.5 text-[11px] text-white font-bold mb-1.5">Color <span className="text-gray-500 font-normal">(optional)</span></label>
+                    <label className="flex items-center gap-1.5 text-[11px] text-white font-bold mb-1.5">
+                      <svg className="w-3.5 h-3.5 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
+                      Color <span className="text-gray-500 font-normal">(optional)</span>
+                    </label>
                     <div className="flex gap-2">
                       <select value={itemColor} onChange={(e) => setItemColor(e.target.value)} className="flex-1 bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition appearance-none">
                         <option value="">Select color (optional)</option>
@@ -559,8 +615,12 @@ export default function InventoryPage() {
                       </div>
                     </div>
                   </div>
+
                   <div>
-                    <label className="flex items-center gap-1.5 text-[11px] text-white font-bold mb-1.5">Material <span className="text-gray-500 font-normal">(optional)</span></label>
+                    <label className="flex items-center gap-1.5 text-[11px] text-white font-bold mb-1.5">
+                      <svg className="w-3.5 h-3.5 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                      Material <span className="text-gray-500 font-normal">(optional)</span>
+                    </label>
                     <input type="text" value={itemMaterial} onChange={(e) => setItemMaterial(e.target.value)} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition" placeholder="e.g. Cotton, Denim, Twill" />
                   </div>
                 </div>
@@ -578,7 +638,10 @@ export default function InventoryPage() {
                       const isMain = idx === 0;
                       return (
                         <div key={idx} className={`aspect-square rounded-xl overflow-hidden relative flex flex-col items-center justify-center text-center cursor-pointer transition ${file ? 'border border-gray-700 bg-gray-900' : isMain ? 'border-2 border-[#F5A623] border-dashed bg-[#F5A623]/5 hover:bg-[#F5A623]/10' : 'border border-gray-800 border-dashed bg-[#1a1a1d] hover:border-gray-600'}`}>
-                          <input type="file" accept="image/*" multiple onChange={handleImageSelect} disabled={imageFiles.length >= 4} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed" />
+                          
+                          {/* Invisible Input covering the square */}
+                          <input type="file" accept="image/*" multiple onChange={handleImageSelect} disabled={imageFiles.length >= 4} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed" title={file ? "Image selected" : "Add photo"} />
+                          
                           {file ? (
                             <>
                               <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" />
@@ -586,7 +649,11 @@ export default function InventoryPage() {
                             </>
                           ) : (
                             <div className="flex flex-col items-center justify-center pointer-events-none">
-                              <svg className={`w-5 h-5 mb-1 ${isMain ? 'text-[#F5A623]' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                              {isMain ? (
+                                <svg className="w-5 h-5 text-[#F5A623] mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                              ) : (
+                                <svg className="w-5 h-5 text-gray-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                              )}
                               <span className={`text-[8px] font-bold uppercase leading-tight ${isMain ? 'text-[#F5A623]' : 'text-gray-500'}`}>Add Photo{isMain && <br/>} {isMain && 'Main Photo'}</span>
                             </div>
                           )}
@@ -594,12 +661,15 @@ export default function InventoryPage() {
                       );
                     })}
                   </div>
+                  
                   <div className="flex items-center justify-between">
                     <p className="text-[9px] text-gray-500 flex items-center gap-1">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                       Clear photos help buyers trust your listing
                     </p>
-                    {imageFiles.length > 0 && <button type="button" onClick={() => setImageFiles([])} className="text-[9px] text-red-500 font-bold uppercase hover:underline">Clear All</button>}
+                    {imageFiles.length > 0 && (
+                      <button type="button" onClick={() => setImageFiles([])} className="text-[9px] text-red-500 font-bold uppercase hover:underline">Clear All</button>
+                    )}
                   </div>
                 </div>
 
@@ -613,11 +683,20 @@ export default function InventoryPage() {
               </form>
             </div>
             
+            {/* Footer Sticky */}
             <div className="sticky bottom-0 bg-[#0a0a0c] md:bg-[#121214] z-20 px-6 py-4 border-t border-gray-800">
-              <button type="submit" form="create-product-form" disabled={isCreating || !measurementsConfirmed} className="w-full bg-[#F5A623] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] transition shadow-[0_0_15px_rgba(245,166,35,0.2)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2">
-                {isCreating ? <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span> Publishing...</> : <>Publish Product</>}
+              <button type="submit" form="add-product-form" disabled={isAdding || (['Top', 'Bottom'].includes(itemCategory) && !measurementsConfirmed)} className="w-full bg-[#F5A623] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] transition shadow-[0_0_15px_rgba(245,166,35,0.2)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2">
+                {isAdding ? (
+                  <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span> Publishing...</>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Publish Product
+                  </>
+                )}
               </button>
             </div>
+
           </div>
         </div>
       )}
@@ -732,9 +811,10 @@ export default function InventoryPage() {
                       </>
                     ) : (
                       <>
+                        {/* Bottom Wear Inputs (Waist, Hip, Rise, Inseam, Outseam, Leg Opening) */}
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Waist</p><p className="text-[9px] text-gray-500">Waistband laid flat</p></div>
                           </div>
                           <div className="relative w-24">
@@ -744,7 +824,7 @@ export default function InventoryPage() {
                         </div>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Hip</p><p className="text-[9px] text-gray-500">Widest part</p></div>
                           </div>
                           <div className="relative w-24">
@@ -807,6 +887,7 @@ export default function InventoryPage() {
                   </div>
                 </div>
 
+                {/* Additional Optional Details */}
                 <div className="space-y-4">
                   <div>
                     <label className="flex items-center gap-1.5 text-[11px] text-white font-bold mb-1.5">Color <span className="text-gray-500 font-normal">(optional)</span></label>
