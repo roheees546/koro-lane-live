@@ -165,8 +165,6 @@ export default function DropsReelsFeed() {
   }, [selectedReelIndex]);
 
   // Handlers
-  
-  // 🔥 MUTE / UNMUTE HANDLER
   const toggleMute = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setIsMuted(prev => !prev);
@@ -239,10 +237,10 @@ export default function DropsReelsFeed() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] w-full bg-black flex items-center justify-center">
+      <div className="min-h-[100dvh] w-full bg-[#F6F3EE] flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center">
-          <div className="w-8 h-8 border-4 border-[#00e599] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-[#00e599] text-[10px] font-black uppercase tracking-widest mt-4">Loading Grid...</p>
+          <div className="w-8 h-8 border-4 border-[#FF3B30] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-[#FF3B30] text-[10px] font-black uppercase tracking-widest mt-4">Loading Feed...</p>
         </div>
       </div>
     );
@@ -250,7 +248,7 @@ export default function DropsReelsFeed() {
 
   if (reels.length === 0) {
     return (
-      <div className="min-h-[100dvh] w-full bg-black flex flex-col items-center justify-center text-white">
+      <div className="min-h-[100dvh] w-full bg-[#F6F3EE] flex flex-col items-center justify-center text-[#111111]">
         <h2 className="text-lg font-black text-gray-500 uppercase">No Drops Yet</h2>
         <p className="text-xs text-gray-600 mt-2">Check back later for new thrift items.</p>
       </div>
@@ -258,18 +256,18 @@ export default function DropsReelsFeed() {
   }
 
   return (
-    <div className="relative w-full min-h-[100dvh] bg-black font-sans text-white pb-[80px] max-w-[450px] mx-auto overflow-x-hidden">
+    <div className="relative w-full min-h-[100dvh] bg-[#F6F3EE] font-sans text-[#111111] pb-[80px] max-w-[450px] mx-auto overflow-x-hidden">
       
       {/* 🟢 TOP HEADER */}
-      <div className="sticky top-0 z-40 bg-black/80 backdrop-blur-md p-4 border-b border-white/10 flex justify-between items-center">
-        <h1 className="text-lg font-black tracking-wide flex items-center gap-2">
-          LIVE DROPS <span className="w-2.5 h-2.5 rounded-full bg-[#00e599] animate-pulse"></span>
+      <div className="sticky top-0 z-40 bg-[#F6F3EE]/95 backdrop-blur-md p-4 border-b border-gray-200 flex justify-between items-center">
+        <h1 className="text-lg font-black tracking-wide flex items-center gap-2 text-[#111111]">
+          LIVE DROPS <span className="w-2.5 h-2.5 rounded-full bg-[#FF3B30] animate-pulse"></span>
         </h1>
-        <span className="text-xs font-bold text-gray-400">{reels.length} Active</span>
+        <span className="text-xs font-bold text-gray-500">{reels.length} Active</span>
       </div>
 
       {/* 📱 1. 3-COLUMN GRID FEED (Main Page) */}
-      <div className="grid grid-cols-3 gap-0.5 bg-zinc-900 w-full">
+      <div className="grid grid-cols-3 gap-0.5 bg-gray-200 w-full">
         {reels.map((reel, index) => {
           const pinnedProductId = reel.parsed_product_ids?.[0];
           const product = pinnedProductId ? productsMap[pinnedProductId] : null;
@@ -279,9 +277,8 @@ export default function DropsReelsFeed() {
             <div 
               key={reel.id} 
               onClick={() => setSelectedReelIndex(index)}
-              className="relative aspect-[9/16] bg-black group overflow-hidden cursor-pointer"
+              className="relative aspect-[9/16] bg-white group overflow-hidden cursor-pointer"
             >
-              {/* Note: Grid videos remain muted for clean browsing */}
               <video 
                 src={reel.video_url}
                 muted
@@ -292,11 +289,11 @@ export default function DropsReelsFeed() {
 
               {seller && (
                 <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
-                  <div className="w-5 h-5 rounded-full bg-gray-900 border border-[#00e599]/50 overflow-hidden shadow-lg">
+                  <div className="w-5 h-5 rounded-full bg-white border border-[#FF3B30]/50 overflow-hidden shadow-lg">
                     {seller.store_logo ? (
                       <img src={seller.store_logo} alt="Store" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="flex items-center justify-center w-full h-full text-[8px] font-black">{seller.store_name?.charAt(0) || "S"}</span>
+                      <span className="flex items-center justify-center w-full h-full text-[8px] font-black text-[#111111]">{seller.store_name?.charAt(0) || "S"}</span>
                     )}
                   </div>
                 </div>
@@ -305,13 +302,13 @@ export default function DropsReelsFeed() {
               {product && (
                 <div className="absolute bottom-2 left-2 right-2 z-10 flex flex-col gap-0.5 pointer-events-none">
                   <div className="flex items-center gap-1">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${product.status === 'available' ? 'bg-[#00e599] animate-pulse' : 'bg-red-500'}`}></span>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${product.status === 'available' ? 'bg-[#FF3B30] animate-pulse' : 'bg-gray-500'}`}></span>
                     <span className="text-[9px] font-bold text-white drop-shadow-md truncate leading-tight">
                       {product.title}
                     </span>
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
-                    <span className={`text-[11px] font-black drop-shadow-md ${product.status === 'available' ? 'text-[#00e599]' : 'text-red-400 line-through'}`}>
+                    <span className={`text-[11px] font-black drop-shadow-md ${product.status === 'available' ? 'text-white' : 'text-gray-300 line-through'}`}>
                       ₹{product.price}
                     </span>
                   </div>
@@ -329,7 +326,7 @@ export default function DropsReelsFeed() {
           <button 
             onClick={() => {
               setSelectedReelIndex(null);
-              setIsMuted(true); // Auto mute when closing fullscreen to save sanity
+              setIsMuted(true);
             }}
             className="absolute top-4 right-4 z-50 w-9 h-9 bg-black/60 backdrop-blur-md rounded-full border border-white/20 flex items-center justify-center text-white text-base active:scale-90 transition"
           >
@@ -351,7 +348,6 @@ export default function DropsReelsFeed() {
                   key={reel.id} 
                   className="relative w-full h-[100dvh] snap-start bg-zinc-950 flex-shrink-0 flex items-center justify-center overflow-hidden"
                 >
-                  {/* 🔥 DYNAMIC MUTED PROP & CLICK TO TOGGLE SOUND */}
                   <video 
                     src={reel.video_url}
                     autoPlay
@@ -369,7 +365,7 @@ export default function DropsReelsFeed() {
                       onClick={(e) => handleStoreClick(e, reel.dealer_id)}
                       className="flex items-center gap-3 pointer-events-auto cursor-pointer group"
                     >
-                      <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-white font-black text-xs shrink-0 shadow-lg border-2 border-[#00e599] overflow-hidden group-active:scale-95 transition">
+                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#111111] font-black text-xs shrink-0 shadow-lg border-2 border-[#FF3B30] overflow-hidden group-active:scale-95 transition">
                         {seller?.store_logo ? (
                           <img src={seller.store_logo} alt="Store" className="w-full h-full object-cover" />
                         ) : (
@@ -379,14 +375,14 @@ export default function DropsReelsFeed() {
                       <div className="flex flex-col drop-shadow-md">
                         <div className="flex items-center gap-1 group-active:scale-95 transition">
                           <span className="font-bold text-sm text-white">{seller?.store_name || "Unknown Store"}</span>
-                          <svg className="w-3.5 h-3.5 text-[#00e599]" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                          <svg className="w-3.5 h-3.5 text-[#FF3B30]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                         </div>
                         <span className="text-[10px] text-gray-300">Live Thrift Drop 🌿</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* 🔥 ACTIONS COLUMN WITH NEW SOUND BUTTON */}
+                  {/* 🔥 ACTIONS COLUMN */}
                   <div className="absolute bottom-32 right-4 z-30 flex flex-col items-center gap-6 pointer-events-auto">
                     
                     {/* 🔊 SOUND TOGGLE BUTTON */}
@@ -403,7 +399,7 @@ export default function DropsReelsFeed() {
 
                     <button onClick={(e) => toggleLike(e, reel.id)} className="flex flex-col items-center gap-1 group active:scale-95 transition">
                       <div className="w-11 h-11 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition">
-                        <svg className={`w-6 h-6 transition ${isLiked ? 'text-red-500 fill-red-500 animate-bounce' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className={`w-6 h-6 transition ${isLiked ? 'text-[#FF3B30] fill-[#FF3B30] animate-bounce' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
                         </svg>
                       </div>
@@ -429,29 +425,30 @@ export default function DropsReelsFeed() {
                     </button>
                   </div>
 
+                  {/* 🔥 PRODUCT CARD OVERLAY (Now Light Depop Theme) */}
                   {product && (
                     <div 
                       className="absolute bottom-24 left-4 z-30 pointer-events-auto cursor-pointer animate-fade-in-up" 
                       onClick={(e) => handleProductClick(e, product.id)}
                     >
-                      <div className="w-[140px] bg-[#0a0a0c]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex flex-col shadow-2xl hover:border-[#00e599]/50 transition-all duration-300">
+                      <div className="w-[140px] bg-white/95 backdrop-blur-xl border border-gray-200 rounded-[16px] p-2 flex flex-col shadow-2xl transition-all duration-300">
                         
                         <div className="flex items-center gap-1.5 mb-2 px-1">
-                          <span className={`w-2 h-2 rounded-full animate-pulse ${product.status === 'available' ? 'bg-[#00e599]' : 'bg-red-500'}`}></span>
-                          <span className={`text-[9px] font-black uppercase tracking-widest ${product.status === 'available' ? 'text-[#00e599]' : 'text-red-500'}`}>
+                          <span className={`w-2 h-2 rounded-full animate-pulse ${product.status === 'available' ? 'bg-[#FF3B30]' : 'bg-gray-400'}`}></span>
+                          <span className={`text-[9px] font-black uppercase tracking-widest ${product.status === 'available' ? 'text-[#FF3B30]' : 'text-gray-500'}`}>
                             {product.status === 'on_hold' ? 'ON HOLD' : product.status === 'sold' ? 'SOLD OUT' : 'NOW SHOWING'}
                           </span>
                         </div>
                         
-                        <div className="w-full aspect-square rounded-xl overflow-hidden mb-2 relative bg-zinc-900 border border-white/5">
+                        <div className="w-full aspect-square rounded-xl overflow-hidden mb-2 relative bg-gray-100 border border-gray-200">
                           <img 
-                            src={product.image_url || "https://placehold.co/400x400/121214/00e599?text=No+Image"} 
+                            src={product.image_url || "https://placehold.co/400x400/F6F3EE/111111?text=No+Image"} 
                             alt={product.title} 
                             className={`w-full h-full object-cover transition duration-500 ${product.status !== 'available' ? 'grayscale opacity-40' : ''}`} 
                           />
                           {product.status !== 'available' && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                              <span className="text-[10px] font-black text-white px-2 py-1 bg-black/80 rounded border border-white/10">
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-sm">
+                              <span className="text-[10px] font-black text-[#111111] px-2 py-1 bg-white rounded border border-gray-200 shadow-sm">
                                 {product.status === 'on_hold' ? 'HELD' : 'SOLD'}
                               </span>
                             </div>
@@ -459,13 +456,13 @@ export default function DropsReelsFeed() {
                         </div>
                         
                         <div className="px-1 pb-1">
-                          <h3 className="text-[10px] font-bold leading-tight text-white mb-1 line-clamp-1">{product.title}</h3>
+                          <h3 className="text-[10px] font-bold leading-tight text-[#111111] mb-1 line-clamp-1">{product.title}</h3>
                           <div className="flex items-center justify-between">
-                            <span className={`text-sm font-black ${product.status === 'available' ? 'text-white' : 'text-gray-500 line-through'}`}>
+                            <span className={`text-sm font-black ${product.status === 'available' ? 'text-[#111111]' : 'text-gray-400 line-through'}`}>
                               ₹{product.price}
                             </span>
                             {product.status === 'available' && (
-                              <div className="bg-[#00e599] text-black rounded-full p-1.5 shadow-[0_0_10px_rgba(0,229,153,0.3)]">
+                              <div className="bg-[#111111] text-white rounded-full p-1.5 shadow-sm">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"></path></svg>
                               </div>
                             )}
@@ -485,58 +482,58 @@ export default function DropsReelsFeed() {
         </div>
       )}
 
-      {/* 💬 3. COMMENTS BOTTOM SHEET MODAL */}
+      {/* 💬 3. COMMENTS BOTTOM SHEET MODAL (Now Light Theme) */}
       {activeCommentsReel && (
         <div className="fixed inset-0 z-[60] flex flex-col justify-end pointer-events-auto">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActiveCommentsReel(null)}></div>
           
-          <div className="relative w-full h-[60%] bg-[#121214] rounded-t-3xl border-t border-gray-800 flex flex-col animate-slide-up shadow-[0_-10px_40px_rgba(0,0,0,0.5)] max-w-[450px] mx-auto">
+          <div className="relative w-full h-[60%] bg-white rounded-t-3xl border-t border-gray-200 flex flex-col animate-slide-up shadow-[0_-10px_40px_rgba(0,0,0,0.1)] max-w-[450px] mx-auto text-[#111111]">
             
-          <div className="flex items-center justify-between p-4 border-b border-gray-800">
-  <h3 className="font-black text-sm text-white flex items-center gap-2">
-    <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-    </svg>
-    Comments
-  </h3>
-  <button onClick={() => setActiveCommentsReel(null)} className="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-gray-400 hover:text-white">✕</button>
-</div>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="font-black text-sm text-[#111111] flex items-center gap-2">
+                <svg className="w-4 h-4 text-[#FF3B30]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Comments
+              </h3>
+              <button onClick={() => setActiveCommentsReel(null)} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-[#111111]">✕</button>
+            </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 hide-scrollbar">
               {isLoadingComments ? (
                 <div className="w-full h-full flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-[#00e599] border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-[#FF3B30] border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : realComments.length === 0 ? (
-                <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
                   <span className="text-2xl mb-2">✨</span>
                   <p className="text-xs font-bold">Be the first to comment!</p>
                 </div>
               ) : (
                 realComments.map((comment) => (
                   <div key={comment.id} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-black text-gray-700 shrink-0">
                       {comment.user_name?.charAt(0) || "U"}
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-gray-500">{comment.user_name || "User"}</span>
-                      <p className="text-xs text-white mt-0.5">{comment.comment_text}</p>
+                      <p className="text-xs text-[#111111] mt-0.5 font-medium">{comment.comment_text}</p>
                     </div>
                   </div>
                 ))
               )}
             </div>
 
-            <div className="p-4 border-t border-gray-800 bg-[#0a0a0c]">
+            <div className="p-4 border-t border-gray-200 bg-[#F6F3EE]">
               <form onSubmit={postComment} className="flex gap-2">
                 <input 
                   type="text" 
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Add a comment..."
-                  className="flex-1 bg-[#1a1a1d] border border-gray-800 rounded-full px-4 py-2 text-xs text-white outline-none focus:border-[#00e599]/50"
+                  className="flex-1 bg-white border border-gray-300 rounded-full px-4 py-2 text-xs text-[#111111] outline-none focus:border-[#FF3B30] font-medium"
                 />
-                <button type="submit" disabled={!newComment.trim()} className="w-9 h-9 bg-[#00e599] rounded-full flex items-center justify-center text-black disabled:opacity-50 disabled:bg-gray-700">
+                <button type="submit" disabled={!newComment.trim()} className="w-9 h-9 bg-[#111111] rounded-full flex items-center justify-center text-white disabled:opacity-50 disabled:bg-gray-400 shadow-sm">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                 </button>
               </form>
