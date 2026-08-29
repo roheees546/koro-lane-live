@@ -37,10 +37,8 @@ export default function Home() {
     }
   };
 
-  // 🔥 Fetch both Products and Dynamic Sellers
   const fetchInitialData = async () => {
     try {
-      // 1. Fetch Sellers
       const { data: sellers } = await supabase
         .from("profiles")
         .select("*")
@@ -49,7 +47,6 @@ export default function Home() {
         
       if (sellers) setFeaturedSellers(sellers);
 
-      // 2. Fetch Products
       let { data: prods } = await supabase
         .from("products")
         .select(`*, profiles(store_name)`)
@@ -120,92 +117,107 @@ export default function Home() {
     router.push(`/product/${product.id}`); 
   };
 
-  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-[#00e599] font-bold tracking-widest text-xs uppercase">Loading Platform...</div>;
+  if (loading) return <div className="min-h-screen bg-[#F6F3EE] flex items-center justify-center text-[#FF3B30] font-bold tracking-widest text-xs uppercase">Loading Platform...</div>;
 
   return (
-    <div className="bg-black text-white w-full pb-24 min-h-screen">
+    <div className="bg-[#F6F3EE] text-[#111111] w-full pb-24 min-h-screen font-sans">
       
       {/* 🚀 HEADER */}
-      <header className="px-5 pt-4 pb-3 sticky top-0 bg-black/90 backdrop-blur-md z-40 border-b border-gray-900">
+      <header className="px-5 pt-4 pb-3 sticky top-0 bg-[#F6F3EE]/95 backdrop-blur-md z-40 border-b border-gray-200">
         <div className="flex justify-between items-center mb-3">
-          <h1 className="text-xl font-black tracking-tighter flex items-center gap-2">
-            KORO<span className="text-[#00e599]">LANE</span>
+          <h1 className="text-xl font-black tracking-tighter flex items-center gap-1.5">
+            KORO<span className="text-[#FF3B30]">LANE</span>
           </h1>
           <div className="flex items-center gap-4">
-            {/* 🔴 MODIFIED: CONNECTED TO SCOUT WISHLIST */}
-            <Link href="/scout/wishlist" className="text-gray-300 hover:text-white transition">
-               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+            <Link href="/scout/wishlist" className="text-[#111111] hover:text-[#FF3B30] transition">
+               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
             </Link>
-            <button onClick={() => alert("Notifications coming soon! 🔔")} className="relative text-gray-300 hover:text-white transition">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-              <span className="absolute top-0 right-0.5 w-2 h-2 bg-[#00e599] rounded-full border border-black"></span>
+            <button onClick={() => alert("Notifications coming soon! 🔔")} className="relative text-[#111111] hover:text-[#FF3B30] transition">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+              <span className="absolute top-0 right-0.5 w-2.5 h-2.5 bg-[#FF3B30] rounded-full border-[1.5px] border-[#F6F3EE]"></span>
             </button>
           </div>
         </div>
         
-        <div className="flex items-center gap-1.5 mb-3">
-          <span className="text-[#00e599] text-[10px]">📍</span>
-          <p className="text-[10px] font-bold text-gray-300 tracking-widest lowercase">Dehradun next day delivery</p>
+        <div className="flex items-center gap-1.5 mb-4">
+          <svg className="w-3.5 h-3.5 text-[#FF3B30]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          <p className="text-[11px] font-medium text-[#111111]">dehradun next day delivery</p>
         </div>
 
-        <Link href="/shop" className="bg-[#121214] w-full text-gray-400 border border-gray-800 hover:border-gray-600 transition px-4 py-2.5 rounded-xl text-xs flex items-center gap-2">
-          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          Search drops & sellers...
+        <Link href="/shop" className="bg-[#FFFFFF] w-full text-gray-500 border border-gray-300 hover:border-gray-400 transition px-4 py-3 rounded-xl text-xs flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            Search drops & sellers...
+          </div>
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
         </Link>
       </header>
 
       {/* VERIFIED SELLERS BANNER */}
       <section className="px-5 pt-5 pb-6">
-        <div className="bg-[#003320]/20 border border-[#00e599]/20 p-5 rounded-2xl flex items-center justify-between shadow-[0_0_15px_rgba(0,229,153,0.05)]">
-          <div>
-            <div className="w-8 h-8 bg-[#00e599]/10 rounded-full flex items-center justify-center mb-2">
-              <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div className="bg-[#FCECEC] border border-red-100 p-5 rounded-2xl flex items-center justify-between relative overflow-hidden">
+          <div className="relative z-10">
+            <div className="w-8 h-8 bg-[#FF3B30] rounded-full flex items-center justify-center mb-3 shadow-md">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
             </div>
-            <h2 className="text-xs font-black uppercase tracking-widest text-white mb-1">Only Verified Sellers</h2>
-            <p className="text-[9px] text-gray-400 font-medium leading-relaxed max-w-[200px]">We're growing with trust. More verified sellers coming soon!</p>
+            <h2 className="text-xs font-black uppercase tracking-tight text-[#111111] mb-1">ONLY VERIFIED SELLERS</h2>
+            <p className="text-[10px] text-gray-700 font-medium leading-relaxed max-w-[180px]">We're growing with trust. More verified sellers coming soon!</p>
           </div>
-          <svg className="w-16 h-16 text-[#00e599]/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+          {/* Custom Minimalist Graphic (Building) */}
+          <div className="absolute right-4 bottom-2 opacity-80 z-0">
+             <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+               <rect x="55" y="35" width="25" height="50" rx="2" stroke="#111111" strokeWidth="2"/>
+              <line x1="60" y1="45" x2="65" y2="45" stroke="#111111" strokeWidth="2" strokeLinecap="round"/>
+               <line x1="70" y1="45" x2="75" y2="45" stroke="#111111" strokeWidth="2" strokeLinecap="round"/>
+               <line x1="60" y1="55" x2="65" y2="55" stroke="#111111" strokeWidth="2" strokeLinecap="round"/>
+               <line x1="70" y1="55" x2="75" y2="55" stroke="#111111" strokeWidth="2" strokeLinecap="round"/>
+               <path d="M62 85 V70 C62 67.2386 64.2386 65 67 65 C69.7614 65 72 67.2386 72 70 V85" stroke="#111111" strokeWidth="2"/>
+               <line x1="45" y1="85" x2="90" y2="85" stroke="#111111" strokeWidth="2" strokeLinecap="round"/>
+               {/* Sparkles */}
+               <path d="M40 25 L42 20 L44 25 L49 27 L44 29 L42 34 L40 29 L35 27 Z" fill="#FF3B30" opacity="0.6"/>
+               <path d="M85 15 L86 12 L87 15 L90 16 L87 17 L86 20 L85 17 L82 16 Z" fill="#FF3B30" opacity="0.6"/>
+               <path d="M25 65 L26 62 L27 65 L30 66 L27 67 L26 70 L25 67 L22 66 Z" fill="#FF3B30" opacity="0.6"/>
+               <path d="M90 65 Q85 60 85 55 Q85 60 80 65" stroke="#111111" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+             </svg>
+          </div>
         </div>
       </section>
 
       {/* 🚀 DYNAMIC FEATURED SELLERS */}
-      <section className="pt-2 pb-6">
+      <section className="pt-2 pb-8">
         <div className="flex justify-between items-center px-5 mb-4">
-          <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
-            <span className="text-[#00e599]">🏪</span> FEATURED SELLERS
+          <h3 className="text-[13px] font-black uppercase tracking-tight text-[#111111] flex items-center gap-1.5">
+            <span className="text-[#FF3B30] text-lg">🔥</span> FEATURED SELLERS
           </h3>
-          <Link href="/sellers" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View all</Link>
+          <Link href="/sellers" className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest hover:underline">VIEW ALL</Link>
         </div>
         
-        <div className="flex overflow-x-auto hide-scrollbar px-5 gap-4 snap-x snap-mandatory pb-2">
-          
-          {/* 🔥 Dynamic Database Check */}
+        <div className="flex overflow-x-auto hide-scrollbar px-5 gap-3 snap-x snap-mandatory pb-2">
           {featuredSellers.length === 0 ? (
-            <div className="w-full bg-[#121214] border border-gray-900 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
+            <div className="w-full bg-[#FFFFFF] border border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-sm">
               <span className="text-2xl mb-2 block opacity-50 grayscale">🏪</span>
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-white mb-1">No Sellers Found</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#111111] mb-1">No Sellers Found</h4>
               <p className="text-[9px] text-gray-500 font-medium uppercase tracking-widest">Onboarding in progress.</p>
             </div>
           ) : (
             featuredSellers.map((seller) => (
-              <Link key={seller.id} href={`/store/${seller.id}`} className="w-[280px] shrink-0 snap-start bg-black border border-gray-900 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden block hover:border-gray-700 hover:shadow-[0_0_20px_rgba(0,229,153,0.05)] transition">
-                <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#003320]/10 to-transparent pointer-events-none"></div>
-                <div className="w-16 h-16 bg-[#0a0a0c] border border-gray-800 rounded-full flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
+              <Link key={seller.id} href={`/store/${seller.id}`} className="w-[260px] shrink-0 snap-start bg-[#FFFFFF] border border-gray-200 rounded-[20px] p-4 flex items-center gap-4 relative overflow-hidden block shadow-sm hover:shadow-md transition">
+                <div className="w-[52px] h-[52px] bg-[#111111] rounded-full flex items-center justify-center shrink-0 overflow-hidden">
                   {seller.avatar_url ? (
                     <img src={seller.avatar_url} alt={seller.store_name} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-[10px] font-black text-white text-center leading-tight">
+                    <span className="text-sm font-black text-white text-center leading-tight">
                       {seller.store_name ? seller.store_name.substring(0, 3).toUpperCase() : 'NEW'}
                     </span>
                   )}
                 </div>
-                <div>
-                  <span className="bg-[#003320] text-[#00e599] text-[7px] font-bold px-2 py-0.5 rounded uppercase tracking-widest mb-1 inline-block">Verified</span>
-                  <h4 className="text-sm font-black text-white flex items-center gap-1">
+                <div className="flex-1 min-w-0">
+                  <span className="bg-[#FF3B30] text-white text-[7px] font-black px-1.5 py-0.5 rounded-[3px] uppercase tracking-widest mb-1 inline-block">VERIFIED</span>
+                  <h4 className="text-[13px] font-black text-[#111111] truncate flex items-center gap-1">
                     {seller.store_name || "New Seller"} 
-                    <svg className="w-3 h-3 text-[#00e599]" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    <svg className="w-3.5 h-3.5 text-[#FF3B30] shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                   </h4>
-                  <p className="text-[9px] text-gray-500 mt-0.5">{seller.bio ? seller.bio.substring(0, 30) + '...' : 'Dehradun, Uttarakhand'}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">{seller.bio ? seller.bio.substring(0, 35) + '...' : 'visit and buy our exclusive things'}</p>
                 </div>
               </Link>
             ))
@@ -213,62 +225,47 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 LATEST DROPS (NOW 2-COLUMN GRID) */}
+      {/* 🚀 LATEST DROPS */}
       <section className="pb-8">
         <div className="flex justify-between items-center px-5 mb-4">
-          <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
-             <span className="text-[#00e599]">⚡</span> LATEST DROPS
+          <h3 className="text-[13px] font-black uppercase tracking-tight text-[#111111] flex items-center gap-1.5">
+             <span className="text-[#FF3B30] text-lg">⚡</span> LATEST DROPS
           </h3>
-          <Link href="/shop" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View all</Link>
+          <Link href="/shop" className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest hover:underline">VIEW ALL</Link>
         </div>
         
-        {/* 🔴 Changed to grid-cols-2 and gap-3 for better 2-column spacing */}
-        <div className="grid grid-cols-2 gap-3 px-5 pb-4">
+        <div className="grid grid-cols-2 gap-4 px-5 pb-4">
           {products.length === 0 ? (
             <p className="text-[10px] text-gray-500 uppercase tracking-widest text-center w-full col-span-2 py-4">No drops available.</p>
           ) : (
             products.map((product) => (
-              <div key={product.id} onClick={() => handleCardClick(product)} className="w-full bg-[#0a0a0c] border border-gray-900 rounded-xl overflow-hidden relative cursor-pointer hover:border-gray-700 transition flex flex-col">
-                <div className="relative aspect-[4/5] bg-gray-900">
+              <div key={product.id} onClick={() => handleCardClick(product)} className="w-full bg-[#FFFFFF] border border-gray-200 rounded-[16px] overflow-hidden relative cursor-pointer hover:shadow-md transition flex flex-col">
+                <div className="relative aspect-[4/5] bg-gray-100">
                   <div className="absolute top-2 right-2 z-30">
                     <WishlistButton productId={product.id} onRequireAuth={() => setIsAuthModalOpen(true)} />
                   </div>
                   
-                  <span className="absolute top-2 left-2 bg-[#003320] text-[#00e599] text-[7px] font-bold px-1.5 py-0.5 rounded z-10 uppercase tracking-widest">{product.category || 'TOP'}</span>
+                  <span className="absolute top-2 left-2 bg-[#111111] text-white text-[8px] font-black px-2 py-1 rounded-[4px] z-10 uppercase tracking-widest">{product.category || 'TOP'}</span>
                   
                   {product.isOnHold ? (
-                    <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
-                      <div className="bg-yellow-600 text-black text-[9px] font-black uppercase px-3 py-1 tracking-widest shadow-xl rotate-[-12deg] rounded-sm">ON HOLD ⏳</div>
+                    <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
+                      <div className="bg-yellow-400 text-black text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">ON HOLD</div>
                     </div>
                   ) : product.is_sold ? (
-                    <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
-                      <div className="bg-red-600 text-white text-[9px] font-black uppercase px-3 py-1 tracking-widest shadow-xl rotate-[-12deg] rounded-sm">SOLD OUT</div>
+                    <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
+                      <div className="bg-[#111111] text-white text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">SOLD OUT</div>
                     </div>
                   ) : null}
 
                   <img src={product.image_urls?.[0] || product.image_url} alt={product.title} className="w-full h-full object-cover" />
                 </div>
-                <div className="p-2 flex flex-col flex-grow justify-between bg-gradient-to-t from-black to-[#0a0a0c]">
+                <div className="p-3 flex flex-col flex-grow justify-between bg-white">
                   <div>
-                    <h4 className="text-[10px] font-bold uppercase truncate text-gray-200">{product.title}</h4>
-                    <p className="text-[8px] text-gray-500 mt-0.5">{product.size || 'Free Size'}</p>
+                    <h4 className="text-[11px] font-black uppercase text-[#111111] line-clamp-2 leading-tight">{product.title}</h4>
+                    <p className="text-[10px] text-gray-500 mt-1 font-medium">{product.size || 'M'}</p>
                   </div>
-                  <div className="mt-2">
-                    <span className="text-xs font-black text-white block mb-2">₹{product.price.toLocaleString('en-IN')}</span>
-                    
-                    <button 
-                      onClick={(e) => {
-                        if(product.is_sold) {
-                          e.stopPropagation();
-                          router.push(`/product/${product.id}`); 
-                        } else {
-                          handleBuyNowClick(e, product);
-                        }
-                      }} 
-                      className={`w-full text-[8px] font-black uppercase py-1.5 rounded transition ${product.isOnHold ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : product.is_sold ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-[#00e599]/10 text-[#00e599] hover:bg-[#00e599] hover:text-black border border-[#00e599]/20'}`}
-                    >
-                      {product.isOnHold ? 'On Hold' : product.is_sold ? 'Sold Out' : 'Buy Now'}
-                    </button>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-[13px] font-black text-[#111111]">₹{product.price.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               </div>
@@ -278,94 +275,59 @@ export default function Home() {
       </section>
 
       {/* 🔴 FEED BLOCK */}
-      <section className="px-5 pb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
-             <span className="text-[#00e599] animate-pulse">⚡</span> FEED
-          </h3>
-          <Link href="/live" className="text-[9px] text-[#00e599] font-bold uppercase tracking-widest hover:underline">View feed</Link>
-        </div>
-        
-        <div className="bg-[#0a0a0c] border border-gray-900 rounded-2xl p-5 flex flex-col relative overflow-hidden">
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-500/10 rounded-full blur-2xl pointer-events-none"></div>
+      <section className="px-5 pb-10">
+        <div className="bg-[#FFFFFF] border border-gray-200 rounded-[20px] p-5 flex flex-col relative overflow-hidden shadow-sm">
           
           <div className="flex items-center gap-4 mb-5 z-10">
-              <div className="w-12 h-12 bg-red-500/10 border border-red-500/30 rounded-full shrink-0 flex items-center justify-center relative">
-                <div className="absolute inset-0 rounded-full border border-red-500/50 animate-ping opacity-20"></div>
-                <svg className="w-5 h-5 text-red-500 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <div className="w-12 h-12 bg-[#FCECEC] border border-red-100 rounded-full shrink-0 flex items-center justify-center relative">
+                <div className="absolute inset-0 rounded-full border border-[#FF3B30] animate-ping opacity-20"></div>
+                <svg className="w-5 h-5 text-[#FF3B30] ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="bg-red-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest animate-pulse">Live Now</span>
+                  <span className="bg-[#FF3B30] text-white text-[7px] font-black px-1.5 py-0.5 rounded-[3px] uppercase tracking-widest animate-pulse">Live Now</span>
                 </div>
-                <h4 className="text-[12px] font-black text-white leading-tight">Exclusive Thrift Drops</h4>
-                <p className="text-[9px] text-gray-400 mt-1">Join the stream and claim 1-of-1 pieces before they're gone.</p>
+                <h4 className="text-[14px] font-black text-[#111111] leading-tight">Exclusive Thrift Drops</h4>
+                <p className="text-[10px] text-gray-500 mt-1 font-medium">Join the stream and claim 1-of-1 pieces before they're gone.</p>
               </div>
           </div>
           
-          <Link href="/live" className="w-full text-center bg-white text-black text-[9px] font-black uppercase tracking-widest py-3.5 rounded-xl hover:bg-gray-200 transition z-10 shadow-[0_0_15px_rgba(255,255,255,0.1)] active:scale-[0.98]">
+          <Link href="/live" className="w-full text-center bg-[#111111] text-white text-[10px] font-black uppercase tracking-widest py-3.5 rounded-xl hover:bg-gray-900 transition z-10 active:scale-[0.98]">
             Enter Feed
           </Link>
         </div>
       </section>
 
-      {/* WHY KORO LANE */}
-      <section className="px-5 pb-10">
-        <h3 className="text-xs font-black uppercase tracking-widest text-white mb-4 flex items-center gap-2">
-           <span className="text-[#00e599]">🛡️</span> WHY KORO LANE?
-        </h3>
-        <div className="grid grid-cols-3 gap-2">
-          <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex flex-col items-center text-center">
-            <svg className="w-6 h-6 text-[#00e599] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-            <h5 className="text-[9px] font-bold text-white mb-1">Verified Sellers</h5>
-            <p className="text-[8px] text-gray-500">100% genuine surplus</p>
-          </div>
-          <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex flex-col items-center text-center">
-            <svg className="w-6 h-6 text-[#00e599] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-            <h5 className="text-[9px] font-bold text-white mb-1">Single Pieces</h5>
-            <p className="text-[8px] text-gray-500">One-of-a-kind finds</p>
-          </div>
-          
-          <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-3 flex flex-col items-center text-center">
-            <svg className="w-6 h-6 text-[#00e599] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"></path>
-            </svg>
-            <h5 className="text-[9px] font-bold text-white mb-1">Free Delivery</h5>
-            <p className="text-[8px] text-gray-500">Fast in Dehradun</p>
-          </div>
-        </div>
-      </section>
-
       {/* 🛡️ SECURE AUTH MODAL */}
       {isAuthModalOpen && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#121214] border border-gray-800 rounded-2xl w-full max-w-sm p-8 relative">
-            <button onClick={() => { setIsAuthModalOpen(false); setSelectedProduct(null); }} className="absolute top-4 right-4 text-gray-500 hover:text-white">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#FFFFFF] border border-gray-200 rounded-2xl w-full max-w-sm p-8 relative shadow-2xl">
+            <button onClick={() => { setIsAuthModalOpen(false); setSelectedProduct(null); }} className="absolute top-4 right-4 text-gray-400 hover:text-[#111111] transition">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
-            <h2 className="text-2xl font-black uppercase tracking-tight mb-2 text-center text-[#00e599]">{authMode === 'signup' ? 'Create Account' : 'Welcome Back'}</h2>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center mb-6">{selectedProduct ? "Secure your 1-of-1 item now." : "Access Buyer Terminal"}</p>
+            <h2 className="text-2xl font-black uppercase tracking-tight mb-2 text-center text-[#111111]">{authMode === 'signup' ? 'Create Account' : 'Welcome Back'}</h2>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-center mb-6">{selectedProduct ? "Secure your 1-of-1 item now." : "Access Buyer Terminal"}</p>
 
             <form onSubmit={handleAuthSubmit} className="space-y-4">
               <div>
-                <label className="block text-[10px] text-gray-400 uppercase tracking-widest mb-1.5">Email Address</label>
-                <input required type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white px-4 py-3 text-sm outline-none focus:border-[#00e599]" placeholder="agent@korolane.com" />
+                <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1.5">Email Address</label>
+                <input required type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} className="w-full bg-[#F6F3EE] border border-gray-300 rounded-xl text-[#111111] px-4 py-3 text-sm outline-none focus:border-[#FF3B30] transition" placeholder="you@example.com" />
               </div>
               <div>
                 <div className="flex justify-between mb-1.5">
-                  <label className="block text-[10px] text-gray-400 uppercase tracking-widest">Password</label>
-                  {authMode === 'login' && <button type="button" onClick={handleForgotPassword} className="text-[9px] text-[#00e599] hover:underline uppercase tracking-widest font-bold">Forgot?</button>}
+                  <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest">Password</label>
+                  {authMode === 'login' && <button type="button" onClick={handleForgotPassword} className="text-[9px] text-[#FF3B30] hover:underline uppercase tracking-widest font-black">Forgot?</button>}
                 </div>
-                <input required type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white px-4 py-3 text-sm outline-none focus:border-[#00e599]" placeholder="••••••••" />
+                <input required type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} className="w-full bg-[#F6F3EE] border border-gray-300 rounded-xl text-[#111111] px-4 py-3 text-sm outline-none focus:border-[#FF3B30] transition" placeholder="••••••••" />
               </div>
               
-              <button type="submit" disabled={authLoading} className="w-full bg-[#00e599] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:bg-[#00c580] transition shadow-[0_0_15px_rgba(0,229,153,0.3)] disabled:opacity-70 mt-4">
+              <button type="submit" disabled={authLoading} className="w-full bg-[#111111] text-white font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:bg-black transition shadow-md disabled:opacity-70 mt-4">
                 {authLoading ? "Authenticating..." : (authMode === 'signup' ? "Create Account & Continue" : "Login Securely")}
               </button>
             </form>
 
             <div className="mt-6 text-center">
-              <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="text-[10px] text-gray-500 uppercase tracking-widest font-bold hover:text-white transition">
+              <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="text-[10px] text-gray-600 uppercase tracking-widest font-black hover:text-[#111111] transition">
                 {authMode === 'login' ? "New Buyer? Create Account" : "Already a Buyer? Login Here"}
               </button>
             </div>
