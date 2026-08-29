@@ -56,6 +56,7 @@ export default function InventoryPage() {
     fetchInventory();
   }, []);
 
+  // 🚀 SMART FETCH INVENTORY ENGINE
   const fetchInventory = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -70,7 +71,37 @@ export default function InventoryPage() {
       .eq("dealer_id", session.user.id)
       .order("created_at", { ascending: false });
 
-    if (data) setProducts(data);
+    if (data && data.length > 0) {
+      const productIds = data.map((p) => p.id);
+      
+      // Fetch corresponding orders to see real status (Hold vs Sold)
+      const { data: ordersData } = await supabase
+        .from("orders")
+        .select("product_id, status")
+        .in("product_id", productIds)
+        .neq("status", "cancelled");
+
+      const orderMap: Record<string, string> = {};
+      if (ordersData) {
+        ordersData.forEach(o => { orderMap[o.product_id] = o.status; });
+      }
+
+      const enrichedProducts = data.map((p) => {
+        let finalStatus = p.is_sold ? 'sold' : 'available';
+        if (orderMap[p.id]) {
+          if (orderMap[p.id] === 'delivered' || orderMap[p.id] === 'dispatched' || orderMap[p.id] === 'shipped') {
+            finalStatus = 'sold';
+          } else {
+            finalStatus = 'on_hold';
+          }
+        }
+        return { ...p, dynamic_status: finalStatus };
+      });
+
+      setProducts(enrichedProducts);
+    } else {
+      setProducts([]);
+    }
     setLoading(false);
   };
 
@@ -312,14 +343,18 @@ export default function InventoryPage() {
           filteredProducts.map((product) => (
             <div key={product.id} className="bg-[#121214] border border-gray-800/60 rounded-3xl p-4 flex gap-4 relative group hover:border-[#F5A623]/30 transition duration-300">
               
-              {/* 🔥 IMAGE PREVIEW LINK */}
+              {/* 🔥 IMAGE PREVIEW LINK & DYNAMIC BADGE */}
               <div 
                 onClick={() => router.push(`/product/${product.id}`)} 
                 className="w-24 h-32 bg-[#1a1a1d] rounded-2xl overflow-hidden shrink-0 border border-gray-800 relative cursor-pointer group/img"
               >
-                {product.is_sold && (
+                {product.dynamic_status !== 'available' && (
                    <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20 backdrop-blur-[2px]">
-                      <span className="text-red-500 text-[9px] font-black uppercase tracking-widest bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/30 -rotate-12 shadow-lg">Sold Out</span>
+                      {product.dynamic_status === 'on_hold' ? (
+                        <span className="text-yellow-500 text-[9px] font-black uppercase tracking-widest bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/30 -rotate-12 shadow-lg">ON HOLD</span>
+                      ) : (
+                        <span className="text-red-500 text-[9px] font-black uppercase tracking-widest bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/30 -rotate-12 shadow-lg">SOLD OUT</span>
+                      )}
                    </div>
                 )}
                 {(product.image_urls && product.image_urls.length > 1) && (
@@ -597,10 +632,7 @@ export default function InventoryPage() {
                 {/* Additional Optional Details */}
                 <div className="space-y-4">
                   <div>
-                    <label className="flex items-center gap-1.5 text-[11px] text-white font-bold mb-1.5">
-                      <svg className="w-3.5 h-3.5 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
-                      Color <span className="text-gray-500 font-normal">(optional)</span>
-                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] text-white font-bold mb-1.5">Color <span className="text-gray-500 font-normal">(optional)</span></label>
                     <div className="flex gap-2">
                       <select value={itemColor} onChange={(e) => setItemColor(e.target.value)} className="flex-1 bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition appearance-none">
                         <option value="">Select color (optional)</option>
@@ -615,12 +647,8 @@ export default function InventoryPage() {
                       </div>
                     </div>
                   </div>
-
                   <div>
-                    <label className="flex items-center gap-1.5 text-[11px] text-white font-bold mb-1.5">
-                      <svg className="w-3.5 h-3.5 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                      Material <span className="text-gray-500 font-normal">(optional)</span>
-                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] text-white font-bold mb-1.5">Material <span className="text-gray-500 font-normal">(optional)</span></label>
                     <input type="text" value={itemMaterial} onChange={(e) => setItemMaterial(e.target.value)} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition" placeholder="e.g. Cotton, Denim, Twill" />
                   </div>
                 </div>
@@ -683,17 +711,10 @@ export default function InventoryPage() {
               </form>
             </div>
             
-          {/* Footer Sticky */}
+            {/* Footer Sticky */}
             <div className="sticky bottom-0 bg-[#0a0a0c] md:bg-[#121214] z-20 px-6 py-4 border-t border-gray-800">
-              <button type="submit" form="add-product-form" disabled={isCreating || (['Top', 'Bottom'].includes(itemCategory) && !measurementsConfirmed)} className="w-full bg-[#F5A623] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] transition shadow-[0_0_15px_rgba(245,166,35,0.2)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2">
-                {isCreating ? (
-                  <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span> Publishing...</>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    Publish Product
-                  </>
-                )}
+              <button type="submit" form="create-product-form" disabled={isCreating || !measurementsConfirmed} className="w-full bg-[#F5A623] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] transition shadow-[0_0_15px_rgba(245,166,35,0.2)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2">
+                {isCreating ? <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span> Publishing...</> : <>Publish Product</>}
               </button>
             </div>
 
@@ -834,7 +855,7 @@ export default function InventoryPage() {
                         </div>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Rise</p><p className="text-[9px] text-gray-500">Crotch to waist</p></div>
                           </div>
                           <div className="relative w-24">
@@ -844,7 +865,7 @@ export default function InventoryPage() {
                         </div>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Inseam</p><p className="text-[9px] text-gray-500">Crotch to bottom</p></div>
                           </div>
                           <div className="relative w-24">
@@ -854,7 +875,7 @@ export default function InventoryPage() {
                         </div>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Outseam</p><p className="text-[9px] text-gray-500">Waist to outer bottom</p></div>
                           </div>
                           <div className="relative w-24">
@@ -864,7 +885,7 @@ export default function InventoryPage() {
                         </div>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Leg Opening</p><p className="text-[9px] text-gray-500">Bottom hem width</p></div>
                           </div>
                           <div className="relative w-24">
