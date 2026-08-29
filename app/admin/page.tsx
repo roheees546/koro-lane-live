@@ -141,14 +141,21 @@ export default function AdminDashboard() {
     fetchData(); 
   };
 
-  // 🔥 UPDATED REJECT LOGIC (Move to History, Make Live again)
+  // 🔥 NAYA MASTER BUTTON LOGIC
+  const handleMarkDelivered = async (orderId: string) => {
+    if (!confirm("Has the customer received the item? This will release the seller's payout!")) return;
+    await supabase.from("orders").update({ status: "delivered" }).eq("id", orderId);
+    alert("Order Delivered! Seller payout has been updated. 💰");
+    fetchData(); 
+  };
+
+  // 🔥 REJECT LOGIC
   const handleRejectOrder = async (orderId: string, productId: string) => {
     if (!confirm("🚨 FAKE ORDER? Mark as Cancelled and make item LIVE again?")) return;
 
     if (productId) {
       await supabase.from("products").update({ is_sold: false }).eq("id", productId);
     }
-    // Set status to cancelled instead of deleting
     await supabase.from("orders").update({ status: "cancelled", payment_status: "Rejected" }).eq("id", orderId);
     alert("Order marked Fake. Item is LIVE again! ♻️");
     fetchData(); 
@@ -181,9 +188,9 @@ export default function AdminDashboard() {
     );
   }
 
-  // Filter Orders based on Tab
-  const activeOrders = orders.filter(o => o.status !== 'cancelled' && o.status !== 'dispatched');
-  const historyOrders = orders.filter(o => o.status === 'cancelled' || o.status === 'dispatched');
+  // 🔥 SMART FILTERS (Dispatched is now ACTIVE until Delivered)
+  const activeOrders = orders.filter(o => o.status !== 'cancelled' && o.status !== 'delivered');
+  const historyOrders = orders.filter(o => o.status === 'cancelled' || o.status === 'delivered');
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + '\n' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -342,6 +349,8 @@ export default function AdminDashboard() {
                                 <span className="text-yellow-500 text-[10px] font-black uppercase tracking-wider flex items-center justify-center md:justify-end gap-1"><span className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-ping"></span> Pending WA Check</span>
                             ) : order.status === "packed" ? (
                                 <span className="text-orange-500 text-[10px] font-black uppercase tracking-wider">Ready to Pickup 📦</span>
+                            ) : order.status === "dispatched" ? (
+                                <span className="text-purple-500 text-[10px] font-black uppercase tracking-wider">Out for Delivery 🚚</span>
                             ) : (
                                 <span className="text-gray-400 text-[10px] font-black uppercase tracking-wider">Dealer Packing...</span>
                             )}
@@ -356,7 +365,9 @@ export default function AdminDashboard() {
                              ) : order.status === "processing" ? (
                                 <button onClick={() => handleMarkPacked(order.id)} className="col-span-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500 hover:text-white py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition">Mark Packed</button>
                              ) : order.status === "packed" ? (
-                                <button onClick={() => handleDispatch(order.id)} className="col-span-2 bg-[#00e599] text-black hover:bg-[#00c580] py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition shadow-[0_0_15px_rgba(0,229,153,0.3)]">Dispatch Route</button>
+                                <button onClick={() => handleDispatch(order.id)} className="col-span-2 bg-purple-500/10 text-purple-400 border border-purple-500/30 hover:bg-purple-500 hover:text-white py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition shadow-[0_0_15px_rgba(168,85,247,0.3)]">Dispatch Route</button>
+                             ) : order.status === "dispatched" ? (
+                                <button onClick={() => handleMarkDelivered(order.id)} className="col-span-2 bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500 hover:text-black py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition shadow-[0_0_15px_rgba(34,197,94,0.3)]">Mark Delivered</button>
                              ) : null}
                            </div>
                            
@@ -399,7 +410,8 @@ export default function AdminDashboard() {
                          
                          <div className="flex items-center justify-between w-full md:w-auto gap-4">
                            <div className="text-left md:text-right">
-                             <p className="text-[10px] font-bold text-white uppercase">{order.status === 'cancelled' ? 'Fake / Cancelled' : 'Dispatched'}</p>
+                             {/* 🔥 STATUS AB SAHI DIKHEGA */}
+                             <p className="text-[10px] font-bold text-white uppercase">{order.status === 'cancelled' ? 'Fake / Cancelled' : 'Delivered ✅'}</p>
                              <p className="text-[9px] text-gray-500 mt-0.5">{new Date(order.created_at).toLocaleDateString()}</p>
                            </div>
                            <button onClick={() => handleViewDetails(order)} className="bg-[#0A0B14] border border-[#1F2132] px-3 py-1.5 rounded-lg text-[9px] text-gray-400 hover:text-white uppercase font-bold transition shrink-0">View</button>
