@@ -22,6 +22,7 @@ export default function DealerDashboard() {
   const [stats, setStats] = useState({ todaySale: 0, pending: 0, totalSales: 0, liveStock: 0 });
   const [pipeline, setPipeline] = useState({ new: 0, packing: 0, shipped: 0, done: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [totalPayout, setTotalPayout] = useState(0);
 
   // 🔥 ZINDA ACTIVE REELS DATA
   const [activeReels, setActiveReels] = useState<any[]>([]);
@@ -136,6 +137,7 @@ export default function DealerDashboard() {
     let todayTotal = 0;
     let newCount = 0, packingCount = 0, shippedCount = 0, doneCount = 0;
     let totalCount = orders ? orders.length : 0;
+    let calculatedPayout = 0; // 🔥 NAYA PAYOUT CALCULATION VARIABLE
 
     if (orders) {
       const enhancedOrders = orders.map(order => {
@@ -150,7 +152,11 @@ export default function DealerDashboard() {
       
       const today = new Date().toDateString();
       orders.forEach(order => {
-        if (order.status === 'delivered') doneCount++;
+        // 🔥 SIRF "DELIVERED" ORDERS KA AMOUNT PAYOUT MEIN JUDEGA
+        if (order.status === 'delivered') {
+           doneCount++;
+           calculatedPayout += (Number(order.price) || 0);
+        }
         else if (order.status === 'dispatched') shippedCount++;
         else if (order.status === 'packed') packingCount++;
         else if (order.status !== 'cancelled') newCount++;
@@ -160,8 +166,9 @@ export default function DealerDashboard() {
       });
     }
 
-   setPipeline({ new: newCount, packing: packingCount, shipped: shippedCount, done: doneCount });
+    setPipeline({ new: newCount, packing: packingCount, shipped: shippedCount, done: doneCount });
     setStats({ todaySale: todayTotal, pending: newCount, totalSales: totalCount, liveStock: liveStockCount });
+    setTotalPayout(calculatedPayout); // 🔥 FINAL PAYOUT STATE MEIN SAVE
 
     setLoading(false);
   };
@@ -611,6 +618,7 @@ export default function DealerDashboard() {
         </div>
       )}
 
+      {/* 🔥 PAYOUT MODAL UPDATED */}
       {isPayoutsOpen && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsPayoutsOpen(false)}>
           <div className="bg-[#121214] border border-gray-800 rounded-3xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
@@ -618,7 +626,8 @@ export default function DealerDashboard() {
              <p className="text-[10px] text-gray-400 mb-6">Your earnings will be credited here.</p>
              <div className="bg-[#1a1a1d] border border-gray-800 rounded-2xl p-5 text-center">
                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Available Balance</p>
-                <h2 className="text-3xl font-black text-[#00e599] my-2">₹0</h2>
+                {/* 🔥 DYNAMIC CALCULATION DISPLAY */}
+                <h2 className="text-3xl font-black text-[#00e599] my-2">₹{totalPayout.toLocaleString('en-IN')}</h2>
                 <p className="text-[10px] text-gray-500">Minimum payout is ₹1000</p>
              </div>
           </div>
