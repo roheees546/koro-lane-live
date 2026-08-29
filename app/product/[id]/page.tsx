@@ -70,13 +70,36 @@ export default function ProductDetailPage() {
         if (prodError) throw prodError;
         
         if (prodData) {
-          setProduct(prodData);
+          // 🔥 SMART LOGIC: Check orders table explicitly to bypass RLS product updates
+          const { data: activeOrders } = await supabase
+            .from("orders")
+            .select("*")
+            .eq("product_id", prodData.id)
+            .neq("status", "cancelled")
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          const hasActiveOrder = activeOrders && activeOrders.length > 0;
+          const orderData = hasActiveOrder ? activeOrders[0] : null;
+
+          // Locally treat it as sold/hold if an active order exists
+          const isHoldOrSold = prodData.is_sold || hasActiveOrder;
+          
+          setProduct({
+            ...prodData,
+            is_sold: isHoldOrSold
+          });
+
           const { data: sellerData } = await supabase.from("profiles").select("*").eq("id", prodData.dealer_id).single();
           if (sellerData) setSeller(sellerData);
 
-          if (prodData.is_sold) {
-            const { data: orderData } = await supabase.from("orders").select("*").eq("product_id", prodData.id).eq("status", "pending").maybeSingle();
-            if (orderData) setPendingOrder(orderData);
+          // Update pendingOrder status for UI text (Hold vs Sold)
+          if (isHoldOrSold) {
+            if (orderData && (orderData.status === 'pending' || orderData.status === 'packed')) {
+              setPendingOrder(orderData);
+            } else if (!orderData && prodData.is_sold) {
+              setPendingOrder(null); // Fully sold
+            }
           }
         }
       } catch (error) {
@@ -153,21 +176,19 @@ export default function ProductDetailPage() {
       
       if (orderError) throw orderError;
 
-      // 2. 🔥 INSTANT HOLD LOGIC (is_sold = true)
-      // Jab tak Admin reject na kare, item baakiyo ke liye ON HOLD rahega
-      const { error: productError } = await supabase.from('products').update({ is_sold: true }).eq('id', product.id);
-      if (productError) throw productError;
+      // 🚨 REMOVED RLS-FAILING PRODUCT UPDATE LOGIC HERE 🚨
+      // Instead, we just let the orders table act as our source of truth for Holds.
 
       const message = `Hi, I just paid ₹${product.price} for ${product.title} (ID: ${product.id}).\n\nDelivery Details:\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}, Pincode: ${formData.pincode}\n\nPlease verify my payment screenshot attached.`;
       
-      // Redirect to WhatsApp
-      window.location.href = `https://wa.me/919027434335?text=${encodeURIComponent(message)}`;
-      
-      // Update UI Instantly
+      // Update UI Instantly without reloading
       setProduct((prev: any) => ({ ...prev, is_sold: true }));
       setPendingOrder(true);
       setIsCheckoutOpen(false);
 
+      // Redirect to WhatsApp
+      window.location.href = `https://wa.me/919027434335?text=${encodeURIComponent(message)}`;
+      
     } catch (error: any) {
       alert("Error placing order: " + error.message);
     } finally {

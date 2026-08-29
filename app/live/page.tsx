@@ -75,37 +75,38 @@ export default function DropsReelsFeed() {
           if (productIds.size > 0) {
             const { data: productsData } = await supabase
               .from('products')
-              .select('id, title, price, image_url, is_sold') // 🔥 Ensure we fetch is_sold instead of a hypothetical status
+              .select('id, title, price, image_url, is_sold') 
               .in('id', Array.from(productIds));
 
-           if (productsData) {
+            if (productsData) {
               const pMap: Record<string, any> = {};
               productsData.forEach((p: any) => {
-                // Dynamically build the status based on is_sold and orders check
-                p.status = p.is_sold ? 'on_hold' : 'available';
+                // Base assumption
+                p.status = p.is_sold ? 'sold' : 'available';
                 pMap[p.id] = p;
               });
-              setProductsMap(pMap);
 
-              // 🔴 Check for Pending/Delivered orders to update exact status
-              const soldProductIds = productsData.filter(p => p.is_sold).map(p => p.id);
-              if (soldProductIds.length > 0) {
+              // 🔥 THE MASTER FIX: Check orders for ALL products bypassing RLS 'is_sold'
+              const allProductIds = productsData.map((p: any) => p.id);
+              if (allProductIds.length > 0) {
                  const { data: ordersData } = await supabase
                    .from("orders")
                    .select("product_id, status")
-                   .in("product_id", soldProductIds);
+                   .in("product_id", allProductIds)
+                   .neq("status", "cancelled"); // Cancelled orders won't affect status
                    
                  if (ordersData) {
                     ordersData.forEach(order => {
                        if (order.status === 'delivered' || order.status === 'dispatched') {
                           pMap[order.product_id].status = 'sold';
                        } else {
+                          // 'pending' or 'packed'
                           pMap[order.product_id].status = 'on_hold';
                        }
                     });
-                    setProductsMap({...pMap});
                  }
               }
+              setProductsMap({...pMap});
             }
           }
 
@@ -122,7 +123,6 @@ export default function DropsReelsFeed() {
             }
           }
         } else {
-          // If no data returned after filter, set empty array
           setReels([]);
         }
       } catch (err) {
