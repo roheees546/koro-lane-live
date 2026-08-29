@@ -15,6 +15,9 @@ export default function DropsReelsFeed() {
   const [selectedReelIndex, setSelectedReelIndex] = useState<number | null>(null);
   const fullScreenContainerRef = useRef<HTMLDivElement>(null);
 
+  // 🔊 GLOBAL SOUND STATE FOR REELS
+  const [isMuted, setIsMuted] = useState(true);
+
   // 🔴 Interactions States
   const [likedReels, setLikedReels] = useState<Record<string, boolean>>({});
   const [activeCommentsReel, setActiveCommentsReel] = useState<string | null>(null);
@@ -40,13 +43,12 @@ export default function DropsReelsFeed() {
   useEffect(() => {
     const fetchFeed = async () => {
       try {
-        // Calculate the time exactly 48 hours ago
         const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
 
         const { data: reelsData, error: reelsError } = await supabase
           .from('reels')
           .select('*')
-          .gte('created_at', fortyEightHoursAgo) // 🔴 THE FIX: Only fetch reels newer than 48 hours
+          .gte('created_at', fortyEightHoursAgo)
           .order('created_at', { ascending: false });
 
         if (reelsError) throw reelsError;
@@ -81,26 +83,23 @@ export default function DropsReelsFeed() {
             if (productsData) {
               const pMap: Record<string, any> = {};
               productsData.forEach((p: any) => {
-                // Base assumption
                 p.status = p.is_sold ? 'sold' : 'available';
                 pMap[p.id] = p;
               });
 
-              // 🔥 THE MASTER FIX: Check orders for ALL products bypassing RLS 'is_sold'
               const allProductIds = productsData.map((p: any) => p.id);
               if (allProductIds.length > 0) {
                  const { data: ordersData } = await supabase
                    .from("orders")
                    .select("product_id, status")
                    .in("product_id", allProductIds)
-                   .neq("status", "cancelled"); // Cancelled orders won't affect status
+                   .neq("status", "cancelled"); 
                    
                  if (ordersData) {
                     ordersData.forEach(order => {
                        if (order.status === 'delivered' || order.status === 'dispatched') {
                           pMap[order.product_id].status = 'sold';
                        } else {
-                          // 'pending' or 'packed'
                           pMap[order.product_id].status = 'on_hold';
                        }
                     });
@@ -156,7 +155,6 @@ export default function DropsReelsFeed() {
     fetchComments();
   }, [activeCommentsReel]);
 
-  // Full Screen open hone par clicked reel par scroll down
   useEffect(() => {
     if (selectedReelIndex !== null && fullScreenContainerRef.current) {
       const targetElement = fullScreenContainerRef.current.children[selectedReelIndex] as HTMLElement;
@@ -168,7 +166,12 @@ export default function DropsReelsFeed() {
 
   // Handlers
   
-  // 🟢 TOGGLE LIKE & SAVE TO BROWSER STORAGE
+  // 🔥 MUTE / UNMUTE HANDLER
+  const toggleMute = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setIsMuted(prev => !prev);
+  };
+
   const toggleLike = (e: React.MouseEvent, reelId: string) => {
     e.stopPropagation();
     setLikedReels(prev => {
@@ -211,7 +214,6 @@ export default function DropsReelsFeed() {
     }
   };
 
-  // 🟢 REAL POST COMMENT LOGIC
   const postComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if(!newComment.trim() || !activeCommentsReel) return;
@@ -279,6 +281,7 @@ export default function DropsReelsFeed() {
               onClick={() => setSelectedReelIndex(index)}
               className="relative aspect-[9/16] bg-black group overflow-hidden cursor-pointer"
             >
+              {/* Note: Grid videos remain muted for clean browsing */}
               <video 
                 src={reel.video_url}
                 muted
@@ -324,7 +327,10 @@ export default function DropsReelsFeed() {
         <div className="fixed inset-0 z-50 bg-black max-w-[450px] mx-auto overflow-hidden animate-fade-in">
           
           <button 
-            onClick={() => setSelectedReelIndex(null)}
+            onClick={() => {
+              setSelectedReelIndex(null);
+              setIsMuted(true); // Auto mute when closing fullscreen to save sanity
+            }}
             className="absolute top-4 right-4 z-50 w-9 h-9 bg-black/60 backdrop-blur-md rounded-full border border-white/20 flex items-center justify-center text-white text-base active:scale-90 transition"
           >
             ✕
@@ -345,13 +351,15 @@ export default function DropsReelsFeed() {
                   key={reel.id} 
                   className="relative w-full h-[100dvh] snap-start bg-zinc-950 flex-shrink-0 flex items-center justify-center overflow-hidden"
                 >
+                  {/* 🔥 DYNAMIC MUTED PROP & CLICK TO TOGGLE SOUND */}
                   <video 
                     src={reel.video_url}
                     autoPlay
                     loop
-                    muted
+                    muted={isMuted}
                     playsInline
-                    className="absolute inset-0 w-full h-full object-cover"
+                    onClick={toggleMute}
+                    className="absolute inset-0 w-full h-full object-cover cursor-pointer"
                   />
                   
                   <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none"></div>
@@ -378,7 +386,21 @@ export default function DropsReelsFeed() {
                     </div>
                   </div>
 
+                  {/* 🔥 ACTIONS COLUMN WITH NEW SOUND BUTTON */}
                   <div className="absolute bottom-32 right-4 z-30 flex flex-col items-center gap-6 pointer-events-auto">
+                    
+                    {/* 🔊 SOUND TOGGLE BUTTON */}
+                    <button onClick={toggleMute} className="flex flex-col items-center gap-1 group active:scale-95 transition">
+                      <div className="w-11 h-11 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition">
+                        {isMuted ? (
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>
+                        ) : (
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-bold text-white drop-shadow-md">{isMuted ? 'Muted' : 'Sound'}</span>
+                    </button>
+
                     <button onClick={(e) => toggleLike(e, reel.id)} className="flex flex-col items-center gap-1 group active:scale-95 transition">
                       <div className="w-11 h-11 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition">
                         <svg className={`w-6 h-6 transition ${isLiked ? 'text-red-500 fill-red-500 animate-bounce' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
