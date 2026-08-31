@@ -106,17 +106,6 @@ export default function Home() {
     router.push(`/product/${product.id}`); 
   };
 
-  const handleBuyNowClick = (e: any, product: any) => {
-    e.stopPropagation(); 
-    if(!isLoggedIn) { 
-        setSelectedProduct(product); 
-        setAuthMode('signup'); 
-        setIsAuthModalOpen(true); 
-        return; 
-    }
-    router.push(`/product/${product.id}`); 
-  };
-
   if (loading) return <div className="min-h-screen bg-[#F6F3EE] flex items-center justify-center text-[#FF3B30] font-bold tracking-widest text-xs uppercase">Loading Platform...</div>;
 
   return (
@@ -163,7 +152,6 @@ export default function Home() {
             <h2 className="text-xs font-black uppercase tracking-tight text-[#111111] mb-1">ONLY VERIFIED SELLERS</h2>
             <p className="text-[10px] text-gray-700 font-medium leading-relaxed max-w-[180px]">We're growing with trust. More verified sellers coming soon!</p>
           </div>
-          {/* Custom Minimalist Graphic (Building) */}
           <div className="absolute right-4 bottom-2 opacity-80 z-0">
              <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                <rect x="55" y="35" width="25" height="50" rx="2" stroke="#111111" strokeWidth="2"/>
@@ -173,7 +161,6 @@ export default function Home() {
                <line x1="70" y1="55" x2="75" y2="55" stroke="#111111" strokeWidth="2" strokeLinecap="round"/>
                <path d="M62 85 V70 C62 67.2386 64.2386 65 67 65 C69.7614 65 72 67.2386 72 70 V85" stroke="#111111" strokeWidth="2"/>
                <line x1="45" y1="85" x2="90" y2="85" stroke="#111111" strokeWidth="2" strokeLinecap="round"/>
-               {/* Sparkles */}
                <path d="M40 25 L42 20 L44 25 L49 27 L44 29 L42 34 L40 29 L35 27 Z" fill="#FF3B30" opacity="0.6"/>
                <path d="M85 15 L86 12 L87 15 L90 16 L87 17 L86 20 L85 17 L82 16 Z" fill="#FF3B30" opacity="0.6"/>
                <path d="M25 65 L26 62 L27 65 L30 66 L27 67 L26 70 L25 67 L22 66 Z" fill="#FF3B30" opacity="0.6"/>
@@ -234,7 +221,6 @@ export default function Home() {
           <Link href="/shop" className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest hover:underline">VIEW ALL</Link>
         </div>
         
-        {/* 🔥 FIX: Cards h-full for equal height */}
         <div className="grid grid-cols-2 gap-4 px-5 pb-4">
           {products.length === 0 ? (
             <p className="text-[10px] text-gray-500 uppercase tracking-widest text-center w-full col-span-2 py-4">No drops available.</p>
@@ -242,7 +228,6 @@ export default function Home() {
             products.map((product) => (
               <div key={product.id} onClick={() => handleCardClick(product)} className="w-full h-full flex flex-col bg-[#FFFFFF] border border-gray-200 rounded-[16px] overflow-hidden relative cursor-pointer hover:shadow-md transition">
                 
-                {/* 🔥 FIX: Bulletproof 4:5 Aspect Ratio Trick so images NEVER distort/shrink/grow unevenly */}
                 <div className="relative w-full pt-[125%] bg-gray-100 flex-none overflow-hidden">
                   <div className="absolute inset-0 w-full h-full">
                     
@@ -266,16 +251,21 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* 🔥 FIX: flex-1 ensures text section stretches to match the tallest card in the row */}
-                <div className="p-3 flex flex-col flex-1 justify-between bg-white">
-                  <div>
-                    <h4 className="text-[11px] font-black uppercase text-[#111111] line-clamp-2 leading-tight">{product.title}</h4>
-                    <p className="text-[10px] text-gray-500 mt-1 font-medium">{product.size || 'M'}</p>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-[13px] font-black text-[#111111]">₹{product.price.toLocaleString('en-IN')}</span>
+                {/* 🔥 UPDATED CARD TEXT LAYOUT EXACTLY LIKE THE IMAGE */}
+                <div className="p-3 flex flex-col flex-1 bg-white">
+                  <h4 className="text-[11px] font-bold uppercase text-[#111111] line-clamp-2 leading-tight mb-0.5">{product.title}</h4>
+                  <p className="text-[10px] text-gray-500 font-medium mb-1.5">{product.size || 'M'}</p>
+                  
+                  {/* RED BOLD PRICE */}
+                  <span className="text-[14px] font-black text-[#FF3B30] mb-1">₹{product.price.toLocaleString('en-IN')}</span>
+                  
+                  {/* SELLER NAME WITH RED TICK */}
+                  <div className="flex items-center gap-1 mt-auto">
+                    <span className="text-[10px] text-[#111111] truncate">{product.profiles?.store_name || "Verified Seller"}</span>
+                    <svg className="w-3 h-3 text-[#FF3B30] shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                   </div>
                 </div>
+
               </div>
             ))
           )}
@@ -343,7 +333,6 @@ export default function Home() {
         </div>
       )}
       
-      {/* 🔥 FIX: Globals injected to permanently fix the black background glitch showing at the bottom padding */}
       <style dangerouslySetInnerHTML={{__html: `
         body, html { background-color: #F6F3EE !important; }
         .hide-scrollbar::-webkit-scrollbar { display: none; } 
