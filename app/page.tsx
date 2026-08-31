@@ -167,7 +167,7 @@ export default function Home() {
           <div className="absolute right-4 bottom-2 opacity-80 z-0">
              <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                <rect x="55" y="35" width="25" height="50" rx="2" stroke="#111111" strokeWidth="2"/>
-              <line x1="60" y1="45" x2="65" y2="45" stroke="#111111" strokeWidth="2" strokeLinecap="round"/>
+               <line x1="60" y1="45" x2="65" y2="45" stroke="#111111" strokeWidth="2" strokeLinecap="round"/>
                <line x1="70" y1="45" x2="75" y2="45" stroke="#111111" strokeWidth="2" strokeLinecap="round"/>
                <line x1="60" y1="55" x2="65" y2="55" stroke="#111111" strokeWidth="2" strokeLinecap="round"/>
                <line x1="70" y1="55" x2="75" y2="55" stroke="#111111" strokeWidth="2" strokeLinecap="round"/>
@@ -234,13 +234,14 @@ export default function Home() {
           <Link href="/shop" className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest hover:underline">VIEW ALL</Link>
         </div>
         
+        {/* 🔥 FIX: Flex & h-full implemented on grid children so cards match height exactly */}
         <div className="grid grid-cols-2 gap-4 px-5 pb-4">
           {products.length === 0 ? (
             <p className="text-[10px] text-gray-500 uppercase tracking-widest text-center w-full col-span-2 py-4">No drops available.</p>
           ) : (
             products.map((product) => (
-              <div key={product.id} onClick={() => handleCardClick(product)} className="w-full bg-[#FFFFFF] border border-gray-200 rounded-[16px] overflow-hidden relative cursor-pointer hover:shadow-md transition flex flex-col">
-                <div className="relative aspect-[4/5] bg-gray-100">
+              <div key={product.id} onClick={() => handleCardClick(product)} className="w-full h-full flex flex-col bg-[#FFFFFF] border border-gray-200 rounded-[16px] overflow-hidden relative cursor-pointer hover:shadow-md transition">
+                <div className="relative aspect-[4/5] bg-gray-100 shrink-0">
                   <div className="absolute top-2 right-2 z-30">
                     <WishlistButton productId={product.id} onRequireAuth={() => setIsAuthModalOpen(true)} />
                   </div>
@@ -259,7 +260,8 @@ export default function Home() {
 
                   <img src={product.image_urls?.[0] || product.image_url} alt={product.title} className="w-full h-full object-cover" />
                 </div>
-                <div className="p-3 flex flex-col flex-grow justify-between bg-white">
+                {/* 🔥 FIX: flex-1 ensures this box stretches evenly across both grid items */}
+                <div className="p-3 flex flex-col flex-1 justify-between bg-white">
                   <div>
                     <h4 className="text-[11px] font-black uppercase text-[#111111] line-clamp-2 leading-tight">{product.title}</h4>
                     <p className="text-[10px] text-gray-500 mt-1 font-medium">{product.size || 'M'}</p>
