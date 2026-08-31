@@ -234,33 +234,39 @@ export default function Home() {
           <Link href="/shop" className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest hover:underline">VIEW ALL</Link>
         </div>
         
-        {/* 🔥 FIX: Flex & h-full implemented on grid children so cards match height exactly */}
+        {/* 🔥 FIX: Cards h-full for equal height */}
         <div className="grid grid-cols-2 gap-4 px-5 pb-4">
           {products.length === 0 ? (
             <p className="text-[10px] text-gray-500 uppercase tracking-widest text-center w-full col-span-2 py-4">No drops available.</p>
           ) : (
             products.map((product) => (
               <div key={product.id} onClick={() => handleCardClick(product)} className="w-full h-full flex flex-col bg-[#FFFFFF] border border-gray-200 rounded-[16px] overflow-hidden relative cursor-pointer hover:shadow-md transition">
-                <div className="relative aspect-[4/5] bg-gray-100 shrink-0">
-                  <div className="absolute top-2 right-2 z-30">
-                    <WishlistButton productId={product.id} onRequireAuth={() => setIsAuthModalOpen(true)} />
-                  </div>
-                  
-                  <span className="absolute top-2 left-2 bg-[#111111] text-white text-[8px] font-black px-2 py-1 rounded-[4px] z-10 uppercase tracking-widest">{product.category || 'TOP'}</span>
-                  
-                  {product.isOnHold ? (
-                    <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
-                      <div className="bg-yellow-400 text-black text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">ON HOLD</div>
+                
+                {/* 🔥 FIX: Bulletproof 4:5 Aspect Ratio Trick so images NEVER distort/shrink/grow unevenly */}
+                <div className="relative w-full pt-[125%] bg-gray-100 flex-none overflow-hidden">
+                  <div className="absolute inset-0 w-full h-full">
+                    
+                    <div className="absolute top-2 right-2 z-30">
+                      <WishlistButton productId={product.id} onRequireAuth={() => setIsAuthModalOpen(true)} />
                     </div>
-                  ) : product.is_sold ? (
-                    <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
-                      <div className="bg-[#111111] text-white text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">SOLD OUT</div>
-                    </div>
-                  ) : null}
+                    
+                    <span className="absolute top-2 left-2 bg-[#111111] text-white text-[8px] font-black px-2 py-1 rounded-[4px] z-10 uppercase tracking-widest">{product.category || 'TOP'}</span>
+                    
+                    {product.isOnHold ? (
+                      <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
+                        <div className="bg-yellow-400 text-black text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">ON HOLD</div>
+                      </div>
+                    ) : product.is_sold ? (
+                      <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
+                        <div className="bg-[#111111] text-white text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">SOLD OUT</div>
+                      </div>
+                    ) : null}
 
-                  <img src={product.image_urls?.[0] || product.image_url} alt={product.title} className="w-full h-full object-cover" />
+                    <img src={product.image_urls?.[0] || product.image_url} alt={product.title} className="w-full h-full object-cover" />
+                  </div>
                 </div>
-                {/* 🔥 FIX: flex-1 ensures this box stretches evenly across both grid items */}
+
+                {/* 🔥 FIX: flex-1 ensures text section stretches to match the tallest card in the row */}
                 <div className="p-3 flex flex-col flex-1 justify-between bg-white">
                   <div>
                     <h4 className="text-[11px] font-black uppercase text-[#111111] line-clamp-2 leading-tight">{product.title}</h4>
@@ -337,7 +343,12 @@ export default function Home() {
         </div>
       )}
       
-      <style dangerouslySetInnerHTML={{__html: `.hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}} />
+      {/* 🔥 FIX: Globals injected to permanently fix the black background glitch showing at the bottom padding */}
+      <style dangerouslySetInnerHTML={{__html: `
+        body, html { background-color: #F6F3EE !important; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; } 
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}} />
     </div>
   );
 }
