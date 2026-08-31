@@ -38,23 +38,43 @@ export default function MiniStorePage() {
         const { data: profile } = await supabase.from("profiles").select("*").eq("id", storeId).single();
         if (profile) setStoreProfile(profile);
 
-        // 3. Fetch Store Products (Including ON HOLD & SOLD items)
+        // 3. Fetch Store Products & Smart Order Check for Sold/Hold Status
         const { data: prods } = await supabase.from("products").select("*").eq("dealer_id", storeId).order('created_at', { ascending: false });
         
-        if (prods) {
-          const { data: pendingOrders } = await supabase
+        if (prods && prods.length > 0) {
+          const productIds = prods.map(p => p.id);
+          const { data: ordersData } = await supabase
             .from("orders")
-            .select("product_id")
-            .eq("status", "pending");
+            .select("product_id, status")
+            .in("product_id", productIds)
+            .neq("status", "cancelled");
 
-          const pendingIds = pendingOrders?.map(o => o.product_id) || [];
+          const enrichedProds = prods.map(p => {
+            const productOrders = ordersData?.filter(o => o.product_id === p.id) || [];
+            const hasActiveOrder = productOrders.length > 0;
+            const latestOrder = hasActiveOrder ? productOrders[0] : null;
 
-          const enrichedProds = prods.map(p => ({
-            ...p,
-            isOnHold: p.is_sold && pendingIds.includes(p.id)
-          }));
+            let isSold = p.is_sold || false;
+            let isOnHold = false;
+
+           if (hasActiveOrder) {
+              if (latestOrder?.status === 'delivered' || latestOrder?.status === 'dispatched' || latestOrder?.status === 'completed') {
+                isSold = true;
+              } else {
+                isOnHold = true;
+              }
+            }
+
+            return {
+              ...p,
+              is_sold: isSold,
+              isOnHold: isOnHold
+            };
+          });
           
           setStoreProducts(enrichedProds);
+        } else {
+          setStoreProducts([]);
         }
 
         // 4. Fetch Followers Count
