@@ -176,7 +176,7 @@ export default function ProductDetailPage() {
       
       if (orderError) throw orderError;
 
-      const message = `Hi, I just paid ₹${product.price} for ${product.title} (ID: ${product.id}).\n\nDelivery Details:\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}, Pincode: ${formData.pincode}\n\nPlease verify my payment screenshot attached.`;
+      const message = `Hi, I just paid ₹${totalPrice} (including ₹6 Platform Fee) for ${product.title} (ID: ${product.id}).\n\nDelivery Details:\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}, Pincode: ${formData.pincode}\n\nPlease verify my payment screenshot attached.`;
       
       // Update UI Instantly without reloading
       setProduct((prev: any) => ({ ...prev, is_sold: true }));
@@ -197,7 +197,8 @@ export default function ProductDetailPage() {
   if (!product) return <div className="min-h-screen bg-[#F6F3EE] flex flex-col items-center justify-center text-[#111111]"><p className="mb-4 uppercase font-bold tracking-widest text-sm">Product not found</p><button onClick={() => router.back()} className="text-[#FF3B30] border border-[#FF3B30] px-6 py-2 rounded-xl font-bold text-xs uppercase">Go Back</button></div>;
 
   const itemPrice = product.price || 0;
-  const totalPrice = itemPrice; // Delivery free
+  const platformFee = 6;
+  const totalPrice = itemPrice + platformFee; 
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const deliveryDate = tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
@@ -284,7 +285,7 @@ export default function ProductDetailPage() {
         <div className="flex justify-between items-start mb-8 gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-black text-[#111111] uppercase tracking-tight leading-tight mb-2">{product.title}</h1>
-            <p className="text-xl font-black text-[#111111]">₹{itemPrice.toLocaleString('en-IN')}</p>
+            <p className="text-xl font-black text-[#111111]">₹{totalPrice.toLocaleString('en-IN')}</p>
           </div>
           
           {seller && (
@@ -464,7 +465,7 @@ export default function ProductDetailPage() {
                     <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Order Summary</h3>
                     <div className="flex justify-between text-xs text-gray-700 mb-2 font-medium"><span>Item Price</span><span>₹{itemPrice}</span></div>
                     <div className="flex justify-between text-xs text-[#FF3B30] mb-2 font-bold"><span>Delivery Charge</span><span>Free (₹0)</span></div>
-                    <div className="flex justify-between text-xs text-gray-700 mb-3 pb-3 border-b border-gray-100 font-medium"><span>Platform Fee ⓘ</span><span>₹0</span></div>
+                    <div className="flex justify-between text-xs text-gray-700 mb-3 pb-3 border-b border-gray-100 font-medium"><span>Platform Fee ⓘ</span><span>₹{platformFee}</span></div>
                     <div className="flex justify-between items-center">
                       <div><p className="text-sm font-black text-[#111111] uppercase tracking-widest">TOTAL</p><p className="text-[8px] text-gray-500 uppercase mt-0.5 font-bold">Inclusive of all taxes</p></div>
                       <span className="text-2xl font-black text-[#111111]">₹{totalPrice}</span>
