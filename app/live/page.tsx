@@ -4,6 +4,44 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
+// ⏳ NEW: LIVE COUNTDOWN COMPONENT
+const ReelCountdown = ({ createdAt }: { createdAt: string }) => {
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    if (!createdAt) return;
+
+    const calculateTime = () => {
+      const expiresAt = new Date(createdAt).getTime() + 48 * 60 * 60 * 1000;
+      const diff = expiresAt - new Date().getTime();
+
+      if (diff <= 0) {
+        setTimeLeft("Expired");
+        return;
+      }
+
+      const h = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0');
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+      const s = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
+
+      setTimeLeft(`${h}h ${m}m ${s}s`);
+    };
+
+    calculateTime();
+    const timer = setInterval(calculateTime, 1000);
+    return () => clearInterval(timer);
+  }, [createdAt]);
+
+  if (!timeLeft) return null;
+
+  return (
+    <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md border border-[#FF3B30]/40 text-[#FF3B30] px-1.5 py-0.5 rounded-[4px] shadow-sm">
+      <svg className="w-2.5 h-2.5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      <span className="text-[9px] font-black tracking-widest">{timeLeft}</span>
+    </div>
+  );
+};
+
 export default function DropsReelsFeed() {
   const router = useRouter();
   const [reels, setReels] = useState<any[]>([]);
@@ -259,7 +297,7 @@ export default function DropsReelsFeed() {
     <div className="relative w-full min-h-[100dvh] bg-[#F6F3EE] font-sans text-[#111111] pb-[80px] max-w-[450px] mx-auto overflow-x-hidden">
       
       {/* 🟢 TOP HEADER */}
-      <div className="sticky top-0 z-40 bg-[#F6F3EE]/95 backdrop-blur-md p-4 border-b border-gray-200 flex justify-between items-center">
+      <div className="sticky top-0 z-40 bg-[#F6F3EE]/95 backdrop-blur-md p-4 border-b border-gray-200 flex justify-between items-center shadow-sm">
         <h1 className="text-lg font-black tracking-wide flex items-center gap-2 text-[#111111]">
           LIVE DROPS <span className="w-2.5 h-2.5 rounded-full bg-[#FF3B30] animate-pulse"></span>
         </h1>
@@ -302,7 +340,7 @@ export default function DropsReelsFeed() {
               {product && (
                 <div className="absolute bottom-2 left-2 right-2 z-10 flex flex-col gap-0.5 pointer-events-none">
                   <div className="flex items-center gap-1">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${product.status === 'available' ? 'bg-[#FF3B30] animate-pulse' : 'bg-gray-500'}`}></span>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${product.status === 'available' ? 'bg-[#FF3B30] animate-pulse' : 'bg-gray-400'}`}></span>
                     <span className="text-[9px] font-bold text-white drop-shadow-md truncate leading-tight">
                       {product.title}
                     </span>
@@ -358,14 +396,14 @@ export default function DropsReelsFeed() {
                     className="absolute inset-0 w-full h-full object-cover cursor-pointer"
                   />
                   
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none"></div>
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none"></div>
 
                   <div className="absolute top-0 left-0 w-full z-30 p-4 pt-6 flex justify-between items-start pointer-events-none">
                     <div 
                       onClick={(e) => handleStoreClick(e, reel.dealer_id)}
                       className="flex items-center gap-3 pointer-events-auto cursor-pointer group"
                     >
-                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#111111] font-black text-xs shrink-0 shadow-lg border-2 border-[#FF3B30] overflow-hidden group-active:scale-95 transition">
+                      <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center text-[#111111] font-black text-xs shrink-0 shadow-lg border-2 border-[#FF3B30] overflow-hidden group-active:scale-95 transition">
                         {seller?.store_logo ? (
                           <img src={seller.store_logo} alt="Store" className="w-full h-full object-cover" />
                         ) : (
@@ -377,7 +415,13 @@ export default function DropsReelsFeed() {
                           <span className="font-bold text-sm text-white">{seller?.store_name || "Unknown Store"}</span>
                           <svg className="w-3.5 h-3.5 text-[#FF3B30]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                         </div>
-                        <span className="text-[10px] text-gray-300">Live Thrift Drop 🌿</span>
+                        
+                        {/* 🔥 COUNTDOWN TIMER INSERTED HERE */}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-gray-200 font-medium">Live Thrift Drop 🌿</span>
+                          <ReelCountdown createdAt={reel.created_at} />
+                        </div>
+
                       </div>
                     </div>
                   </div>
@@ -425,7 +469,7 @@ export default function DropsReelsFeed() {
                     </button>
                   </div>
 
-                  {/* 🔥 PRODUCT CARD OVERLAY (Now Light Depop Theme) */}
+                  {/* 🔥 PRODUCT CARD OVERLAY */}
                   {product && (
                     <div 
                       className="absolute bottom-24 left-4 z-30 pointer-events-auto cursor-pointer animate-fade-in-up" 
@@ -482,7 +526,7 @@ export default function DropsReelsFeed() {
         </div>
       )}
 
-      {/* 💬 3. COMMENTS BOTTOM SHEET MODAL (Now Light Theme) */}
+      {/* 💬 3. COMMENTS BOTTOM SHEET MODAL */}
       {activeCommentsReel && (
         <div className="fixed inset-0 z-[60] flex flex-col justify-end pointer-events-auto">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActiveCommentsReel(null)}></div>
