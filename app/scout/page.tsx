@@ -27,6 +27,7 @@ export default function ScoutTerminal() {
   const [editPhone, setEditPhone] = useState("");
   const [editAltPhone, setEditAltPhone] = useState("");
   const [editAddress, setEditAddress] = useState("");
+  const [editPincode, setEditPincode] = useState(""); // 🔥 NAYA PINCODE STATE
   const [editUpi, setEditUpi] = useState("");
   const [editInsta, setEditInsta] = useState("");
   const [saving, setSaving] = useState(false);
@@ -87,6 +88,7 @@ export default function ScoutTerminal() {
       setEditPhone(profile.phone || "");
       setEditAltPhone(profile.alt_phone || "");
       setEditAddress(profile.address || "");
+      setEditPincode(profile.pincode || ""); // 🔥 FETCH PINCODE
       setEditUpi(profile.upi_id || "");
       setEditInsta(profile.insta_id || "");
       setAvatarUrl(profile.avatar_url || "");
@@ -131,10 +133,22 @@ export default function ScoutTerminal() {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({ full_name: editName, phone: editPhone, alt_phone: editAltPhone, address: editAddress, upi_id: editUpi, insta_id: editInsta }).eq("id", userId);
+    // 🔥 SAVING PINCODE ALONG WITH OTHER DETAILS
+    const { error } = await supabase.from("profiles").update({ 
+      full_name: editName, 
+      phone: editPhone, 
+      alt_phone: editAltPhone, 
+      address: editAddress, 
+      pincode: editPincode, // 🔥 ADDED PINCODE TO DATABASE
+      upi_id: editUpi, 
+      insta_id: editInsta 
+    }).eq("id", userId);
+    
     if (!error) {
       setFullName(editName || "New Buyer"); 
       setShowProfileModal(false);
+    } else {
+      alert("Error saving profile: " + error.message);
     }
     setSaving(false);
   };
@@ -238,21 +252,24 @@ export default function ScoutTerminal() {
         </div>
       </div>
 
-      {/* ✏️ MEGA PROFILE MODAL */}
+      {/* ✏️ MEGA PROFILE MODAL (STYLED PERFECTLY) */}
       {showProfileModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-end md:justify-center p-0 md:p-4" onClick={() => setShowProfileModal(false)}>
-          <div className="bg-[#FFFFFF] border border-gray-200 rounded-t-[28px] md:rounded-[28px] p-6 w-full max-w-md max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-200 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-black uppercase text-[#111111]">Edit Profile</h3>
-              <button onClick={() => setShowProfileModal(false)} className="text-gray-400 hover:text-[#111111]"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+          <div className="bg-[#FFFFFF] border border-gray-200 rounded-t-[32px] md:rounded-[32px] p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-200 shadow-2xl custom-scrollbar" onClick={e => e.stopPropagation()}>
+            
+            <div className="flex justify-between items-center mb-6 sticky top-0 bg-[#FFFFFF] z-10 py-2">
+              <h3 className="text-xl font-black uppercase text-[#111111] tracking-tight">Edit Profile</h3>
+              <button onClick={() => setShowProfileModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:text-[#111111] hover:bg-gray-200 transition">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
             </div>
             
             <div className="flex flex-col items-center justify-center mb-6">
               <label className="relative cursor-pointer group">
                 {avatarUrl ? (
-                  <img src={avatarUrl} className="w-24 h-24 rounded-full border-2 border-[#FF3B30] object-cover" />
+                  <img src={avatarUrl} className="w-24 h-24 rounded-full border-2 border-[#FF3B30] object-cover shadow-sm" />
                 ) : (
-                  <div className="w-24 h-24 rounded-full border-2 border-[#FF3B30] bg-gray-100 flex items-center justify-center text-3xl font-black text-[#FF3B30] uppercase">
+                  <div className="w-24 h-24 rounded-full border-2 border-[#FF3B30] bg-gray-100 flex items-center justify-center text-3xl font-black text-[#FF3B30] uppercase shadow-sm">
                     {fullName && fullName !== "New Buyer" ? fullName.charAt(0) : "U"}
                   </div>
                 )}
@@ -265,16 +282,46 @@ export default function ScoutTerminal() {
               </label>
             </div>
 
-            <form onSubmit={handleSaveProfile} className="space-y-4">
-              <div><label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Full Name</label><input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-[#F6F3EE] border border-gray-300 rounded-xl p-3 text-sm text-[#111111] mt-1 focus:border-[#FF3B30] outline-none font-medium" required placeholder="Enter your name" /></div>
-              <div><label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Full Address</label><textarea value={editAddress} onChange={e => setEditAddress(e.target.value)} rows={3} className="w-full bg-[#F6F3EE] border border-gray-300 rounded-xl p-3 text-sm text-[#111111] mt-1 focus:border-[#FF3B30] outline-none resize-none font-medium" placeholder="House no, Street, City, Pincode" required /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Mobile No.</label><input type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)} className="w-full bg-[#F6F3EE] border border-gray-300 rounded-xl p-3 text-sm text-[#111111] mt-1 focus:border-[#FF3B30] outline-none font-medium" required /></div>
-                <div><label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Alt Mobile (Opt)</label><input type="tel" value={editAltPhone} onChange={e => setEditAltPhone(e.target.value)} className="w-full bg-[#F6F3EE] border border-gray-300 rounded-xl p-3 text-sm text-[#111111] mt-1 focus:border-[#FF3B30] outline-none font-medium" /></div>
+            <form onSubmit={handleSaveProfile} className="space-y-4 pb-4">
+              <div>
+                <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1.5 block">Full Name</label>
+                <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-[#F6F3EE] border border-transparent rounded-xl p-3.5 text-sm text-[#111111] font-bold focus:border-[#FF3B30] focus:bg-white outline-none transition placeholder-gray-400 shadow-inner" required placeholder="Enter your name" />
               </div>
-              <div><label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Instagram ID (Optional)</label><input type="text" value={editInsta} onChange={e => setEditInsta(e.target.value)} className="w-full bg-[#F6F3EE] border border-gray-300 rounded-xl p-3 text-sm text-[#111111] mt-1 focus:border-[#FF3B30] outline-none font-medium" placeholder="@username" /></div>
-              <div><label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Payout UPI ID (Optional)</label><input type="text" value={editUpi} onChange={e => setEditUpi(e.target.value)} className="w-full bg-[#F6F3EE] border border-gray-300 rounded-xl p-3 text-sm text-[#111111] mt-1 focus:border-[#FF3B30] outline-none font-medium" placeholder="yourname@upi" /></div>
-              <button type="submit" disabled={saving || uploading} className="w-full bg-[#111111] text-white font-black py-4 rounded-xl uppercase tracking-widest text-[11px] hover:bg-black transition mt-4 shadow-sm">{saving ? "Saving..." : "Save All Details"}</button>
+              
+              <div>
+                <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1.5 block">Full Address</label>
+                <textarea value={editAddress} onChange={e => setEditAddress(e.target.value)} rows={3} className="w-full bg-[#F6F3EE] border border-transparent rounded-xl p-3.5 text-sm text-[#111111] font-bold focus:border-[#FF3B30] focus:bg-white outline-none resize-none transition placeholder-gray-400 shadow-inner" placeholder="House no, Street, City" required />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1.5 block">Pincode</label>
+                <input type="text" value={editPincode} onChange={e => setEditPincode(e.target.value)} className="w-full bg-[#F6F3EE] border border-transparent rounded-xl p-3.5 text-sm text-[#111111] font-bold focus:border-[#FF3B30] focus:bg-white outline-none transition placeholder-gray-400 shadow-inner" required placeholder="e.g. 248001" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1.5 block">Mobile No.</label>
+                  <input type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)} className="w-full bg-[#F6F3EE] border border-transparent rounded-xl p-3.5 text-sm text-[#111111] font-bold focus:border-[#FF3B30] focus:bg-white outline-none transition placeholder-gray-400 shadow-inner" required />
+                </div>
+                <div>
+                  <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1.5 block">Alt Mobile (Opt)</label>
+                  <input type="tel" value={editAltPhone} onChange={e => setEditAltPhone(e.target.value)} className="w-full bg-[#F6F3EE] border border-transparent rounded-xl p-3.5 text-sm text-[#111111] font-bold focus:border-[#FF3B30] focus:bg-white outline-none transition placeholder-gray-400 shadow-inner" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1.5 block">Instagram ID (Optional)</label>
+                <input type="text" value={editInsta} onChange={e => setEditInsta(e.target.value)} className="w-full bg-[#F6F3EE] border border-transparent rounded-xl p-3.5 text-sm text-[#111111] font-bold focus:border-[#FF3B30] focus:bg-white outline-none transition placeholder-gray-400 shadow-inner" placeholder="@username" />
+              </div>
+              
+              <div>
+                <label className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1.5 block">Payout UPI ID (Optional)</label>
+                <input type="text" value={editUpi} onChange={e => setEditUpi(e.target.value)} className="w-full bg-[#F6F3EE] border border-transparent rounded-xl p-3.5 text-sm text-[#111111] font-bold focus:border-[#FF3B30] focus:bg-white outline-none transition placeholder-gray-400 shadow-inner" placeholder="yourname@upi" />
+              </div>
+              
+              <button type="submit" disabled={saving || uploading} className="w-full bg-[#111111] text-white font-black py-4 rounded-xl uppercase tracking-widest text-[11px] hover:bg-black transition mt-6 shadow-md active:scale-95 disabled:opacity-70">
+                {saving ? "Saving..." : "Save All Details"}
+              </button>
             </form>
           </div>
         </div>
@@ -317,9 +364,9 @@ export default function ScoutTerminal() {
                <div className="flex items-center gap-4 relative z-10">
                   <div className="relative">
                      {avatarUrl ? (
-                       <img src={avatarUrl} className="w-16 h-16 rounded-full border-2 border-[#FF3B30] object-cover bg-gray-100" />
+                       <img src={avatarUrl} className="w-16 h-16 rounded-full border-2 border-[#FF3B30] object-cover bg-gray-100 shadow-sm" />
                      ) : (
-                       <div className="w-16 h-16 rounded-full border-2 border-[#FF3B30] bg-[#F6F3EE] flex items-center justify-center text-xl font-black text-[#FF3B30] uppercase">
+                       <div className="w-16 h-16 rounded-full border-2 border-[#FF3B30] bg-[#F6F3EE] flex items-center justify-center text-xl font-black text-[#FF3B30] uppercase shadow-sm">
                          {fullName && fullName !== "New Buyer" ? fullName.charAt(0) : "U"}
                        </div>
                      )}
@@ -527,6 +574,11 @@ export default function ScoutTerminal() {
           </div>
         )}
       </main>
+      
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1cbd4; border-radius: 4px; }
+      `}} />
     </div>
   );
 }
