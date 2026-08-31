@@ -73,15 +73,15 @@ export default function WishlistButton({ productId, onRequireAuth }: { productId
       <button 
         onClick={toggleWishlist} 
         disabled={loading}
-        className={`w-10 h-10 flex items-center justify-center rounded-full backdrop-blur-md transition shadow-lg 
-          ${isSaved ? 'bg-[#00e599]/20 text-[#00e599] border border-[#00e599]/50' : 'bg-black/40 text-white hover:text-[#00e599] border border-white/20'}`}
+        className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md transition shadow-sm border 
+          ${isSaved ? 'bg-white text-[#FF3B30] border-gray-200' : 'bg-white/80 text-[#111111] hover:text-[#FF3B30] hover:bg-white border-white/40'}`}
       >
-        <svg className="w-5 h-5" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
         </svg>
       </button>
-      {/* 🔥 Like Count Yahan Dikhega */}
-      <span className="text-[11px] font-black text-white drop-shadow-md">{likesCount}</span>
+      {/* 🔥 Like Count with light text shadow for visibility on dark images */}
+      <span className="text-[10px] font-black text-[#111111] drop-shadow-[0_0_3px_rgba(255,255,255,1)]">{likesCount}</span>
     </div>
   );
 }
