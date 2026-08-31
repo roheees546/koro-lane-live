@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import WishlistButton from "@/components/WishlistButton";
 
-export default function ShopPage() {
+export default function Home() {
   const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,21 +182,20 @@ export default function ShopPage() {
                     )}
                   </div>
 
-                  <div className="p-3 flex flex-col flex-grow bg-white justify-between">
-                    <div>
-                      <h3 className="text-[11px] font-black uppercase text-[#111111] line-clamp-2 leading-tight mb-1">{p.title}</h3>
-                      <p className="text-[10px] text-gray-500 font-medium mb-2">{p.size || 'M'}</p>
+                  {/* 🔥 UPDATED CARD TEXT LAYOUT EXACTLY LIKE THE IMAGE */}
+                  <div className="p-3 flex flex-col flex-1 bg-white">
+                    <h4 className="text-[11px] font-bold uppercase text-[#111111] line-clamp-2 leading-tight mb-0.5">{p.title}</h4>
+                    <p className="text-[10px] text-gray-500 font-medium mb-1.5">{p.size || 'M'}</p>
+                    
+                    {/* RED BOLD PRICE */}
+                    <span className="text-[14px] font-black text-[#FF3B30] mb-1">₹{p.price.toLocaleString('en-IN')}</span>
+                    
+                    {/* SELLER NAME WITH RED TICK */}
+                    <div className="flex items-center gap-1 mt-auto">
+                      <span className="text-[10px] text-[#111111] truncate font-medium">{p.profiles?.store_name || "Verified Seller"}</span>
+                      <svg className="w-3 h-3 text-[#FF3B30] shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                     </div>
 
-                    <div>
-                      <p className="text-[13px] font-black text-[#111111] mb-1.5">₹{p.price.toLocaleString('en-IN')}</p>
-                      
-                      <div className="flex items-center gap-1">
-                        <p className="text-[10px] text-gray-500 truncate font-medium">{p.profiles?.store_name || "Verified Dealer"}</p>
-                        <svg className="w-3.5 h-3.5 text-[#FF3B30] shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                      </div>
-                    </div>
-                    
                     {p.is_sold && !p.isOnHold && (
                       <button onClick={(e) => { e.stopPropagation(); alert("Added to waitlist! We'll notify you if a similar item drops."); }} className="mt-3 w-full border border-gray-300 text-[#111111] text-[10px] font-black uppercase tracking-widest py-2 rounded-xl hover:bg-gray-100 transition">
                         Notify Me
