@@ -285,7 +285,8 @@ export default function ProductDetailPage() {
         <div className="flex justify-between items-start mb-8 gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-black text-[#111111] uppercase tracking-tight leading-tight mb-2">{product.title}</h1>
-            <p className="text-xl font-black text-[#111111]">₹{totalPrice.toLocaleString('en-IN')}</p>
+            {/* 🔥 SHOWING ONLY BASE ITEM PRICE OUTSIDE CHECKOUT */}
+            <p className="text-xl font-black text-[#111111]">₹{itemPrice.toLocaleString('en-IN')}</p>
           </div>
           
           {seller && (
@@ -368,8 +369,9 @@ export default function ProductDetailPage() {
       <div className="fixed bottom-[72px] left-0 w-full bg-[#FFFFFF]/95 backdrop-blur-lg border-t border-gray-200 z-30 p-4 shadow-md">
         <div className="max-w-xl mx-auto flex items-center justify-between gap-4">
           <div className="flex flex-col">
-            <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Total Price</span>
-            <span className="text-lg font-black text-[#111111]">₹{totalPrice.toLocaleString('en-IN')}</span>
+            <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Price</span>
+            {/* 🔥 SHOWING ONLY BASE ITEM PRICE IN STICKY BAR */}
+            <span className="text-lg font-black text-[#111111]">₹{itemPrice.toLocaleString('en-IN')}</span>
           </div>
           
           <button 
@@ -461,6 +463,7 @@ export default function ProductDetailPage() {
                     <span className="bg-[#FCECEC] text-[#FF3B30] text-[9px] font-black uppercase px-2 py-1 rounded-[4px] flex items-center gap-1 border border-red-100">⚡ FAST</span>
                   </div>
 
+                  {/* 🔥 CHECKOUT ME DIKHEGA PLATFORM FEE WALA TOTAL */}
                   <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
                     <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Order Summary</h3>
                     <div className="flex justify-between text-xs text-gray-700 mb-2 font-medium"><span>Item Price</span><span>₹{itemPrice}</span></div>
