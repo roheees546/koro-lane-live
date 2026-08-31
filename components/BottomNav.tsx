@@ -12,14 +12,23 @@ export default function BottomNav() {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null); // 🔥 NAYA STATE DP KE LIYE
 
   const isDealerRoute = pathname?.startsWith('/dealer');
 
   useEffect(() => {
-    const fetchRealRole = async (userId: string) => {
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single();
+    // 🔥 AB ROLE KE SATH SATH PHOTO BHI FETCH HOGI
+    const fetchUserProfile = async (userId: string) => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, avatar_url, store_logo')
+        .eq('id', userId)
+        .single();
+        
       if (profile) {
         setUserRole(profile.role);
+        // Agar seller hai to store_logo, warna normal buyer ka avatar_url
+        setUserAvatar(profile.store_logo || profile.avatar_url || null);
       }
     };
 
@@ -27,7 +36,7 @@ export default function BottomNav() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsLoggedIn(true);
-        await fetchRealRole(session.user.id);
+        await fetchUserProfile(session.user.id);
       }
     };
     checkAuth();
@@ -35,10 +44,11 @@ export default function BottomNav() {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         setIsLoggedIn(true);
-        await fetchRealRole(session.user.id);
+        await fetchUserProfile(session.user.id);
       } else {
         setIsLoggedIn(false);
         setUserRole(null);
+        setUserAvatar(null); // Log out pe DP gayab
       }
     });
 
@@ -85,9 +95,15 @@ export default function BottomNav() {
             <span className="text-[9px] font-black uppercase tracking-widest">Feed</span>
           </Link>
 
-          {/* PROFILE */}
+          {/* 🔥 PROFILE / DYNAMIC AVATAR */}
           <button onClick={handleProfileClick} className={`flex flex-col items-center gap-1.5 w-16 ${pathname === '/scout' || pathname === '/login' ? 'text-[#FF3B30]' : 'text-[#555555] hover:text-[#111111] transition'}`}>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            {isLoggedIn && userAvatar ? (
+              <div className={`w-6 h-6 rounded-full overflow-hidden transition-all shadow-sm ${pathname === '/scout' || pathname === '/login' ? 'border-[2px] border-[#FF3B30] scale-110' : 'border border-gray-300'}`}>
+                <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            )}
             <span className="text-[9px] font-black uppercase tracking-widest">Profile</span>
           </button>
 
