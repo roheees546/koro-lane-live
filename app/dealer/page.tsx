@@ -22,6 +22,7 @@ export default function DealerDashboard() {
   const [stats, setStats] = useState({ todaySale: 0, pending: 0, totalSales: 0, liveStock: 0 });
   const [pipeline, setPipeline] = useState({ new: 0, packing: 0, shipped: 0, done: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [deliveredOrders, setDeliveredOrders] = useState<any[]>([]); // 🔥 NAYA STATE FOR PAYOUTS
   const [totalPayout, setTotalPayout] = useState(0);
 
   // 🔥 ZINDA ACTIVE REELS DATA
@@ -137,7 +138,7 @@ export default function DealerDashboard() {
     let todayTotal = 0;
     let newCount = 0, packingCount = 0, shippedCount = 0, doneCount = 0;
     let totalCount = orders ? orders.length : 0;
-    let calculatedPayout = 0; // 🔥 NAYA PAYOUT CALCULATION VARIABLE
+    let calculatedPayout = 0; 
 
     if (orders) {
       const enhancedOrders = orders.map(order => {
@@ -150,12 +151,17 @@ export default function DealerDashboard() {
 
       setRecentOrders(enhancedOrders.slice(0, 5)); 
       
+      // 🔥 FILTER DELIVERED ORDERS FOR PAYOUT
+      const completedOrders = enhancedOrders.filter(o => o.status === 'delivered' || o.status === 'completed');
+      setDeliveredOrders(completedOrders);
+      
       const today = new Date().toDateString();
       orders.forEach(order => {
-        // 🔥 SIRF "DELIVERED" ORDERS KA AMOUNT PAYOUT MEIN JUDEGA
-        if (order.status === 'delivered') {
+        if (order.status === 'delivered' || order.status === 'completed') {
            doneCount++;
-           calculatedPayout += (Number(order.price) || 0);
+           const basePrice = Number(order.price) || 0;
+           // Deduct 5% Fee for Payout Calculation
+           calculatedPayout += basePrice - (basePrice * 0.05); 
         }
         else if (order.status === 'dispatched') shippedCount++;
         else if (order.status === 'packed') packingCount++;
@@ -168,7 +174,7 @@ export default function DealerDashboard() {
 
     setPipeline({ new: newCount, packing: packingCount, shipped: shippedCount, done: doneCount });
     setStats({ todaySale: todayTotal, pending: newCount, totalSales: totalCount, liveStock: liveStockCount });
-    setTotalPayout(calculatedPayout); // 🔥 FINAL PAYOUT STATE MEIN SAVE
+    setTotalPayout(calculatedPayout); 
 
     setLoading(false);
   };
@@ -453,7 +459,7 @@ export default function DealerDashboard() {
               </div>
               <div>
                 <h4 className="text-sm font-bold text-white">Total Payouts</h4>
-                <p className="text-[10px] text-gray-400">Dashboard</p>
+                <p className="text-[10px] text-[#00e599]">₹{totalPayout.toLocaleString('en-IN')}</p>
               </div>
             </div>
 
@@ -618,18 +624,70 @@ export default function DealerDashboard() {
         </div>
       )}
 
-      {/* 🔥 PAYOUT MODAL UPDATED */}
+      {/* 🔥 PAYOUT MODAL UPDATED: LEDGER STYLE */}
       {isPayoutsOpen && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsPayoutsOpen(false)}>
-          <div className="bg-[#121214] border border-gray-800 rounded-3xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-             <h3 className="text-lg font-black uppercase text-white mb-2">Total Payouts</h3>
-             <p className="text-[10px] text-gray-400 mb-6">Your earnings will be credited here.</p>
-             <div className="bg-[#1a1a1d] border border-gray-800 rounded-2xl p-5 text-center">
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Available Balance</p>
-                {/* 🔥 DYNAMIC CALCULATION DISPLAY */}
-                <h2 className="text-3xl font-black text-[#00e599] my-2">₹{totalPayout.toLocaleString('en-IN')}</h2>
-                <p className="text-[10px] text-gray-500">Minimum payout is ₹1000</p>
+          <div className="bg-[#121214] border border-gray-800 rounded-3xl w-full max-w-md h-[80vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+             
+             {/* Header */}
+             <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#1a1a1d]">
+               <div>
+                 <h3 className="text-lg font-black uppercase text-white tracking-widest flex items-center gap-2">
+                   <svg className="w-5 h-5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                   Settlements
+                 </h3>
+                 <p className="text-[10px] text-[#00e599] font-bold mt-1">Direct to UPI upon Delivery</p>
+               </div>
+               <button onClick={() => setIsPayoutsOpen(false)} className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-gray-400 hover:text-white border border-gray-800 transition">✕</button>
              </div>
+
+             {/* Summary Box */}
+             <div className="p-5 border-b border-gray-800 bg-[#121214]">
+               <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">Total Net Payout Generated</p>
+               <h2 className="text-3xl font-black text-white">₹{totalPayout.toLocaleString('en-IN')}</h2>
+             </div>
+
+             {/* Order Ledger List */}
+             <div className="flex-1 overflow-y-auto p-5 space-y-3 hide-scrollbar">
+                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-4 border-b border-gray-800 pb-2">Recent Delivered Orders</p>
+                
+                {deliveredOrders.length === 0 ? (
+                  <div className="text-center py-10 opacity-50">
+                    <svg className="w-10 h-10 text-gray-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No settled orders yet.</p>
+                  </div>
+                ) : (
+                  deliveredOrders.map((order) => {
+                    const basePrice = Number(order.price) || 0;
+                    const fee = basePrice * 0.05;
+                    const netPayout = basePrice - fee;
+                    
+                    return (
+                      <div key={order.id} className="bg-[#1a1a1d] border border-gray-800 rounded-xl p-4 flex flex-col gap-2 relative overflow-hidden">
+                        <div className="flex justify-between items-start mb-1">
+                          <h4 className="text-xs font-bold text-white truncate pr-4">{order.product_name}</h4>
+                          <span className="text-[9px] bg-[#00e599]/20 text-[#00e599] border border-[#00e599]/30 px-1.5 py-0.5 rounded font-black uppercase tracking-widest">Settled</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-gray-400">Selling Price</span>
+                          <span className="text-gray-300 font-bold">₹{basePrice.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-red-400">Koro Lane Fee (5%)</span>
+                          <span className="text-red-400 font-bold">- ₹{fee.toLocaleString('en-IN')}</span>
+                        </div>
+                        
+                        <div className="border-t border-gray-800/60 mt-1 pt-2 flex justify-between items-center">
+                          <span className="text-[11px] text-[#00e599] font-black uppercase tracking-widest">Net Payout Sent</span>
+                          <span className="text-sm font-black text-[#00e599]">₹{netPayout.toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+             </div>
+
           </div>
         </div>
       )}
