@@ -39,6 +39,7 @@ export default function DealerDashboard() {
   const [itemName, setItemName] = useState("");
   const [itemPrice, setItemPrice] = useState("");
   const [itemCategory, setItemCategory] = useState("Top"); 
+  const [itemGender, setItemGender] = useState("Unisex"); // 🔥 NAYA GENDER STATE
   const [itemSize, setItemSize] = useState("L");
   const [itemDesc, setItemDesc] = useState("");
   const [itemColor, setItemColor] = useState("");
@@ -266,11 +267,13 @@ export default function DealerDashboard() {
       legOpening: measurements.legOpening
     };
 
+    // 🔥 Added gender column mapping
     const { error } = await supabase.from("products").insert([{
       dealer_id: userId,
       title: itemName,
       price: parseFloat(itemPrice),
       category: itemCategory,
+      gender: itemGender, // 🔥 NAYA FIELD
       size: itemSize,
       description: itemDesc,
       image_url: uploadedUrls[0] || "", 
@@ -283,7 +286,7 @@ export default function DealerDashboard() {
     if (!error) {
       setIsAddModalOpen(false);
       // Reset Form
-      setItemName(""); setItemPrice(""); setItemSize("L"); setItemDesc(""); setImageFiles([]); 
+      setItemName(""); setItemPrice(""); setItemCategory("Top"); setItemGender("Unisex"); setItemSize("L"); setItemDesc(""); setImageFiles([]); 
       setItemColor(""); setItemMaterial(""); setMeasurementsConfirmed(false);
       setMeasurements({ chest: "", length: "", shoulder: "", sleeve: "", waist: "", hip: "", rise: "", inseam: "", outseam: "", legOpening: "" });
       fetchDashboardData(); 
@@ -722,33 +725,40 @@ export default function DealerDashboard() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
+                  {/* 🔥 MODIFIED: Category, Gender, Size Grid */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-1">
                       <label className="block text-[11px] text-white font-bold mb-1.5">Category</label>
                       <div className="relative">
-                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#F5A623]">
-                          {itemCategory === 'Bottom' ? (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13V6a2 2 0 00-2-2H5a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H5"></path></svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                          )}
-                        </div>
-                        <select value={itemCategory} onChange={(e) => {setItemCategory(e.target.value); setMeasurementsConfirmed(false);}} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white pl-10 pr-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition appearance-none cursor-pointer">
+                        <select value={itemCategory} onChange={(e) => {setItemCategory(e.target.value); setMeasurementsConfirmed(false);}} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-3 py-3.5 text-sm outline-none focus:border-[#F5A623] transition appearance-none cursor-pointer">
                           <option value="Top">Top</option>
                           <option value="Bottom">Bottom</option>
                           <option value="Shoes">Shoes</option>
-                          <option value="Accessories">Accessories</option>
+                          <option value="Accessories">Accs</option>
                         </select>
-                        <svg className="w-4 h-4 text-gray-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        <svg className="w-3.5 h-3.5 text-gray-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                       </div>
                     </div>
-                    <div>
+                    
+                    <div className="col-span-1">
+                      <label className="block text-[11px] text-white font-bold mb-1.5">Gender</label>
+                      <div className="relative">
+                        <select value={itemGender} onChange={(e) => setItemGender(e.target.value)} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-3 py-3.5 text-sm outline-none focus:border-[#F5A623] transition appearance-none cursor-pointer">
+                          <option value="Unisex">Unisex</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                        </select>
+                        <svg className="w-3.5 h-3.5 text-gray-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      </div>
+                    </div>
+
+                    <div className="col-span-1">
                       <label className="block text-[11px] text-white font-bold mb-1.5">Size</label>
                       <div className="relative">
-                        <select value={itemSize} onChange={(e) => setItemSize(e.target.value)} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition appearance-none cursor-pointer">
-                          <option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option><option value="Free Size">Free Size</option>
+                        <select value={itemSize} onChange={(e) => setItemSize(e.target.value)} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-3 py-3.5 text-sm outline-none focus:border-[#F5A623] transition appearance-none cursor-pointer">
+                          <option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option><option value="Free">Free</option>
                         </select>
-                        <svg className="w-4 h-4 text-gray-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        <svg className="w-3.5 h-3.5 text-gray-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                       </div>
                     </div>
                   </div>
@@ -1175,19 +1185,6 @@ export default function DealerDashboard() {
               </div>
 
             </div>
-
-            <div className="bg-[#1a1a1d] border-t border-gray-800 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                 <div className="w-8 h-8 rounded-full bg-[#F5A623]/20 text-[#F5A623] flex items-center justify-center">
-                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
-                 </div>
-                 <div>
-                   <p className="text-xs font-bold text-[#F5A623] uppercase tracking-widest">Tip for accurate measurement</p>
-                   <p className="text-[10px] text-gray-400 mt-0.5">Use a soft measuring tape. Measure twice to be sure!</p>
-                 </div>
-              </div>
-            </div>
-
           </div>
         </div>
       )}

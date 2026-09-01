@@ -15,7 +15,8 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const categories = ["All", "Tops", "Bottoms", "Hoodies", "Jackets", "Dresses", "Vintage"];
+  // 🔥 NAYE FILTERS (Gender add kar diya list mein)
+  const categories = ["All", "Tops", "Bottoms", "Male", "Female", "Unisex", "Hoodies", "Jackets", "Vintage"];
 
   useEffect(() => {
     fetchProducts();
@@ -57,14 +58,20 @@ export default function Home() {
   // 🔥 THE MAGIC ENGINE 2.0: Super Smart Filtering logic
   const filteredProducts = products.filter((p) => {
     let matchesCategory = false;
+    
     if (activeCategory === "All") {
       matchesCategory = true;
     } else {
       const dbCat = (p.category || "").toLowerCase();
+      const dbGender = (p.gender || "").toLowerCase(); // 🔥 Gender check
       const uiCat = activeCategory.toLowerCase();
       const baseUiCat = uiCat.endsWith('s') ? uiCat.slice(0, -1) : uiCat; 
       
-      if (dbCat && (dbCat.includes(baseUiCat) || uiCat.includes(dbCat))) {
+      // Check if UI active filter matches DB Category OR DB Gender
+      if (
+        (dbCat && (dbCat.includes(baseUiCat) || uiCat.includes(dbCat))) ||
+        (dbGender && dbGender === uiCat)
+      ) {
         matchesCategory = true;
       }
     }
@@ -72,7 +79,8 @@ export default function Home() {
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = 
       (p.title && p.title.toLowerCase().includes(searchLower)) || 
-      (p.profiles?.store_name && p.profiles.store_name.toLowerCase().includes(searchLower));
+      (p.profiles?.store_name && p.profiles.store_name.toLowerCase().includes(searchLower)) ||
+      (p.gender && p.gender.toLowerCase().includes(searchLower)); // 🔥 Search bar bhi ab gender padh sakta hai!
       
     return matchesCategory && matchesSearch;
   });
