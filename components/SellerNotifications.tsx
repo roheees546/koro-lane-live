@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function SellerNotifications({ sellerId }: { sellerId: string }) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  // 🔥 AUDIO REF FOR LIVE SOUND
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // 🎵 Initialize audio (Client side only to avoid Next.js SSR errors)
+    audioRef.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+  }, []);
 
   useEffect(() => {
     if (!sellerId) return;
@@ -14,7 +22,7 @@ export default function SellerNotifications({ sellerId }: { sellerId: string }) 
     // Initial Fetch
     fetchNotifications();
 
-    // Realtime subscription for instant bell ring
+    // 🔥 Realtime subscription for instant bell ring & sound
     const channel = supabase
       .channel('schema-db-changes')
       .on(
@@ -23,6 +31,11 @@ export default function SellerNotifications({ sellerId }: { sellerId: string }) 
         (payload) => {
           setNotifications(prev => [payload.new, ...prev]);
           setUnreadCount(prev => prev + 1);
+          
+          // 🔔 PLAY SOUND WAHIN KE WAHIN
+          if (audioRef.current) {
+            audioRef.current.play().catch(e => console.log("Audio play blocked by browser", e));
+          }
         }
       )
       .subscribe();

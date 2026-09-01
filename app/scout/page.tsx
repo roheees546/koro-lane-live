@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -23,12 +23,17 @@ export default function ScoutTerminal() {
   const [followingCount, setFollowingCount] = useState(0);
   const [followingList, setFollowingList] = useState<any[]>([]);
 
+  // 🔥 NAYE NOTIFICATION STATES
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [hasUnread, setHasUnread] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   // 📝 Mega Profile Form States
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editAltPhone, setEditAltPhone] = useState("");
   const [editAddress, setEditAddress] = useState("");
-  const [editPincode, setEditPincode] = useState(""); // 🔥 NAYA PINCODE STATE
+  const [editPincode, setEditPincode] = useState(""); 
   const [editUpi, setEditUpi] = useState("");
   const [editInsta, setEditInsta] = useState("");
   const [saving, setSaving] = useState(false);
@@ -41,8 +46,71 @@ export default function ScoutTerminal() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   useEffect(() => {
+    audioRef.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
     fetchUserData();
   }, []);
+
+  // 🔥 REALTIME NOTIFICATION LISTENER FOR BUYER
+  useEffect(() => {
+    if (!userId) return;
+
+    // Fetch existing notifications
+    const fetchNotifs = async () => {
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      
+      if (data) {
+        setNotifications(data);
+        const unreadExists = data.some(n => !n.is_read);
+        setHasUnread(unreadExists);
+      }
+    };
+    fetchNotifs();
+
+    // Subscribe to real-time inserts
+    const channel = supabase
+      .channel(`buyer-notifs-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          const newNotif = payload.new;
+          setNotifications(prev => [newNotif, ...prev]);
+          setHasUnread(true);
+          
+          // Play sound
+          if (audioRef.current) {
+            audioRef.current.play().catch(e => console.log("Audio play blocked", e));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
+  const markNotificationsAsRead = async () => {
+    setShowNotifications(true);
+    if (!hasUnread || !userId) return;
+
+    setHasUnread(false);
+    // Update in database
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", userId)
+      .eq("is_read", false);
+  };
 
   const fetchUserData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -57,19 +125,17 @@ export default function ScoutTerminal() {
 
     let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
     
-    // 🔒 STRICT ROLE LOCK: Agar ye banda SELLER (dealer) hai, toh isko uske dashboard pe bhej do!
     if (profile && profile.role === 'dealer') {
       router.push("/dealer");
       return;
     }
 
-    // 🆕 NAYA BUYER CREATION (Clean Slate)
     if (!profile) {
       const { data: newProfile } = await supabase.from("profiles").insert({
         id: session.user.id,
         email: userEmail,
         role: "scout",
-        full_name: "" // 🔴 Blank chhod diya taaki fake auto-feed na ho
+        full_name: "" 
       }).select().single();
       
       if (newProfile) profile = newProfile;
@@ -80,7 +146,6 @@ export default function ScoutTerminal() {
 
     if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
 
-    // 🔴 Agar full_name nahi hai, toh auto-email lene ke bajaye "New Buyer" dikhayega
     const nameToUse = profile?.full_name || "New Buyer";
     setFullName(nameToUse);
     
@@ -89,19 +154,16 @@ export default function ScoutTerminal() {
       setEditPhone(profile.phone || "");
       setEditAltPhone(profile.alt_phone || "");
       setEditAddress(profile.address || "");
-      setEditPincode(profile.pincode || ""); // 🔥 FETCH PINCODE
+      setEditPincode(profile.pincode || ""); 
       setEditUpi(profile.upi_id || "");
       setEditInsta(profile.insta_id || "");
       setAvatarUrl(profile.avatar_url || "");
     }
 
-    // 🔥 FIX: FETCH ORDERS ROBUSTLY
-    // Ab ye tumhari exact email ya tumhare phone number par linked saare orders nikalega!
     const { data: scoutOrders } = await supabase
       .from("orders")
       .select(`*, products (image_urls, image_url)`)
-      // .eq("customer_email", userEmail) // Ideal case agar email se filter karna ho (Agar database mein ye field hai toh un-comment kar dena)
-      .in("customer_name", [nameToUse, userEmail.split("@")[0]]) // Backup match
+      .in("customer_name", [nameToUse, userEmail.split("@")[0]]) 
       .order("created_at", { ascending: false });
       
     if (scoutOrders) setOrders(scoutOrders);
@@ -115,7 +177,6 @@ export default function ScoutTerminal() {
     setLoading(false);
   };
 
-  // 📸 DP Upload Logic
   const uploadAvatar = async (event: any) => {
     try {
       setUploading(true);
@@ -142,13 +203,12 @@ export default function ScoutTerminal() {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    // 🔥 SAVING PINCODE ALONG WITH OTHER DETAILS
     const { error } = await supabase.from("profiles").update({ 
       full_name: editName, 
       phone: editPhone, 
       alt_phone: editAltPhone, 
       address: editAddress, 
-      pincode: editPincode, // 🔥 ADDED PINCODE TO DATABASE
+      pincode: editPincode, 
       upi_id: editUpi, 
       insta_id: editInsta 
     }).eq("id", userId);
@@ -162,7 +222,6 @@ export default function ScoutTerminal() {
     setSaving(false);
   };
 
-  // 🔥 2-STEP BYPASS FETCH FOR WISHLIST
   const loadWishlistItems = async () => {
     setActiveView('wishlist');
     try {
@@ -182,7 +241,6 @@ export default function ScoutTerminal() {
     } catch(e) { console.error("Wishlist Fetch Error", e); }
   };
 
-  // 🔥 UNIVERSAL COLUMN BYPASS FETCH FOR FOLLOWING
   const loadFollowingList = async () => {
     setActiveView('following');
     try {
@@ -235,10 +293,11 @@ export default function ScoutTerminal() {
           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Manage your account and orders.</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* 🔥 FIX: Fixed width/height box so the dot stays perfectly aligned */}
-          <button onClick={() => setShowNotifications(true)} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-[#111111] transition relative">
+          {/* 🔥 NOTIFICATION BELL WITH DYNAMIC RED DOT */}
+          <button onClick={markNotificationsAsRead} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-[#111111] transition relative">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-            <span className="absolute top-1 right-1 w-2 h-2 bg-[#FF3B30] rounded-full border border-[#F6F3EE]"></span>
+            {hasUnread && <span className="absolute top-1 right-1 w-2 h-2 bg-[#FF3B30] rounded-full border border-[#F6F3EE] animate-ping"></span>}
+            {hasUnread && <span className="absolute top-1 right-1 w-2 h-2 bg-[#FF3B30] rounded-full border border-[#F6F3EE]"></span>}
           </button>
           <button onClick={() => setShowSettingsModal(true)} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-[#111111] transition">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
@@ -254,10 +313,20 @@ export default function ScoutTerminal() {
             <button onClick={() => setShowNotifications(false)} className="text-gray-400 hover:text-[#111111] bg-gray-100 p-2 rounded-full"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
           </div>
           <div className="p-6 space-y-4 overflow-y-auto h-[calc(100vh-80px)]">
-            <div className="bg-[#F6F3EE] border border-red-100 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center gap-2 mb-2"><div className="w-5 h-5 bg-[#FF3B30] text-white rounded-full flex items-center justify-center text-[10px] font-black">K</div><span className="text-[9px] font-black uppercase text-[#FF3B30] tracking-widest">Koro Lane Admin</span></div>
-              <p className="text-xs text-gray-700 font-medium">Big drop coming this weekend! 100+ vintage tees loading. 🔥</p>
-            </div>
+            {notifications.length > 0 ? (
+              notifications.map((n) => (
+                <div key={n.id} className="bg-[#F6F3EE] border border-red-100 rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-5 h-5 bg-[#FF3B30] text-white rounded-full flex items-center justify-center text-[10px] font-black">K</div>
+                    <span className="text-[9px] font-black uppercase text-[#FF3B30] tracking-widest">{n.title || "Koro Lane Update"}</span>
+                  </div>
+                  <p className="text-xs text-gray-700 font-medium">{n.message}</p>
+                  <p className="text-[8px] text-gray-400 mt-2">{new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-20 text-gray-400 text-xs font-bold uppercase">No notifications yet</div>
+            )}
           </div>
         </div>
       </div>
@@ -370,7 +439,6 @@ export default function ScoutTerminal() {
           <div className="px-6 space-y-4 animate-in fade-in duration-300">
             
             {/* 🌟 PREMIUM PROFILE CARD */}
-            {/* 🔥 FIX: Added shrink-0 and min-w-0 to prevent layout blowouts */}
             <div onClick={() => setShowProfileModal(true)} className="relative p-5 bg-[#FFFFFF] border border-gray-200 rounded-[24px] cursor-pointer hover:border-[#FF3B30]/50 transition duration-300 group overflow-hidden shadow-sm">
                <div className="flex items-center gap-4 relative z-10">
                   
@@ -488,12 +556,10 @@ export default function ScoutTerminal() {
                 const orderDate = new Date(order.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
                 const orderTime = new Date(order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 
-                // Timeline Status logic
                 const isPacked = order.status === 'packed' || order.status === 'dispatched' || order.status === 'delivered';
                 const isDispatched = order.status === 'dispatched' || order.status === 'delivered';
                 const isDelivered = order.status === 'delivered';
 
-                // Top Badge Logic
                 let badgeClass = "bg-orange-50 text-orange-500";
                 let badgeText = "ORDER PLACED";
                 if (order.status === 'packed') { badgeClass = "bg-orange-100 text-orange-600"; badgeText = "PACKED"; }
@@ -502,7 +568,6 @@ export default function ScoutTerminal() {
 
                 return (
                   <div key={order.id} className="bg-[#FFFFFF] border border-gray-200 rounded-[20px] overflow-hidden shadow-sm">
-                    {/* Top Section: Image & Basic Info */}
                     <div className="p-4 flex gap-4 border-b border-gray-100">
                       <div className="w-20 h-24 bg-gray-100 rounded-xl overflow-hidden shrink-0 border border-gray-200">
                         {imgUrl ? (
@@ -530,13 +595,9 @@ export default function ScoutTerminal() {
                       </div>
                     </div>
 
-                    {/* Middle Section: Progress Bar */}
                     <div className="px-6 py-5">
                       <div className="relative">
-                        {/* Background Line */}
                         <div className="absolute top-2.5 left-2 right-2 h-[3px] bg-gray-100 rounded-full z-0"></div>
-                        
-                        {/* Active Line */}
                         <div 
                           className="absolute top-2.5 left-2 h-[3px] rounded-full z-10 transition-all duration-500"
                           style={{
@@ -545,9 +606,7 @@ export default function ScoutTerminal() {
                           }}
                         ></div>
 
-                        {/* Nodes */}
                         <div className="flex justify-between relative z-20">
-                          {/* Placed */}
                           <div className="flex flex-col items-center gap-1.5 w-10">
                             <div className="w-5 h-5 rounded-full bg-[#F5A623] border-2 border-white flex items-center justify-center shadow-sm">
                               <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
@@ -555,7 +614,6 @@ export default function ScoutTerminal() {
                             <span className="text-[8px] font-black text-[#F5A623] uppercase tracking-widest text-center">Order<br/>Placed</span>
                           </div>
                           
-                          {/* Packed */}
                           <div className="flex flex-col items-center gap-1.5 w-10">
                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shadow-sm transition-colors duration-300 ${isPacked ? 'bg-[#F5A623] border-white' : 'bg-white border-gray-200'}`}>
                               {isPacked && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
@@ -563,7 +621,6 @@ export default function ScoutTerminal() {
                             <span className={`text-[8px] font-black uppercase tracking-widest text-center transition-colors duration-300 ${isPacked ? 'text-[#F5A623]' : 'text-gray-400'}`}>Packed</span>
                           </div>
 
-                          {/* Dispatched */}
                           <div className="flex flex-col items-center gap-1.5 w-10">
                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shadow-sm transition-colors duration-300 ${isDispatched ? 'bg-[#FF3B30] border-white' : 'bg-white border-gray-200'}`}>
                               {isDispatched && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
@@ -571,7 +628,6 @@ export default function ScoutTerminal() {
                             <span className={`text-[8px] font-black uppercase tracking-widest text-center transition-colors duration-300 ${isDispatched ? 'text-[#FF3B30]' : 'text-gray-400'}`}>Dispatched</span>
                           </div>
 
-                          {/* Delivered */}
                           <div className="flex flex-col items-center gap-1.5 w-10">
                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shadow-sm transition-colors duration-300 ${isDelivered ? 'bg-[#00e599] border-white' : 'bg-white border-gray-200'}`}>
                               {isDelivered && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
@@ -582,10 +638,9 @@ export default function ScoutTerminal() {
                       </div>
                     </div>
 
-                    {/* Bottom Section: Action */}
                     <div className="bg-[#F6F3EE] p-3 flex justify-between items-center cursor-pointer hover:bg-gray-200 transition" onClick={() => router.push(`/product/${order.product_id}`)}>
                       <div className="flex items-center gap-2 text-gray-600">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2v00V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                         <span className="text-[10px] font-bold uppercase tracking-widest">View Product</span>
                       </div>
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
@@ -646,7 +701,6 @@ export default function ScoutTerminal() {
         )}
 
         {/* 🎛️ VIEW 4: REAL FOLLOWING LIST */}
-        {/* 🔥 FIX: Added shrink-0 and min-w-0 to prevent layout blowouts */}
         {activeView === 'following' && (
           <div className="px-6 space-y-4 animate-in slide-in-from-right duration-300">
             <button onClick={() => setActiveView('dashboard')} className="flex items-center gap-2 text-gray-500 hover:text-[#111111] text-[10px] font-black uppercase tracking-widest mb-6 transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>Back to Dashboard</button>
@@ -706,4 +760,4 @@ export default function ScoutTerminal() {
       `}} />
     </div>
   );
-} 
+}
