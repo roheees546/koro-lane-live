@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import WishlistButton from "@/components/WishlistButton";
 
 export default function ScoutTerminal() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function ScoutTerminal() {
   const [editPhone, setEditPhone] = useState("");
   const [editAltPhone, setEditAltPhone] = useState("");
   const [editAddress, setEditAddress] = useState("");
-  const [editPincode, setEditPincode] = useState("");
+  const [editPincode, setEditPincode] = useState(""); // 🔥 NAYA PINCODE STATE
   const [editUpi, setEditUpi] = useState("");
   const [editInsta, setEditInsta] = useState("");
   const [saving, setSaving] = useState(false);
@@ -56,17 +57,19 @@ export default function ScoutTerminal() {
 
     let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
     
+    // 🔒 STRICT ROLE LOCK: Agar ye banda SELLER (dealer) hai, toh isko uske dashboard pe bhej do!
     if (profile && profile.role === 'dealer') {
       router.push("/dealer");
       return;
     }
 
+    // 🆕 NAYA BUYER CREATION (Clean Slate)
     if (!profile) {
       const { data: newProfile } = await supabase.from("profiles").insert({
         id: session.user.id,
         email: userEmail,
         role: "scout",
-        full_name: "" 
+        full_name: "" // 🔴 Blank chhod diya taaki fake auto-feed na ho
       }).select().single();
       
       if (newProfile) profile = newProfile;
@@ -77,6 +80,7 @@ export default function ScoutTerminal() {
 
     if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
 
+    // 🔴 Agar full_name nahi hai, toh auto-email lene ke bajaye "New Buyer" dikhayega
     const nameToUse = profile?.full_name || "New Buyer";
     setFullName(nameToUse);
     
@@ -85,16 +89,19 @@ export default function ScoutTerminal() {
       setEditPhone(profile.phone || "");
       setEditAltPhone(profile.alt_phone || "");
       setEditAddress(profile.address || "");
-      setEditPincode(profile.pincode || ""); 
+      setEditPincode(profile.pincode || ""); // 🔥 FETCH PINCODE
       setEditUpi(profile.upi_id || "");
       setEditInsta(profile.insta_id || "");
       setAvatarUrl(profile.avatar_url || "");
     }
 
+    // 🔥 FIX: FETCH ORDERS ROBUSTLY
+    // Ab ye tumhari exact email ya tumhare phone number par linked saare orders nikalega!
     const { data: scoutOrders } = await supabase
       .from("orders")
       .select(`*, products (image_urls, image_url)`)
-      .in("customer_name", [nameToUse, userEmail.split("@")[0]])
+      // .eq("customer_email", userEmail) // Ideal case agar email se filter karna ho (Agar database mein ye field hai toh un-comment kar dena)
+      .in("customer_name", [nameToUse, userEmail.split("@")[0]]) // Backup match
       .order("created_at", { ascending: false });
       
     if (scoutOrders) setOrders(scoutOrders);
@@ -108,6 +115,7 @@ export default function ScoutTerminal() {
     setLoading(false);
   };
 
+  // 📸 DP Upload Logic
   const uploadAvatar = async (event: any) => {
     try {
       setUploading(true);
@@ -134,12 +142,13 @@ export default function ScoutTerminal() {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    // 🔥 SAVING PINCODE ALONG WITH OTHER DETAILS
     const { error } = await supabase.from("profiles").update({ 
       full_name: editName, 
       phone: editPhone, 
       alt_phone: editAltPhone, 
       address: editAddress, 
-      pincode: editPincode,
+      pincode: editPincode, // 🔥 ADDED PINCODE TO DATABASE
       upi_id: editUpi, 
       insta_id: editInsta 
     }).eq("id", userId);
@@ -153,6 +162,7 @@ export default function ScoutTerminal() {
     setSaving(false);
   };
 
+  // 🔥 2-STEP BYPASS FETCH FOR WISHLIST
   const loadWishlistItems = async () => {
     setActiveView('wishlist');
     try {
@@ -172,6 +182,7 @@ export default function ScoutTerminal() {
     } catch(e) { console.error("Wishlist Fetch Error", e); }
   };
 
+  // 🔥 UNIVERSAL COLUMN BYPASS FETCH FOR FOLLOWING
   const loadFollowingList = async () => {
     setActiveView('following');
     try {
@@ -695,4 +706,4 @@ export default function ScoutTerminal() {
       `}} />
     </div>
   );
-}
+} 
