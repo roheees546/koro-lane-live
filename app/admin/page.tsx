@@ -489,20 +489,21 @@ export default function AdminDashboard() {
 
       {/* --- 🚀 FULL DETAILS MODAL --- */}
       {selectedOrder && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-[200] p-4 overflow-y-auto">
-          <div className="bg-[#13141F] border border-[#1F2132] rounded-3xl w-full max-w-2xl overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)] my-8">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-[200] p-0 md:p-4 overflow-y-auto">
+          <div className="bg-[#13141F] border border-[#1F2132] rounded-none md:rounded-3xl w-full max-w-2xl overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)] min-h-screen md:min-h-0 md:my-8">
             
-            <div className="bg-[#0A0B14] border-b border-[#1F2132] px-6 py-5 flex justify-between items-center sticky top-0 z-10">
+            {/* 🔥 MODIFIED HEADER WITH LEFT BACK ARROW */}
+            <div className="bg-[#0A0B14] border-b border-[#1F2132] px-4 py-4 md:px-6 md:py-5 flex items-center gap-4 sticky top-0 z-10">
+              <button onClick={() => setSelectedOrder(null)} className="text-gray-400 hover:text-white bg-[#13141F] border border-[#1F2132] p-2 md:p-2.5 rounded-full transition shrink-0">
+                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
+              </button>
               <div>
-                <h2 className="text-indigo-400 font-black uppercase tracking-widest text-sm flex items-center gap-2">Logistics Dispatch Sheet 📋</h2>
+                <h2 className="text-indigo-400 font-black uppercase tracking-widest text-xs md:text-sm flex items-center gap-2">Logistics Dispatch Sheet 📋</h2>
                 <p className="text-[10px] text-gray-500 font-mono mt-1">Order #{selectedOrder.id}</p>
               </div>
-              <button onClick={() => setSelectedOrder(null)} className="text-gray-400 hover:text-white bg-[#13141F] border border-[#1F2132] p-2.5 rounded-full transition">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-              </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-4 md:p-6 space-y-6">
               
               <div className="bg-[#0A0B14] border border-[#1F2132] rounded-2xl p-5 flex items-center gap-5">
                 <div className="w-24 h-24 bg-black rounded-xl border border-[#1F2132] overflow-hidden shrink-0">
