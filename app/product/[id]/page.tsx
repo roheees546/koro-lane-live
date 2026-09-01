@@ -19,6 +19,9 @@ export default function ProductDetailPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [copied, setCopied] = useState(false);
   
+  // 🔥 User ID State Added
+  const [userId, setUserId] = useState<string | null>(null);
+  
   // 🔥 Image Zoom & UPI Copy States
   const [isZoomed, setIsZoomed] = useState(false);
   const [upiCopied, setUpiCopied] = useState(false);
@@ -55,6 +58,7 @@ export default function ProductDetailPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
+          setUserId(session.user.id); // 🔥 Saved User ID here
           const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           if (userProfile) {
             setFormData(prev => ({
@@ -70,7 +74,6 @@ export default function ProductDetailPage() {
         if (prodError) throw prodError;
         
         if (prodData) {
-          // 🔥 SMART LOGIC: Check orders table explicitly to bypass RLS product updates
           const { data: activeOrders } = await supabase
             .from("orders")
             .select("*")
@@ -82,7 +85,6 @@ export default function ProductDetailPage() {
           const hasActiveOrder = activeOrders && activeOrders.length > 0;
           const orderData = hasActiveOrder ? activeOrders[0] : null;
 
-          // Locally treat it as sold/hold if an active order exists
           const isHoldOrSold = prodData.is_sold || hasActiveOrder;
           
           setProduct({
@@ -93,12 +95,11 @@ export default function ProductDetailPage() {
           const { data: sellerData } = await supabase.from("profiles").select("*").eq("id", prodData.dealer_id).single();
           if (sellerData) setSeller(sellerData);
 
-          // Update pendingOrder status for UI text (Hold vs Sold)
           if (isHoldOrSold) {
             if (orderData && (orderData.status === 'pending' || orderData.status === 'packed')) {
               setPendingOrder(orderData);
             } else if (!orderData && prodData.is_sold) {
-              setPendingOrder(null); // Fully sold
+              setPendingOrder(null); 
             }
           }
         }
@@ -111,20 +112,18 @@ export default function ProductDetailPage() {
     if (productId) fetchProductDetails();
   }, [productId]);
 
-  // 🔥 ARROW NAVIGATION LOGIC
   const handlePrevImage = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevents zooming when clicking arrow
+    e.stopPropagation(); 
     if (images.length <= 1) return;
     setActiveImage(prev => (prev === 0 ? images.length - 1 : prev - 1));
   };
 
   const handleNextImage = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevents zooming when clicking arrow
+    e.stopPropagation(); 
     if (images.length <= 1) return;
     setActiveImage(prev => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
-  // 🔥 MOBILE SWIPE HANDLERS (Smooth fallback for phones)
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
@@ -160,6 +159,7 @@ export default function ProductDetailPage() {
     try {
       // 1. Create the Pending Order
       const { error: orderError } = await supabase.from('orders').insert([{
+        user_id: userId, // 🔥 NAYA COLUMN YAHAN BHEJ DIYA
         dealer_id: product.dealer_id, 
         product_id: product.id, 
         product_name: product.title,
@@ -178,12 +178,10 @@ export default function ProductDetailPage() {
 
       const message = `Hi, I just paid ₹${totalPrice} (including ₹6 Platform Fee) for ${product.title} (ID: ${product.id}).\n\nDelivery Details:\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}, Pincode: ${formData.pincode}\n\nPlease verify my payment screenshot attached.`;
       
-      // Update UI Instantly without reloading
       setProduct((prev: any) => ({ ...prev, is_sold: true }));
       setPendingOrder(true);
       setIsCheckoutOpen(false);
 
-      // Redirect to WhatsApp
       window.location.href = `https://wa.me/919027434335?text=${encodeURIComponent(message)}`;
       
     } catch (error: any) {
@@ -285,7 +283,6 @@ export default function ProductDetailPage() {
         <div className="flex justify-between items-start mb-8 gap-4">
           <div className="flex-1">
             <h1 className="text-2xl font-black text-[#111111] uppercase tracking-tight leading-tight mb-2">{product.title}</h1>
-            {/* 🔥 SHOWING ONLY BASE ITEM PRICE OUTSIDE CHECKOUT */}
             <p className="text-xl font-black text-[#111111]">₹{itemPrice.toLocaleString('en-IN')}</p>
           </div>
           
@@ -370,7 +367,6 @@ export default function ProductDetailPage() {
         <div className="max-w-xl mx-auto flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Price</span>
-            {/* 🔥 SHOWING ONLY BASE ITEM PRICE IN STICKY BAR */}
             <span className="text-lg font-black text-[#111111]">₹{itemPrice.toLocaleString('en-IN')}</span>
           </div>
           
@@ -463,7 +459,6 @@ export default function ProductDetailPage() {
                     <span className="bg-[#FCECEC] text-[#FF3B30] text-[9px] font-black uppercase px-2 py-1 rounded-[4px] flex items-center gap-1 border border-red-100">⚡ FAST</span>
                   </div>
 
-                  {/* 🔥 CHECKOUT ME DIKHEGA PLATFORM FEE WALA TOTAL */}
                   <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
                     <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Order Summary</h3>
                     <div className="flex justify-between text-xs text-gray-700 mb-2 font-medium"><span>Item Price</span><span>₹{itemPrice}</span></div>
