@@ -160,10 +160,11 @@ export default function ScoutTerminal() {
       setAvatarUrl(profile.avatar_url || "");
     }
 
+    // 🔥 THE FIX: Fetching orders directly by exact user_id for 100% accuracy
     const { data: scoutOrders } = await supabase
       .from("orders")
       .select(`*, products (image_urls, image_url)`)
-      .in("customer_name", [nameToUse, userEmail.split("@")[0]]) 
+      .eq("user_id", session.user.id) 
       .order("created_at", { ascending: false });
       
     if (scoutOrders) setOrders(scoutOrders);
