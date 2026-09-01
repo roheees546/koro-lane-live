@@ -160,11 +160,20 @@ export default function ScoutTerminal() {
       setAvatarUrl(profile.avatar_url || "");
     }
 
-    // 🔥 THE FIX: Fetching orders directly by exact user_id for 100% accuracy
-    const { data: scoutOrders } = await supabase
+    // 🔥 THE BRAMHASTRA FIX: Fetching by ID, Name (case-insensitive), AND Phone
+    let orQuery = `user_id.eq.${session.user.id}`;
+    
+    if (nameToUse && nameToUse !== "New Buyer") {
+      orQuery += `,customer_name.ilike.%${nameToUse}%`;
+    }
+    if (profile?.phone) {
+      orQuery += `,customer_phone.eq.${profile?.phone}`;
+    }
+
+    const { data: scoutOrders, error: orderError } = await supabase
       .from("orders")
       .select(`*, products (image_urls, image_url)`)
-      .eq("user_id", session.user.id) 
+      .or(orQuery)
       .order("created_at", { ascending: false });
       
     if (scoutOrders) setOrders(scoutOrders);
@@ -294,7 +303,6 @@ export default function ScoutTerminal() {
           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">Manage your account and orders.</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* 🔥 NOTIFICATION BELL WITH DYNAMIC RED DOT */}
           <button onClick={markNotificationsAsRead} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-[#111111] transition relative">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             {hasUnread && <span className="absolute top-1 right-1 w-2 h-2 bg-[#FF3B30] rounded-full border border-[#F6F3EE] animate-ping"></span>}
