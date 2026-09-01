@@ -123,9 +123,45 @@ export default function AdminDashboard() {
     }
   };
 
+  // 🔥 DOUBLE-TRIGGER NOTIFICATION LOGIC
   const handleVerifyPayment = async (orderId: string) => {
     if (!confirm("Confirm WhatsApp Payment?")) return;
-    await supabase.from("orders").update({ payment_status: "Verified", status: "processing" }).eq("id", orderId);
+
+    const targetOrder = orders.find(o => o.id === orderId);
+
+    const { error } = await supabase
+      .from("orders")
+      .update({ payment_status: "Verified", status: "processing" })
+      .eq("id", orderId);
+
+    if (!error && targetOrder) {
+      const notificationsToInsert = [];
+
+      // 1. 🛍️ Buyer Notification
+      if (targetOrder.user_id) {
+        notificationsToInsert.push({
+          user_id: targetOrder.user_id,
+          title: "Payment Verified! ✅",
+          message: `Payment confirmed for "${targetOrder.product_name}". The seller is packing your drop!`,
+          is_read: false
+        });
+      }
+
+      // 2. 🏪 Seller (Dealer) Notification
+      if (targetOrder.dealer_id) {
+        notificationsToInsert.push({
+          user_id: targetOrder.dealer_id,
+          title: "New Order Confirmed! 📦",
+          message: `Payment verified for "${targetOrder.product_name}". Please pack it securely for pickup!`,
+          is_read: false
+        });
+      }
+
+      if (notificationsToInsert.length > 0) {
+        await supabase.from("notifications").insert(notificationsToInsert);
+      }
+    }
+
     fetchData(); 
   };
 
@@ -141,7 +177,6 @@ export default function AdminDashboard() {
     fetchData(); 
   };
 
-  // 🔥 NAYA MASTER BUTTON LOGIC
   const handleMarkDelivered = async (orderId: string) => {
     if (!confirm("Has the customer received the item? This will release the seller's payout!")) return;
     await supabase.from("orders").update({ status: "delivered" }).eq("id", orderId);
@@ -149,7 +184,6 @@ export default function AdminDashboard() {
     fetchData(); 
   };
 
-  // 🔥 REJECT LOGIC
   const handleRejectOrder = async (orderId: string, productId: string) => {
     if (!confirm("🚨 FAKE ORDER? Mark as Cancelled and make item LIVE again?")) return;
 
@@ -188,7 +222,6 @@ export default function AdminDashboard() {
     );
   }
 
-  // 🔥 SMART FILTERS (Dispatched is now ACTIVE until Delivered)
   const activeOrders = orders.filter(o => o.status !== 'cancelled' && o.status !== 'delivered');
   const historyOrders = orders.filter(o => o.status === 'cancelled' || o.status === 'delivered');
 
@@ -410,7 +443,6 @@ export default function AdminDashboard() {
                          
                          <div className="flex items-center justify-between w-full md:w-auto gap-4">
                            <div className="text-left md:text-right">
-                             {/* 🔥 STATUS AB SAHI DIKHEGA */}
                              <p className="text-[10px] font-bold text-white uppercase">{order.status === 'cancelled' ? 'Fake / Cancelled' : 'Delivered ✅'}</p>
                              <p className="text-[9px] text-gray-500 mt-0.5">{new Date(order.created_at).toLocaleDateString()}</p>
                            </div>
@@ -492,7 +524,6 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-[200] p-0 md:p-4 overflow-y-auto">
           <div className="bg-[#13141F] border border-[#1F2132] rounded-none md:rounded-3xl w-full max-w-2xl overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)] min-h-screen md:min-h-0 md:my-8">
             
-            {/* 🔥 MODIFIED HEADER WITH LEFT BACK ARROW */}
             <div className="bg-[#0A0B14] border-b border-[#1F2132] px-4 py-4 md:px-6 md:py-5 flex items-center gap-4 sticky top-0 z-10">
               <button onClick={() => setSelectedOrder(null)} className="text-gray-400 hover:text-white bg-[#13141F] border border-[#1F2132] p-2 md:p-2.5 rounded-full transition shrink-0">
                 <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
