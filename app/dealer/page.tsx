@@ -752,7 +752,7 @@ export default function DealerDashboard() {
                             </div>
                             <div className="relative w-24">
                               <input required type="number" value={measurements.chest} onChange={e => setMeasurements({...measurements, chest: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 56" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                             </div>
                           </div>
                           
@@ -763,7 +763,7 @@ export default function DealerDashboard() {
                             </div>
                             <div className="relative w-24">
                               <input required type="number" value={measurements.length} onChange={e => setMeasurements({...measurements, length: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 72" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                             </div>
                           </div>
 
@@ -774,7 +774,7 @@ export default function DealerDashboard() {
                             </div>
                             <div className="relative w-24">
                               <input required type="number" value={measurements.shoulder} onChange={e => setMeasurements({...measurements, shoulder: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 48" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                             </div>
                           </div>
 
@@ -785,7 +785,7 @@ export default function DealerDashboard() {
                             </div>
                             <div className="relative w-24">
                               <input required type="number" value={measurements.sleeve} onChange={e => setMeasurements({...measurements, sleeve: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 64" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                             </div>
                           </div>
                         </>
@@ -799,7 +799,7 @@ export default function DealerDashboard() {
                             </div>
                             <div className="relative w-24">
                               <input required type="number" value={measurements.rise} onChange={e => setMeasurements({...measurements, rise: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 31" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                             </div>
                           </div>
 
@@ -810,7 +810,7 @@ export default function DealerDashboard() {
                             </div>
                             <div className="relative w-24">
                               <input required type="number" value={measurements.inseam} onChange={e => setMeasurements({...measurements, inseam: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 76" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                             </div>
                           </div>
 
@@ -821,7 +821,7 @@ export default function DealerDashboard() {
                             </div>
                             <div className="relative w-24">
                               <input required type="number" value={measurements.outseam} onChange={e => setMeasurements({...measurements, outseam: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 104" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                             </div>
                           </div>
 
@@ -832,7 +832,7 @@ export default function DealerDashboard() {
                             </div>
                             <div className="relative w-24">
                               <input required type="number" value={measurements.legOpening} onChange={e => setMeasurements({...measurements, legOpening: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 20" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                             </div>
                           </div>
                         </>
