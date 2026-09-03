@@ -22,7 +22,7 @@ export default function DealerDashboard() {
   const [stats, setStats] = useState({ todaySale: 0, pending: 0, totalSales: 0, liveStock: 0 });
   const [pipeline, setPipeline] = useState({ new: 0, packing: 0, shipped: 0, done: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
-  const [deliveredOrders, setDeliveredOrders] = useState<any[]>([]); // 🔥 NAYA STATE FOR PAYOUTS
+  const [deliveredOrders, setDeliveredOrders] = useState<any[]>([]); 
   const [totalPayout, setTotalPayout] = useState(0);
 
   // 🔥 ZINDA ACTIVE REELS DATA
@@ -39,7 +39,7 @@ export default function DealerDashboard() {
   const [itemName, setItemName] = useState("");
   const [itemPrice, setItemPrice] = useState("");
   const [itemCategory, setItemCategory] = useState("Top"); 
-  const [itemGender, setItemGender] = useState("Unisex"); // 🔥 NAYA GENDER STATE
+  const [itemGender, setItemGender] = useState("Unisex"); 
   const [itemSize, setItemSize] = useState("L");
   const [itemDesc, setItemDesc] = useState("");
   const [itemColor, setItemColor] = useState("");
@@ -48,10 +48,10 @@ export default function DealerDashboard() {
   const [isAdding, setIsAdding] = useState(false);
   const [isLogoUploading, setIsLogoUploading] = useState(false);
 
-  // 🔥 JSON Measurements State
+  // 🔥 JSON Measurements State (Waist & Hip removed from bottom wear)
   const [measurements, setMeasurements] = useState({
     chest: "", length: "", shoulder: "", sleeve: "", // Top
-    waist: "", hip: "", rise: "", inseam: "", outseam: "", legOpening: "" // Bottom
+    rise: "", inseam: "", outseam: "", legOpening: "" // Bottom (waist & hip removed)
   });
   const [measurementsConfirmed, setMeasurementsConfirmed] = useState(false);
 
@@ -152,7 +152,6 @@ export default function DealerDashboard() {
 
       setRecentOrders(enhancedOrders.slice(0, 5)); 
       
-      // 🔥 FILTER DELIVERED ORDERS FOR PAYOUT
       const completedOrders = enhancedOrders.filter(o => o.status === 'delivered' || o.status === 'completed');
       setDeliveredOrders(completedOrders);
       
@@ -161,7 +160,6 @@ export default function DealerDashboard() {
         if (order.status === 'delivered' || order.status === 'completed') {
            doneCount++;
            const basePrice = Number(order.price) || 0;
-           // Deduct 5% Fee for Payout Calculation
            calculatedPayout += basePrice - (basePrice * 0.05); 
         }
         else if (order.status === 'dispatched') shippedCount++;
@@ -252,28 +250,25 @@ export default function DealerDashboard() {
       }
     }
 
-    // Prepare JSON payload for measurements based on category
+    // Prepare JSON payload for measurements (Waist & Hip excluded for bottom wear)
     const finalMeasurements = itemCategory === "Top" ? {
       chest: measurements.chest,
       length: measurements.length,
       shoulder: measurements.shoulder,
       sleeve: measurements.sleeve
     } : {
-      waist: measurements.waist,
-      hip: measurements.hip,
       rise: measurements.rise,
       inseam: measurements.inseam,
       outseam: measurements.outseam,
       legOpening: measurements.legOpening
     };
 
-    // 🔥 Added gender column mapping
     const { error } = await supabase.from("products").insert([{
       dealer_id: userId,
       title: itemName,
       price: parseFloat(itemPrice),
       category: itemCategory,
-      gender: itemGender, // 🔥 NAYA FIELD
+      gender: itemGender, 
       size: itemSize,
       description: itemDesc,
       image_url: uploadedUrls[0] || "", 
@@ -285,10 +280,9 @@ export default function DealerDashboard() {
 
     if (!error) {
       setIsAddModalOpen(false);
-      // Reset Form
       setItemName(""); setItemPrice(""); setItemCategory("Top"); setItemGender("Unisex"); setItemSize("L"); setItemDesc(""); setImageFiles([]); 
       setItemColor(""); setItemMaterial(""); setMeasurementsConfirmed(false);
-      setMeasurements({ chest: "", length: "", shoulder: "", sleeve: "", waist: "", hip: "", rise: "", inseam: "", outseam: "", legOpening: "" });
+      setMeasurements({ chest: "", length: "", shoulder: "", sleeve: "", rise: "", inseam: "", outseam: "", legOpening: "" });
       fetchDashboardData(); 
     } else {
       alert("Error adding item: " + error.message);
@@ -301,7 +295,7 @@ export default function DealerDashboard() {
       const newFiles = Array.from(e.target.files);
       setImageFiles(prev => {
         const combined = [...prev, ...newFiles];
-        return combined.slice(0, 4); // Max 4 images
+        return combined.slice(0, 4); 
       });
     }
   };
@@ -326,7 +320,6 @@ export default function DealerDashboard() {
         </div>
         <div className="flex items-center gap-3">
           
-          {/* 🔥 TERA NAYA LIVE NOTIFICATION BELL YAHAN AAGAYA */}
           {userId && <SellerNotifications sellerId={userId} />}
 
           <button onClick={() => setIsSettingsOpen(true)} className="text-gray-400 hover:text-white transition">
@@ -432,6 +425,7 @@ export default function DealerDashboard() {
           </div>
         </div>
 
+        {/* 🔥 MODIFIED QUICK ACTIONS: Messages & Upload Reel removed, now 2 clean cards */}
         <div>
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">Quick Actions</p>
           <div className="grid grid-cols-2 gap-3">
@@ -445,17 +439,6 @@ export default function DealerDashboard() {
               </div>
             </div>
             
-            <div onClick={() => alert("Chat functionality coming in next update!")} className="bg-[#121214] border border-gray-800/60 p-4 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-[#F5A623]/50 transition">
-              <div className="w-10 h-10 bg-[#1a1a1d] rounded-xl flex items-center justify-center text-[#F5A623]">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-white">Messages</h4>
-                <p className="text-[10px] text-[#F5A623]">0 unread</p>
-              </div>
-            </div>
-
-            {/* 🔥 MODIFIED PAYOUT BUTTON */}
             <div onClick={() => setIsPayoutsOpen(true)} className="bg-[#121214] border border-gray-800/60 p-4 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-[#F5A623]/50 transition">
               <div className="w-10 h-10 bg-[#1a1a1d] rounded-xl flex items-center justify-center text-[#00e599]">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
@@ -465,22 +448,6 @@ export default function DealerDashboard() {
                 <p className="text-[10px] text-[#00e599]">₹{totalPayout.toLocaleString('en-IN')}</p>
               </div>
             </div>
-
-            <div 
-              onClick={() => router.push('/dealer/live')} 
-              className="bg-[#121214] border border-gray-800/60 p-4 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-[#00e599]/50 transition"
-            >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#1a1a1d] text-[#00e599]">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                </svg>
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-white">Upload Reel</h4>
-                <p className="text-[10px] text-gray-400">Post a new reel</p>
-              </div>
-            </div>
-            
           </div>
         </div>
 
@@ -500,7 +467,6 @@ export default function DealerDashboard() {
               return (
                 <div key={reel.id} onClick={() => router.push('/live')} className={`relative w-[130px] h-[200px] rounded-2xl overflow-hidden shrink-0 border border-white/10 bg-zinc-900 group cursor-pointer shadow-lg transition-all ${isExpiringSoon ? 'hover:border-orange-500/40' : 'hover:border-[#00e599]/40'}`}>
                   
-                  {/* Real Video background for actual preview */}
                   <video 
                     src={reel.video_url} 
                     className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition duration-500" 
@@ -510,7 +476,6 @@ export default function DealerDashboard() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90"></div>
                   
-                  {/* Top Status */}
                   <div className="absolute top-2 left-2 right-2 flex justify-between items-center">
                     <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-white/10 flex items-center gap-1.5 shadow-sm">
                       <span className={`w-1.5 h-1.5 rounded-full ${remainingTime === "Expired" ? 'bg-gray-500' : 'bg-red-500 animate-pulse'}`}></span>
@@ -518,7 +483,6 @@ export default function DealerDashboard() {
                     </div>
                   </div>
 
-                  {/* Bottom Info */}
                   <div className="absolute bottom-2 left-2 right-2 flex flex-col gap-2">
                     <div className={`${remainingTime === "Expired" ? 'bg-gray-500/10 border-gray-500/30' : isExpiringSoon ? 'bg-orange-500/10 border-orange-500/30' : 'bg-[#00e599]/10 border-[#00e599]/30'} backdrop-blur-md border rounded-lg px-2 py-1.5 flex items-center justify-center gap-1.5 shadow-sm`}>
                       <svg className={`w-3 h-3 ${remainingTime === "Expired" ? 'text-gray-500' : isExpiringSoon ? 'text-orange-500' : 'text-[#00e599]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -540,7 +504,6 @@ export default function DealerDashboard() {
               );
             })}
 
-            {/* Add New Drop Button */}
             <div onClick={() => router.push('/dealer/live')} className="relative w-[130px] h-[200px] rounded-2xl overflow-hidden shrink-0 border border-dashed border-gray-700 bg-black/40 flex flex-col items-center justify-center cursor-pointer hover:border-[#00e599]/50 hover:bg-[#00e599]/5 transition group">
               <div className="w-10 h-10 rounded-full bg-gray-900 border border-gray-800 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg">
                 <svg className="w-4 h-4 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"></path></svg>
@@ -634,14 +597,14 @@ export default function DealerDashboard() {
              
              {/* Header */}
              <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#1a1a1d]">
-               <div>
-                 <h3 className="text-lg font-black uppercase text-white tracking-widest flex items-center gap-2">
-                   <svg className="w-5 h-5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                   Settlements
-                 </h3>
-                 <p className="text-[10px] text-[#00e599] font-bold mt-1">Direct to UPI upon Delivery</p>
-               </div>
-               <button onClick={() => setIsPayoutsOpen(false)} className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-gray-400 hover:text-white border border-gray-800 transition">✕</button>
+              <div>
+                <h3 className="text-lg font-black uppercase text-white tracking-widest flex items-center gap-2">
+                  <svg className="w-5 h-5 text-[#00e599]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  Settlements
+                </h3>
+                <p className="text-[10px] text-[#00e599] font-bold mt-1">Direct to UPI upon Delivery</p>
+              </div>
+              <button onClick={() => setIsPayoutsOpen(false)} className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-gray-400 hover:text-white border border-gray-800 transition">✕</button>
              </div>
 
              {/* Summary Box */}
@@ -700,7 +663,6 @@ export default function DealerDashboard() {
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-end md:items-center justify-center z-[70] p-0 md:p-4 animate-in slide-in-from-bottom-4 md:slide-in-from-bottom-0 md:zoom-in-95">
           <div className="bg-[#0a0a0c] md:bg-[#121214] md:border border-gray-800 rounded-t-3xl md:rounded-3xl w-full max-w-md h-[95vh] md:h-[85vh] flex flex-col relative overflow-hidden">
             
-            {/* Header Sticky */}
             <div className="sticky top-0 bg-[#0a0a0c] md:bg-[#121214] z-20 px-6 py-4 border-b border-gray-800 flex justify-between items-center">
               <div>
                 <h2 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2"><span className="text-[#F5A623]">✦</span> Add Product</h2>
@@ -711,11 +673,9 @@ export default function DealerDashboard() {
               </button>
             </div>
             
-            {/* Scrollable Form */}
             <div className="p-6 overflow-y-auto hide-scrollbar flex-1">
               <form id="add-product-form" onSubmit={handleAddItem} className="space-y-6">
                 
-                {/* Basic Details */}
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[11px] text-white font-bold mb-1.5">Item Title</label>
@@ -725,7 +685,6 @@ export default function DealerDashboard() {
                     </div>
                   </div>
                   
-                  {/* 🔥 MODIFIED: Category, Gender, Size Grid */}
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-1">
                       <label className="block text-[11px] text-white font-bold mb-1.5">Category</label>
@@ -772,7 +731,6 @@ export default function DealerDashboard() {
                 {/* 📏 MEASUREMENTS MASTER SECTION */}
                 {(itemCategory === 'Top' || itemCategory === 'Bottom') && (
                   <div className="bg-[#1a1a1d] border border-gray-800 rounded-2xl p-1 shadow-inner relative overflow-hidden">
-                    {/* Header */}
                     <div className="flex justify-between items-center p-3 border-b border-gray-800/50">
                       <div className="flex items-center gap-2">
                         <svg className="w-4 h-4 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>
@@ -784,7 +742,6 @@ export default function DealerDashboard() {
                       </button>
                     </div>
                     
-                    {/* Measurement Inputs Grid */}
                     <div className="p-3 space-y-3">
                       {itemCategory === 'Top' ? (
                         <>
@@ -834,29 +791,7 @@ export default function DealerDashboard() {
                         </>
                       ) : (
                         <>
-                          {/* Bottom Wear Inputs (Waist, Hip, Rise, Inseam, Outseam, Leg Opening) */}
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 w-1/2">
-                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/><path d="M6 4h12" stroke="#F5A623" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 2"/><path d="M4 4l2 -2M4 4l2 2" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/><path d="M20 4l-2 -2M20 4l-2 2" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/></svg></div>
-                               <div><p className="text-[11px] font-bold text-white">Waist</p><p className="text-[9px] text-gray-500">Waistband laid flat</p></div>
-                            </div>
-                            <div className="relative w-24">
-                              <input required type="number" value={measurements.waist} onChange={e => setMeasurements({...measurements, waist: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 82" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 w-1/2">
-                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/><path d="M6 9h12" stroke="#F5A623" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 2"/><path d="M4 9l2 -2M4 9l2 2" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/><path d="M20 9l-2 -2M20 9l-2 2" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/></svg></div>
-                               <div><p className="text-[11px] font-bold text-white">Hip</p><p className="text-[9px] text-gray-500">Widest part</p></div>
-                            </div>
-                            <div className="relative w-24">
-                              <input required type="number" value={measurements.hip} onChange={e => setMeasurements({...measurements, hip: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 102" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
-                            </div>
-                          </div>
-
+                          {/* Bottom Wear Inputs (Waist & Hip removed, Rise, Inseam, Outseam, Leg Opening kept) */}
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3 w-1/2">
                                <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/><path d="M12 4v7" stroke="#F5A623" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 2"/><path d="M10 4l2 -2l2 2" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/><path d="M10 11l2 2l2 -2" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/></svg></div>
@@ -944,7 +879,7 @@ export default function DealerDashboard() {
 
                   <div>
                     <label className="flex items-center gap-1.5 text-[11px] text-white font-bold mb-1.5">
-                      <svg className="w-3.5 h-3.5 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                      <svg className="w-3.5 h-3.5 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2v00V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                       Material <span className="text-gray-500 font-normal">(optional)</span>
                     </label>
                     <input type="text" value={itemMaterial} onChange={(e) => setItemMaterial(e.target.value)} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition" placeholder="e.g. Cotton, Denim, Twill" />
@@ -965,7 +900,6 @@ export default function DealerDashboard() {
                       return (
                         <div key={idx} className={`aspect-square rounded-xl overflow-hidden relative flex flex-col items-center justify-center text-center cursor-pointer transition ${file ? 'border border-gray-700 bg-gray-900' : isMain ? 'border-2 border-[#F5A623] border-dashed bg-[#F5A623]/5 hover:bg-[#F5A623]/10' : 'border border-gray-800 border-dashed bg-[#1a1a1d] hover:border-gray-600'}`}>
                           
-                          {/* Invisible Input covering the square */}
                           <input type="file" accept="image/*" multiple onChange={handleImageSelect} disabled={imageFiles.length >= 4} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed" title={file ? "Image selected" : "Add photo"} />
                           
                           {file ? (
@@ -1009,7 +943,6 @@ export default function DealerDashboard() {
               </form>
             </div>
             
-            {/* Footer Sticky */}
             <div className="sticky bottom-0 bg-[#0a0a0c] md:bg-[#121214] z-20 px-6 py-4 border-t border-gray-800">
               <button type="submit" form="add-product-form" disabled={isAdding || (['Top', 'Bottom'].includes(itemCategory) && !measurementsConfirmed)} className="w-full bg-[#F5A623] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] transition shadow-[0_0_15px_rgba(245,166,35,0.2)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2">
                 {isAdding ? (
@@ -1061,26 +994,21 @@ export default function DealerDashboard() {
 
                 <div className="grid md:grid-cols-2 gap-8 items-center">
                   <div className="bg-[#0a0a0c] rounded-xl aspect-square border border-gray-800 flex items-center justify-center p-4 relative">
-                     {/* Clean SVG Representation of T-Shirt Guide */}
                      <svg viewBox="0 0 100 100" className="w-full h-full text-gray-200 opacity-90 drop-shadow-xl" fill="currentColor">
                        <path d="M25,25 Q35,20 50,25 Q65,20 75,25 L95,50 L85,60 L75,45 L75,90 L25,90 L25,45 L15,60 L5,50 Z" className="text-[#1a1a1d] stroke-gray-700 stroke-[2]"/>
                        
-                       {/* Arrow 1: Chest */}
                        <path d="M26 55 L74 55" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
                        <circle cx="50" cy="55" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="50" y="58" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">1</text>
                        <path d="M28 53 L26 55 L28 57 M72 53 L74 55 L72 57" stroke="#F5A623" fill="none" strokeWidth="1.5"/>
 
-                       {/* Arrow 2: Length */}
                        <path d="M40 25 L40 88" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
                        <circle cx="40" cy="65" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="40" y="68" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">2</text>
                        <path d="M38 27 L40 25 L42 27 M38 86 L40 88 L42 86" stroke="#F5A623" fill="none" strokeWidth="1.5"/>
 
-                       {/* Arrow 3: Shoulder */}
                        <path d="M27 27 L73 27" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
                        <circle cx="50" cy="27" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="50" y="30" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">3</text>
                        <path d="M29 25 L27 27 L29 29 M71 25 L73 27 L71 29" stroke="#F5A623" fill="none" strokeWidth="1.5"/>
 
-                       {/* Arrow 4: Sleeve */}
                        <path d="M75 25 L93 48" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
                        <circle cx="88" cy="38" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="88" y="41" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">4</text>
                        <path d="M76 28 L75 25 L78 26 M90 48 L93 48 L93 45" stroke="#F5A623" fill="none" strokeWidth="1.5"/>
@@ -1105,10 +1033,6 @@ export default function DealerDashboard() {
                     </div>
                   </div>
                 </div>
-                <div className="mt-5 bg-[#0a0a0c] p-3 rounded-xl border border-gray-800 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  <p className="text-[11px] text-gray-400">Lay the garment flat on a surface. Do not measure on body.</p>
-                </div>
               </div>
 
               {/* BOTTOM WEAR GUIDE */}
@@ -1123,61 +1047,38 @@ export default function DealerDashboard() {
 
                 <div className="grid md:grid-cols-2 gap-8 items-start">
                   <div className="bg-[#0a0a0c] rounded-xl h-[300px] border border-gray-800 flex items-center justify-center p-4 relative">
-                     {/* Clean SVG Representation of Pants Guide */}
                      <svg viewBox="0 0 100 150" className="w-full h-full text-gray-200 opacity-90 drop-shadow-xl" fill="currentColor">
                        <path d="M25,20 L75,20 L85,130 L55,130 L50,60 L45,130 L15,130 Z" className="text-[#1a1a1d] stroke-gray-700 stroke-[2]"/>
                        
-                       {/* Arrow 1: Waist */}
-                       <path d="M26 15 L74 15" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
-                       <circle cx="50" cy="15" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="50" y="17.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">1</text>
-                       <path d="M28 13 L26 15 L28 17 M72 13 L74 15 L72 17" stroke="#F5A623" fill="none" strokeWidth="1.5"/>
-
-                       {/* Arrow 2: Hip */}
-                       <path d="M23 45 L77 45" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
-                       <circle cx="50" cy="45" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="50" y="47.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">2</text>
-                       <path d="M25 43 L23 45 L25 47 M75 43 L77 45 L75 47" stroke="#F5A623" fill="none" strokeWidth="1.5"/>
-
-                       {/* Arrow 3: Rise */}
                        <path d="M50 20 L50 60" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
-                       <circle cx="50" cy="32" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="50" y="34.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">3</text>
+                       <circle cx="50" cy="32" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="50" y="34.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">1</text>
                        <path d="M48 22 L50 20 L52 22 M48 58 L50 60 L52 58" stroke="#F5A623" fill="none" strokeWidth="1.5"/>
 
-                       {/* Arrow 4: Inseam */}
                        <path d="M50 60 L78 128" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
-                       <circle cx="60" cy="95" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="60" y="97.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">4</text>
+                       <circle cx="60" cy="95" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="60" y="97.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">2</text>
                        
-                       {/* Arrow 5: Outseam */}
                        <path d="M15 20 L5 128" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
-                       <circle cx="10" cy="80" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="10" y="82.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">5</text>
+                       <circle cx="10" cy="80" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="10" y="82.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">3</text>
 
-                       {/* Arrow 6: Leg Opening */}
                        <path d="M60 135 L82 135" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
-                       <circle cx="71" cy="135" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="71" y="137.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">6</text>
+                       <circle cx="71" cy="135" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="71" y="137.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">4</text>
                      </svg>
                   </div>
                   <div className="space-y-5">
                     <div className="flex gap-4">
                       <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">1</div>
-                      <div><p className="text-sm font-bold text-white">Waist</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure straight across the top of the waistband.</p></div>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">2</div>
-                      <div><p className="text-sm font-bold text-white">Hip</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure across the widest part of the hip.</p></div>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">3</div>
                       <div><p className="text-sm font-bold text-white">Rise</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure from the top of the waistband to the crotch seam.</p></div>
                     </div>
                     <div className="flex gap-4">
-                      <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">4</div>
+                      <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">2</div>
                       <div><p className="text-sm font-bold text-white">Inseam</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure from the crotch seam to the bottom hem.</p></div>
                     </div>
                     <div className="flex gap-4">
-                      <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">5</div>
+                      <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">3</div>
                       <div><p className="text-sm font-bold text-white">Outseam</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure from the top of the waistband to the bottom hem.</p></div>
                     </div>
                     <div className="flex gap-4">
-                      <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">6</div>
+                      <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">4</div>
                       <div><p className="text-sm font-bold text-white">Leg Opening</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure across the bottom opening of the leg.</p></div>
                     </div>
                   </div>
