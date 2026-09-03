@@ -143,9 +143,13 @@ export default function MiniStorePage() {
   if (loading) return <div className="min-h-screen bg-[#F6F3EE] flex items-center justify-center text-[#FF3B30] font-bold text-xs uppercase tracking-widest animate-pulse">Loading Store...</div>;
   if (!storeProfile) return <div className="min-h-screen bg-[#F6F3EE] flex flex-col items-center justify-center text-[#111111]"><p className="mb-4">Store not found.</p><button onClick={() => router.back()} className="text-[#FF3B30] border border-[#FF3B30] px-4 py-2 rounded-xl">Go Back</button></div>;
 
-  // Data Sync Helper Variables
   const displayLogo = storeProfile.store_logo || storeProfile.avatar_url;
   const displayName = storeProfile.store_name || "VERIFIED DEALER";
+
+  // 🔥 FILTER LOGIC FOR TABS
+  const displayProducts = activeTab === 'Shop' 
+    ? storeProducts.filter(p => !p.is_sold) // Show active/unsold (including ON HOLD)
+    : storeProducts.filter(p => p.is_sold); // Show only fully SOLD items
 
   return (
     <div className="min-h-screen bg-[#F6F3EE] text-[#111111] font-sans flex flex-col pb-24 selection:bg-[#FF3B30] selection:text-white relative">
@@ -159,7 +163,6 @@ export default function MiniStorePage() {
           <span className="text-[11px] font-bold uppercase tracking-widest text-gray-500">Explore Marketplace</span>
         </div>
         <div className="flex gap-2">
-          {/* Share Icon */}
           <button onClick={handleShare} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-[#111111] hover:text-[#FF3B30] transition active:scale-95 shadow-sm">
             {copied ? (
               <svg className="w-4 h-4 text-[#FF3B30]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
@@ -259,6 +262,7 @@ export default function MiniStorePage() {
           
           <div className="flex flex-col items-center flex-1">
             <svg className="w-4 h-4 text-[#FF3B30] mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+            {/* Keeping Total Store Products Count */}
             <span className="text-sm font-black text-[#111111]">{storeProducts.length}</span>
             <span className="text-[8px] text-gray-500 mt-0.5 font-bold uppercase tracking-widest">Products</span>
           </div>
@@ -276,9 +280,9 @@ export default function MiniStorePage() {
           <svg className="w-4 h-4 text-[#FF3B30] group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
         </div>
 
-        {/* 🚀 TABS LOGIC */}
+        {/* 🚀 MODIFIED TABS: ONLY SHOP AND SOLD */}
         <div className="flex gap-6 mt-6 border-b border-gray-200 hide-scrollbar overflow-x-auto">
-          {['Shop', 'About', 'Policies'].map((tab) => (
+          {['Shop', 'Sold'].map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-3 text-[11px] font-black tracking-widest uppercase transition relative whitespace-nowrap ${activeTab === tab ? 'text-[#FF3B30]' : 'text-gray-400 hover:text-gray-700'}`}>
               {tab}
               {activeTab === tab && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#FF3B30]"></div>}
@@ -286,158 +290,78 @@ export default function MiniStorePage() {
           ))}
         </div>
 
-        {/* 🚀 TAB: SHOP */}
-        {activeTab === 'Shop' && (
-          <>
-            <div className="flex justify-between items-center py-4 relative">
-              <button onClick={() => setFilterDropdownOpen(!filterDropdownOpen)} className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-xl text-[10px] font-black text-[#111111] uppercase tracking-widest hover:border-gray-300 transition shadow-sm">
-                All Products <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={filterDropdownOpen ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"}></path></svg>
-              </button>
-              {filterDropdownOpen && (
-                <div className="absolute top-12 left-0 w-40 bg-white border border-gray-200 rounded-xl shadow-xl z-20 overflow-hidden">
-                  <div className="p-2 text-[10px] font-bold text-gray-600 hover:bg-gray-100 hover:text-[#111111] cursor-pointer rounded m-1 transition">Tops</div>
-                  <div className="p-2 text-[10px] font-bold text-gray-600 hover:bg-gray-100 hover:text-[#111111] cursor-pointer rounded m-1 transition">Bottoms</div>
-                </div>
-              )}
-
-              <button onClick={() => setSortDropdownOpen(!sortDropdownOpen)} className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-xl text-[10px] font-black text-[#111111] uppercase tracking-widest hover:border-gray-300 transition shadow-sm">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg> Newest First <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={sortDropdownOpen ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"}></path></svg>
-              </button>
-              {sortDropdownOpen && (
-                <div className="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded-xl shadow-xl z-20 overflow-hidden">
-                  <div className="p-2 text-[10px] font-black text-[#FF3B30] hover:bg-gray-100 cursor-pointer rounded m-1 transition">Newest First</div>
-                  <div className="p-2 text-[10px] font-bold text-gray-600 hover:bg-gray-100 hover:text-[#111111] cursor-pointer rounded m-1 transition">Price: Low to High</div>
-                </div>
-              )}
+        {/* 🚀 PRODUCTS RENDER AREA (Works for both Shop & Sold) */}
+        <div className="flex justify-between items-center py-4 relative">
+          <button onClick={() => setFilterDropdownOpen(!filterDropdownOpen)} className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-xl text-[10px] font-black text-[#111111] uppercase tracking-widest hover:border-gray-300 transition shadow-sm">
+            All Products <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={filterDropdownOpen ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"}></path></svg>
+          </button>
+          {filterDropdownOpen && (
+            <div className="absolute top-12 left-0 w-40 bg-white border border-gray-200 rounded-xl shadow-xl z-20 overflow-hidden">
+              <div className="p-2 text-[10px] font-bold text-gray-600 hover:bg-gray-100 hover:text-[#111111] cursor-pointer rounded m-1 transition">Tops</div>
+              <div className="p-2 text-[10px] font-bold text-gray-600 hover:bg-gray-100 hover:text-[#111111] cursor-pointer rounded m-1 transition">Bottoms</div>
             </div>
+          )}
 
-            <div className="grid grid-cols-2 gap-4 pb-10">
-              {storeProducts.length > 0 ? storeProducts.map((p) => {
-                const isNew = (new Date().getTime() - new Date(p.created_at).getTime()) / (1000 * 3600 * 24) <= 7;
-                return (
-                  <Link href={`/product/${p.id}`} key={p.id} className="group relative rounded-[16px] overflow-hidden bg-white border border-gray-200 cursor-pointer block shadow-sm hover:shadow-md transition">
-                    <div className="relative aspect-[4/5] bg-gray-100">
-                      <img src={p.image_urls?.[0] || p.image_url} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
-                      
-                      {/* 🔥 ON HOLD / SOLD OUT BADGES HERE */}
-                      {p.isOnHold ? (
-                        <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
-                          <div className="bg-yellow-400 text-black text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">ON HOLD</div>
-                        </div>
-                      ) : p.is_sold ? (
-                        <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
-                          <div className="bg-[#111111] text-white text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">SOLD OUT</div>
-                        </div>
-                      ) : null}
+          <button onClick={() => setSortDropdownOpen(!sortDropdownOpen)} className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-xl text-[10px] font-black text-[#111111] uppercase tracking-widest hover:border-gray-300 transition shadow-sm">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg> Newest First <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={sortDropdownOpen ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"}></path></svg>
+          </button>
+          {sortDropdownOpen && (
+            <div className="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded-xl shadow-xl z-20 overflow-hidden">
+              <div className="p-2 text-[10px] font-black text-[#FF3B30] hover:bg-gray-100 cursor-pointer rounded m-1 transition">Newest First</div>
+              <div className="p-2 text-[10px] font-bold text-gray-600 hover:bg-gray-100 hover:text-[#111111] cursor-pointer rounded m-1 transition">Price: Low to High</div>
+            </div>
+          )}
+        </div>
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent z-10"></div>
+        <div className="grid grid-cols-2 gap-4 pb-10">
+          {displayProducts.length > 0 ? displayProducts.map((p) => {
+            const isNew = (new Date().getTime() - new Date(p.created_at).getTime()) / (1000 * 3600 * 24) <= 7;
+            return (
+              <Link href={`/product/${p.id}`} key={p.id} className="group relative rounded-[16px] overflow-hidden bg-white border border-gray-200 cursor-pointer block shadow-sm hover:shadow-md transition">
+                <div className="relative aspect-[4/5] bg-gray-100">
+                  <img src={p.image_urls?.[0] || p.image_url} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
+                  
+                  {/* 🔥 ON HOLD / SOLD OUT BADGES HERE */}
+                  {p.isOnHold ? (
+                    <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
+                      <div className="bg-yellow-400 text-black text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">ON HOLD</div>
                     </div>
-                    {isNew && !p.is_sold && (
-                      <div className="absolute top-2 left-2 z-10">
-                        <span className="bg-[#111111] text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-[4px] shadow-sm">NEW</span>
-                      </div>
-                    )}
-                    <button onClick={(e) => {e.preventDefault();}} className="absolute top-2 right-2 z-20 w-7 h-7 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md text-[#111111] hover:text-[#FF3B30] transition border border-gray-200 shadow-sm">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                    </button>
-                    <div className="p-3 bg-white flex flex-col justify-between">
-                      <h4 className="text-[11px] font-black uppercase text-[#111111] truncate mb-1">{p.title}</h4>
-                      <p className="text-[10px] text-gray-500 font-medium mb-2">{p.size ? `Size: ${p.size}` : 'Free Size'}</p>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[13px] font-black text-[#111111]">₹{p.price.toLocaleString('en-IN')}</span>
-                        
-                        {/* 🔥 DYNAMIC CARD BUTTON */}
-                        <div className={`border text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-[4px] transition backdrop-blur-md ${p.isOnHold ? 'border-yellow-400 text-yellow-600 bg-yellow-50' : p.is_sold ? 'border-gray-300 text-gray-500 bg-gray-100' : 'border-gray-200 bg-gray-50 text-[#111111]'}`}>
-                          {p.isOnHold ? 'ON HOLD' : p.is_sold ? 'SOLD' : 'BUY NOW'}
-                        </div>
-                      </div>
+                  ) : p.is_sold ? (
+                    <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
+                      <div className="bg-[#111111] text-white text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">SOLD OUT</div>
                     </div>
-                  </Link>
-                );
-              }) : (
-                <div className="col-span-2 text-center py-16 border border-dashed border-gray-300 rounded-2xl bg-white shadow-sm">
-                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">No drops available.</p>
+                  ) : null}
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent z-10"></div>
                 </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* 🚀 TAB: ABOUT (Bio, Location, Insta) */}
-        {activeTab === 'About' && (
-          <div className="py-6 space-y-4 animate-in fade-in duration-300">
-            {/* Bio Section */}
-            <div className="bg-white border border-gray-200 rounded-[20px] p-5 shadow-sm">
-              <h3 className="text-[#FF3B30] font-black uppercase tracking-widest text-[11px] mb-3">About the Seller</h3>
-              <p className="text-[10px] text-gray-600 font-medium leading-relaxed">
-                {storeProfile.bio || "Curated thrift. Limited pieces. Maximum style. All items are 1 of 1. When it's gone, it's gone."}
-              </p>
-            </div>
-
-            {/* Address & Insta details */}
-            <div className="bg-white border border-gray-200 rounded-[20px] p-5 space-y-4 shadow-sm">
-              <h3 className="text-[#111111] font-black uppercase tracking-widest text-[11px] mb-2">Seller Details</h3>
-              
-              {storeProfile.address && storeProfile.address !== "Address not set" && (
-                <div className="flex items-start gap-3">
-                  <svg className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Location</p>
-                    <p className="text-[10px] text-gray-800 mt-0.5 font-medium">{storeProfile.address}</p>
+                {isNew && !p.is_sold && (
+                  <div className="absolute top-2 left-2 z-10">
+                    <span className="bg-[#111111] text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-[4px] shadow-sm">NEW</span>
+                  </div>
+                )}
+                
+                <div className="p-3 bg-white flex flex-col justify-between">
+                  <h4 className="text-[11px] font-black uppercase text-[#111111] truncate mb-1">{p.title}</h4>
+                  <p className="text-[10px] text-gray-500 font-medium mb-2">{p.size ? `Size: ${p.size}` : 'Free Size'}</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[13px] font-black text-[#111111]">₹{p.price.toLocaleString('en-IN')}</span>
+                    
+                    {/* 🔥 DYNAMIC CARD BUTTON */}
+                    <div className={`border text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-[4px] transition backdrop-blur-md ${p.isOnHold ? 'border-yellow-400 text-yellow-600 bg-yellow-50' : p.is_sold ? 'border-gray-300 text-gray-500 bg-gray-100' : 'border-gray-200 bg-gray-50 text-[#111111]'}`}>
+                      {p.isOnHold ? 'ON HOLD' : p.is_sold ? 'SOLD' : 'BUY NOW'}
+                    </div>
                   </div>
                 </div>
-              )}
-
-              {storeProfile.instagram && (
-                <div className="flex items-start gap-3">
-                  <svg className="w-4 h-4 text-pink-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Instagram</p>
-                    <a href={`https://instagram.com/${storeProfile.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#FF3B30] font-bold hover:underline mt-0.5 inline-block">
-                      @{storeProfile.instagram.replace('@', '')}
-                    </a>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* 🚀 TAB: POLICIES */}
-        {activeTab === 'Policies' && (
-          <div className="py-6 space-y-4 animate-in fade-in duration-300">
-            <div className="bg-white border border-gray-200 rounded-[20px] p-5 shadow-sm">
-              <h3 className="text-[#FF3B30] font-black uppercase tracking-widest text-[11px] flex items-center gap-2 mb-3">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                Strict No Return & No Exchange
-              </h3>
-              <p className="text-[10px] text-gray-600 font-medium leading-relaxed">
-                All items curated in this store are exclusive, 1-of-1 thrifted or vintage finds. Due to the unique nature and limited availability of our inventory, we operate on a strict no-return, no-exchange, and no-cancellation policy. Once an order is successfully placed and processed, it is considered final. We urge all buyers to carefully review the provided size measurements, detailed descriptions, and product images before completing a purchase to ensure a confident buying experience.
+              </Link>
+            );
+          }) : (
+            <div className="col-span-2 text-center py-16 border border-dashed border-gray-300 rounded-2xl bg-white shadow-sm">
+              <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">
+                {activeTab === 'Shop' ? 'No active drops available.' : 'No items sold yet.'}
               </p>
             </div>
-
-            <div className="bg-white border border-gray-200 rounded-[20px] p-5 shadow-sm">
-              <h3 className="text-[#111111] font-black uppercase tracking-widest text-[11px] flex items-center gap-2 mb-3">
-                <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                Quality Assurance
-              </h3>
-              <p className="text-[10px] text-gray-600 font-medium leading-relaxed">
-                We uphold a rigorous quality assurance process before any item is dispatched. Because these are pre-loved garments, minor signs of wear are natural and add to the vintage character. Any significant flaws, marks, or defects will always be transparently highlighted in the product description and images. You are guaranteed to receive the exact authentic piece showcased on our platform.
-              </p>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-[20px] p-5 shadow-sm">
-              <h3 className="text-[#111111] font-black uppercase tracking-widest text-[11px] flex items-center gap-2 mb-3">
-                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                Shipping & Dispatch
-              </h3>
-              <p className="text-[10px] text-gray-600 font-medium leading-relaxed">
-                Orders are typically processed and dispatched within 24-48 hours of successful payment confirmation. We ensure secure packaging so your exclusive drops reach you safely and in pristine condition.
-              </p>
-            </div>
-          </div>
-        )}
-
+          )}
+        </div>
       </div>
 
       {/* 🚀 TRUST BADGES FOOTER */}
