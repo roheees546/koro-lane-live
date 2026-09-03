@@ -11,8 +11,9 @@ export default function InventoryPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // 🔍 SEARCH STATE
+  // 🔍 SEARCH & TAB STATES
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<'Live' | 'Sold'>('Live');
 
   // ✏️ EDIT MODAL STATES
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -30,10 +31,10 @@ export default function InventoryPage() {
   const [itemColor, setItemColor] = useState("");
   const [itemMaterial, setItemMaterial] = useState("");
   
-  // 🔥 JSON Measurements State
+  // 🔥 JSON Measurements State (Waist & Hip removed)
   const [measurements, setMeasurements] = useState({
     chest: "", length: "", shoulder: "", sleeve: "", // Top
-    waist: "", hip: "", rise: "", inseam: "", outseam: "", legOpening: "" // Bottom
+    rise: "", inseam: "", outseam: "", legOpening: "" // Bottom
   });
   const [measurementsConfirmed, setMeasurementsConfirmed] = useState(false);
   const [isHowToMeasureOpen, setIsHowToMeasureOpen] = useState(false);
@@ -44,7 +45,6 @@ export default function InventoryPage() {
   
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Pre-defined Colors for UI
   const colorOptions = [
     { name: "Black", hex: "#000000" }, { name: "White", hex: "#FFFFFF" },
     { name: "Navy Blue", hex: "#000080" }, { name: "Grey", hex: "#808080" },
@@ -56,7 +56,6 @@ export default function InventoryPage() {
     fetchInventory();
   }, []);
 
-  // 🚀 SMART FETCH INVENTORY ENGINE
   const fetchInventory = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -74,7 +73,6 @@ export default function InventoryPage() {
     if (data && data.length > 0) {
       const productIds = data.map((p) => p.id);
       
-      // Fetch corresponding orders to see real status (Hold vs Sold)
       const { data: ordersData } = await supabase
         .from("orders")
         .select("product_id, status")
@@ -116,16 +114,14 @@ export default function InventoryPage() {
     }
   };
 
-  // 📝 OPEN CREATE MODAL
   const openCreateModal = () => {
     setItemName(""); setItemPrice(""); setItemCategory("Top"); setItemDesc("");
     setItemColor(""); setItemMaterial(""); setMeasurementsConfirmed(false);
-    setMeasurements({ chest: "", length: "", shoulder: "", sleeve: "", waist: "", hip: "", rise: "", inseam: "", outseam: "", legOpening: "" });
+    setMeasurements({ chest: "", length: "", shoulder: "", sleeve: "", rise: "", inseam: "", outseam: "", legOpening: "" });
     setImageFiles([]); setExistingImageUrls([]);
     setIsCreateModalOpen(true);
   };
 
-  // 📝 OPEN EDIT MODAL & PRE-FILL DATA (GOD TIER)
   const openEditModal = (product: any) => {
     setEditingId(product.id);
     setItemName(product.title);
@@ -135,13 +131,12 @@ export default function InventoryPage() {
     setItemColor(product.color || "");
     setItemMaterial(product.material || "");
     
-    // Parse JSON Measurements
     const meas = product.measurements || {};
     setMeasurements({
       chest: meas.chest || "", length: meas.length || "", shoulder: meas.shoulder || "", sleeve: meas.sleeve || "",
-      waist: meas.waist || "", hip: meas.hip || "", rise: meas.rise || "", inseam: meas.inseam || "", outseam: meas.outseam || "", legOpening: meas.legOpening || ""
+      rise: meas.rise || "", inseam: meas.inseam || "", outseam: meas.outseam || "", legOpening: meas.legOpening || ""
     });
-    setMeasurementsConfirmed(true); // Auto confirm for edits so they don't have to re-check
+    setMeasurementsConfirmed(true); 
     
     if (product.image_urls && Array.isArray(product.image_urls)) {
       setExistingImageUrls(product.image_urls);
@@ -158,11 +153,10 @@ export default function InventoryPage() {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
-      setImageFiles(prev => [...prev, ...newFiles].slice(0, 4)); // Max 4 images
+      setImageFiles(prev => [...prev, ...newFiles].slice(0, 4));
     }
   };
 
-  // 🚀 CREATE PRODUCT ENGINE
   const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!measurementsConfirmed) {
@@ -192,7 +186,7 @@ export default function InventoryPage() {
       const finalMeasurements = itemCategory === "Top" ? {
         chest: measurements.chest, length: measurements.length, shoulder: measurements.shoulder, sleeve: measurements.sleeve
       } : {
-        waist: measurements.waist, hip: measurements.hip, rise: measurements.rise, inseam: measurements.inseam, outseam: measurements.outseam, legOpening: measurements.legOpening
+        rise: measurements.rise, inseam: measurements.inseam, outseam: measurements.outseam, legOpening: measurements.legOpening
       };
 
       const { error: insertError } = await supabase.from("products").insert([{
@@ -221,7 +215,6 @@ export default function InventoryPage() {
     }
   };
 
-  // 🚀 UPDATE PRODUCT ENGINE
   const handleUpdateItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!measurementsConfirmed) {
@@ -249,7 +242,7 @@ export default function InventoryPage() {
       const finalMeasurements = itemCategory === "Top" ? {
         chest: measurements.chest, length: measurements.length, shoulder: measurements.shoulder, sleeve: measurements.sleeve
       } : {
-        waist: measurements.waist, hip: measurements.hip, rise: measurements.rise, inseam: measurements.inseam, outseam: measurements.outseam, legOpening: measurements.legOpening
+        rise: measurements.rise, inseam: measurements.inseam, outseam: measurements.outseam, legOpening: measurements.legOpening
       };
 
       const { error } = await supabase.from("products").update({
@@ -276,38 +269,46 @@ export default function InventoryPage() {
     }
   };
 
-  // Filter Products based on Search Query
-  const filteredProducts = products.filter(product => 
-    product.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    product.category?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // 🔥 FILTER LOGIC (TABS + SEARCH)
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          product.category?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTab = activeTab === 'Live' ? product.dynamic_status !== 'sold' : product.dynamic_status === 'sold';
+    return matchesSearch && matchesTab;
+  });
 
   if (loading) return <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center text-[#F5A623] font-black tracking-widest text-xs uppercase">Loading Inventory...</div>;
 
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-white font-sans pb-24 selection:bg-[#F5A623] selection:text-black overflow-x-hidden">
       
-      {/* 🚀 HEADER */}
+      {/* 🚀 HEADER WITHOUT ADD BUTTON */}
       <header className="px-5 py-6 flex justify-between items-center sticky top-0 bg-[#0a0a0c]/90 backdrop-blur-md z-30 border-b border-gray-900">
         <div>
           <h1 className="text-xl font-black tracking-tight uppercase flex items-center gap-2 text-white">
             Inventory
           </h1>
-          <p className="text-[10px] text-gray-400 font-medium mt-0.5">{products.length} Items Live</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {products.length > 0 && (
-            <button onClick={openCreateModal} className="bg-[#1a1a1d] border border-gray-700 text-[#F5A623] px-4 py-2 rounded-xl text-[11px] font-bold flex items-center gap-2 hover:border-[#F5A623]/50 transition">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"></path></svg>
-              Add Item
-            </button>
-          )}
+          <p className="text-[10px] text-gray-400 font-medium mt-0.5">{products.length} Items Total</p>
         </div>
       </header>
 
       {/* 📦 INVENTORY LIST & SEARCH */}
       <main className="px-5 py-6 space-y-4">
         
+        {/* 🔥 TABS: LIVE & SOLD */}
+        <div className="flex gap-6 mb-4 border-b border-gray-800 hide-scrollbar overflow-x-auto">
+          {['Live', 'Sold'].map((tab) => (
+            <button 
+              key={tab} 
+              onClick={() => setActiveTab(tab as 'Live' | 'Sold')} 
+              className={`pb-3 text-[11px] font-black tracking-widest uppercase transition relative whitespace-nowrap ${activeTab === tab ? 'text-[#F5A623]' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              {tab}
+              {activeTab === tab && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#F5A623]"></div>}
+            </button>
+          ))}
+        </div>
+
         {/* 🔥 SEARCH BAR */}
         {products.length > 0 && (
           <div className="mb-4">
@@ -343,7 +344,6 @@ export default function InventoryPage() {
           filteredProducts.map((product) => (
             <div key={product.id} className="bg-[#121214] border border-gray-800/60 rounded-3xl p-4 flex gap-4 relative group hover:border-[#F5A623]/30 transition duration-300">
               
-              {/* 🔥 IMAGE PREVIEW LINK & DYNAMIC BADGE */}
               <div 
                 onClick={() => router.push(`/product/${product.id}`)} 
                 className="w-24 h-32 bg-[#1a1a1d] rounded-2xl overflow-hidden shrink-0 border border-gray-800 relative cursor-pointer group/img"
@@ -364,7 +364,6 @@ export default function InventoryPage() {
                 )}
                 <img src={product.image_urls?.[0] || product.image_url || "https://placehold.co/100x120/121214/F5A623?text=SURPLUS"} alt={product.title} className="w-full h-full object-cover group-hover/img:scale-105 transition duration-500" />
                 
-                {/* Hover Preview Overlay */}
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition z-10 backdrop-blur-[1px]">
                   <span className="text-[8px] font-black text-white uppercase tracking-widest border border-white/40 px-2 py-1 rounded">Preview</span>
                 </div>
@@ -398,7 +397,7 @@ export default function InventoryPage() {
         )}
       </main>
 
-      {/* --- BOTTOM NAVIGATION (Super App Gold Theme) --- */}
+      {/* --- BOTTOM NAVIGATION --- */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0c] border-t border-gray-900 pb-safe pt-3 px-6 flex justify-between items-center z-40 rounded-t-3xl">
         <Link href="/dealer" className="flex flex-col items-center gap-1 cursor-pointer hover:text-white transition group">
           <svg className="w-6 h-6 text-gray-500 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
@@ -426,12 +425,11 @@ export default function InventoryPage() {
         </Link>
       </div>
 
-      {/* --- ➕ CREATE PRODUCT MODAL (GOD TIER UI) --- */}
+      {/* --- ➕ CREATE PRODUCT MODAL --- */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-end md:items-center justify-center z-[70] p-0 md:p-4 animate-in slide-in-from-bottom-4 md:slide-in-from-bottom-0 md:zoom-in-95">
           <div className="bg-[#0a0a0c] md:bg-[#121214] md:border border-gray-800 rounded-t-3xl md:rounded-3xl w-full max-w-md h-[95vh] md:h-[85vh] flex flex-col relative overflow-hidden">
             
-            {/* Header Sticky */}
             <div className="sticky top-0 bg-[#0a0a0c] md:bg-[#121214] z-20 px-6 py-4 border-b border-gray-800 flex justify-between items-center">
               <div>
                 <h2 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2"><span className="text-[#F5A623]">✦</span> Add Product</h2>
@@ -442,11 +440,8 @@ export default function InventoryPage() {
               </button>
             </div>
             
-            {/* Scrollable Form */}
             <div className="p-6 overflow-y-auto hide-scrollbar flex-1">
               <form id="create-product-form" onSubmit={handleCreateItem} className="space-y-6">
-                
-                {/* Basic Details */}
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[11px] text-white font-bold mb-1.5">Item Title</label>
@@ -505,7 +500,7 @@ export default function InventoryPage() {
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.chest} onChange={e => setMeasurements({...measurements, chest: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 56" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
                         
@@ -516,7 +511,7 @@ export default function InventoryPage() {
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.length} onChange={e => setMeasurements({...measurements, length: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 72" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
 
@@ -527,7 +522,7 @@ export default function InventoryPage() {
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.shoulder} onChange={e => setMeasurements({...measurements, shoulder: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 48" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
 
@@ -538,86 +533,60 @@ export default function InventoryPage() {
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.sleeve} onChange={e => setMeasurements({...measurements, sleeve: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 64" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
                       </>
                     ) : (
                       <>
-                        {/* Bottom Wear Inputs (Waist, Hip, Rise, Inseam, Outseam, Leg Opening) */}
+                        {/* Bottom Wear Inputs */}
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
                              <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Waist</p><p className="text-[9px] text-gray-500">Waistband laid flat</p></div>
-                          </div>
-                          <div className="relative w-24">
-                            <input required type="number" value={measurements.waist} onChange={e => setMeasurements({...measurements, waist: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 82" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Hip</p><p className="text-[9px] text-gray-500">Widest part</p></div>
-                          </div>
-                          <div className="relative w-24">
-                            <input required type="number" value={measurements.hip} onChange={e => setMeasurements({...measurements, hip: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 102" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Rise</p><p className="text-[9px] text-gray-500">Crotch to waist</p></div>
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.rise} onChange={e => setMeasurements({...measurements, rise: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 31" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 11l-5 9"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Inseam</p><p className="text-[9px] text-gray-500">Crotch to bottom</p></div>
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.inseam} onChange={e => setMeasurements({...measurements, inseam: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 76" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM7 4v16"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Outseam</p><p className="text-[9px] text-gray-500">Waist to outer bottom</p></div>
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.outseam} onChange={e => setMeasurements({...measurements, outseam: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 104" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM6 20h5"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Leg Opening</p><p className="text-[9px] text-gray-500">Bottom hem width</p></div>
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.legOpening} onChange={e => setMeasurements({...measurements, legOpening: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 20" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
                       </>
                     )}
 
                     <div className="mt-4 pt-3 border-t border-gray-800/50">
-                      <div className="flex items-start gap-2 mb-3 bg-[#0a0a0c] p-2.5 rounded-lg border border-gray-800">
-                        <svg className="w-4 h-4 text-[#F5A623] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <p className="text-[10px] text-gray-400">All measurements should be of the actual garment laid flat.</p>
-                      </div>
                       <label className="flex items-center gap-3 cursor-pointer p-1">
                         <div className="relative flex items-center justify-center">
                           <input type="checkbox" checked={measurementsConfirmed} onChange={(e) => setMeasurementsConfirmed(e.target.checked)} className="peer appearance-none w-5 h-5 border-2 border-gray-600 rounded bg-[#0a0a0c] checked:bg-[#F5A623] checked:border-[#F5A623] transition cursor-pointer" />
@@ -649,7 +618,7 @@ export default function InventoryPage() {
                   </div>
                   <div>
                     <label className="flex items-center gap-1.5 text-[11px] text-white font-bold mb-1.5">Material <span className="text-gray-500 font-normal">(optional)</span></label>
-                    <input type="text" value={itemMaterial} onChange={(e) => setItemMaterial(e.target.value)} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition" placeholder="e.g. Cotton, Denim, Twill" />
+                    <input type="text" value={itemMaterial} onChange={(e) => setItemMaterial(e.target.value)} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition" />
                   </div>
                 </div>
                 
@@ -667,51 +636,38 @@ export default function InventoryPage() {
                       return (
                         <div key={idx} className={`aspect-square rounded-xl overflow-hidden relative flex flex-col items-center justify-center text-center cursor-pointer transition ${file ? 'border border-gray-700 bg-gray-900' : isMain ? 'border-2 border-[#F5A623] border-dashed bg-[#F5A623]/5 hover:bg-[#F5A623]/10' : 'border border-gray-800 border-dashed bg-[#1a1a1d] hover:border-gray-600'}`}>
                           
-                          {/* Invisible Input covering the square */}
-                          <input type="file" accept="image/*" multiple onChange={handleImageSelect} disabled={imageFiles.length >= 4} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed" title={file ? "Image selected" : "Add photo"} />
+                          <input type="file" accept="image/*" multiple onChange={handleImageSelect} disabled={imageFiles.length >= 4} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed" />
                           
                           {file ? (
                             <>
                               <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" />
-                              {isMain && <span className="absolute bottom-0 left-0 right-0 bg-[#F5A623] text-black text-[8px] font-black uppercase py-0.5 z-20">Main Photo</span>}
+                              {isMain && <span className="absolute bottom-0 left-0 right-0 bg-[#F5A623] text-black text-[8px] font-black uppercase py-0.5 z-20">Main</span>}
                             </>
                           ) : (
                             <div className="flex flex-col items-center justify-center pointer-events-none">
-                              {isMain ? (
-                                <svg className="w-5 h-5 text-[#F5A623] mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                              ) : (
-                                <svg className="w-5 h-5 text-gray-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                              )}
-                              <span className={`text-[8px] font-bold uppercase leading-tight ${isMain ? 'text-[#F5A623]' : 'text-gray-500'}`}>Add Photo{isMain && <br/>} {isMain && 'Main Photo'}</span>
+                              <svg className={`w-5 h-5 mb-1 ${isMain ? 'text-[#F5A623]' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                              <span className={`text-[8px] font-bold uppercase leading-tight ${isMain ? 'text-[#F5A623]' : 'text-gray-500'}`}>Add Photo</span>
                             </div>
                           )}
                         </div>
                       );
                     })}
                   </div>
-                  
                   <div className="flex items-center justify-between">
-                    <p className="text-[9px] text-gray-500 flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                      Clear photos help buyers trust your listing
-                    </p>
-                    {imageFiles.length > 0 && (
-                      <button type="button" onClick={() => setImageFiles([])} className="text-[9px] text-red-500 font-bold uppercase hover:underline">Clear All</button>
-                    )}
+                    {imageFiles.length > 0 && <button type="button" onClick={() => setImageFiles([])} className="text-[9px] text-red-500 font-bold uppercase hover:underline">Clear All</button>}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-[11px] text-white font-bold mb-1.5">Description</label>
                   <div className="relative">
-                    <textarea rows={4} required maxLength={300} value={itemDesc} onChange={(e) => setItemDesc(e.target.value)} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition resize-none pb-8" placeholder="Describe the item, its fit, style and any other details..."></textarea>
+                    <textarea rows={4} required maxLength={300} value={itemDesc} onChange={(e) => setItemDesc(e.target.value)} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition resize-none pb-8"></textarea>
                     <span className="absolute right-4 bottom-3 text-[10px] text-gray-500 font-mono">{itemDesc.length}/300</span>
                   </div>
                 </div>
               </form>
             </div>
             
-            {/* Footer Sticky */}
             <div className="sticky bottom-0 bg-[#0a0a0c] md:bg-[#121214] z-20 px-6 py-4 border-t border-gray-800">
               <button type="submit" form="create-product-form" disabled={isCreating || !measurementsConfirmed} className="w-full bg-[#F5A623] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] transition shadow-[0_0_15px_rgba(245,166,35,0.2)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2">
                 {isCreating ? <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span> Publishing...</> : <>Publish Product</>}
@@ -722,7 +678,7 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {/* --- 🛠️ EDIT PRODUCT MODAL (GOD TIER UI) --- */}
+      {/* --- 🛠️ EDIT PRODUCT MODAL --- */}
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-end md:items-center justify-center z-[70] p-0 md:p-4 animate-in slide-in-from-bottom-4 md:slide-in-from-bottom-0 md:zoom-in-95">
           <div className="bg-[#0a0a0c] md:bg-[#121214] md:border border-gray-800 rounded-t-3xl md:rounded-3xl w-full max-w-md h-[95vh] md:h-[85vh] flex flex-col relative overflow-hidden">
@@ -796,7 +752,7 @@ export default function InventoryPage() {
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.chest} onChange={e => setMeasurements({...measurements, chest: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
                         <div className="flex items-center justify-between gap-3">
@@ -806,7 +762,7 @@ export default function InventoryPage() {
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.length} onChange={e => setMeasurements({...measurements, length: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
                         <div className="flex items-center justify-between gap-3">
@@ -816,7 +772,7 @@ export default function InventoryPage() {
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.shoulder} onChange={e => setMeasurements({...measurements, shoulder: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
                         <div className="flex items-center justify-between gap-3">
@@ -826,33 +782,13 @@ export default function InventoryPage() {
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.sleeve} onChange={e => setMeasurements({...measurements, sleeve: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
                       </>
                     ) : (
                       <>
-                        {/* Bottom Wear Inputs (Waist, Hip, Rise, Inseam, Outseam, Leg Opening) */}
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Waist</p><p className="text-[9px] text-gray-500">Waistband laid flat</p></div>
-                          </div>
-                          <div className="relative w-24">
-                            <input required type="number" value={measurements.waist} onChange={e => setMeasurements({...measurements, waist: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Hip</p><p className="text-[9px] text-gray-500">Widest part</p></div>
-                          </div>
-                          <div className="relative w-24">
-                            <input required type="number" value={measurements.hip} onChange={e => setMeasurements({...measurements, hip: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
-                          </div>
-                        </div>
+                        {/* Bottom Wear Inputs (Waist & Hip removed) */}
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
                              <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
@@ -860,37 +796,40 @@ export default function InventoryPage() {
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.rise} onChange={e => setMeasurements({...measurements, rise: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
+
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 11l-5 9"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Inseam</p><p className="text-[9px] text-gray-500">Crotch to bottom</p></div>
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.inseam} onChange={e => setMeasurements({...measurements, inseam: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
+
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM7 4v16"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Outseam</p><p className="text-[9px] text-gray-500">Waist to outer bottom</p></div>
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.outseam} onChange={e => setMeasurements({...measurements, outseam: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
+
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
+                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM6 20h5"/></svg></div>
                              <div><p className="text-[11px] font-bold text-white">Leg Opening</p><p className="text-[9px] text-gray-500">Bottom hem width</p></div>
                           </div>
                           <div className="relative w-24">
                             <input required type="number" value={measurements.legOpening} onChange={e => setMeasurements({...measurements, legOpening: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">cm</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                           </div>
                         </div>
                       </>
@@ -932,7 +871,7 @@ export default function InventoryPage() {
                   </div>
                 </div>
                 
-                {/* 📸 4-SLOT IMAGE UPLOADER (EDIT) */}
+                {/* 📸 4-SLOT IMAGE UPLOADER */}
                 <div>
                   <div className="flex justify-between items-end mb-1.5">
                     <label className="block text-[11px] text-white font-bold">Update Photos <span className="text-gray-500 font-normal lowercase">(Optional)</span></label>
@@ -964,7 +903,7 @@ export default function InventoryPage() {
                           ) : (
                             <div className="flex flex-col items-center justify-center pointer-events-none">
                               <svg className={`w-5 h-5 mb-1 ${isMain ? 'text-[#F5A623]' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                              <span className={`text-[8px] font-bold uppercase leading-tight ${isMain ? 'text-[#F5A623]' : 'text-gray-500'}`}>Add Photo{isMain && <br/>} {isMain && 'Main Photo'}</span>
+                              <span className={`text-[8px] font-bold uppercase leading-tight ${isMain ? 'text-[#F5A623]' : 'text-gray-500'}`}>Add Photo</span>
                             </div>
                           )}
                         </div>
@@ -1007,7 +946,7 @@ export default function InventoryPage() {
                 </div>
                 <div>
                   <h2 className="text-white font-black text-lg">How to Measure</h2>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">All measurements are in centimeters (cm)</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">All measurements are in inches (in)</p>
                 </div>
               </div>
               <button onClick={() => setIsHowToMeasureOpen(false)} className="w-8 h-8 bg-[#0a0a0c] rounded-full flex items-center justify-center text-gray-400 hover:text-white border border-gray-800 transition">
@@ -1027,12 +966,10 @@ export default function InventoryPage() {
               <div className="bg-[#1a1a1d] border border-gray-800 rounded-2xl p-6">
                 <h3 className="text-white font-black text-sm tracking-widest uppercase mb-4 border-b border-gray-800/50 pb-3">Bottom Wear Guide</h3>
                 <div className="space-y-4 text-xs text-gray-300">
-                  <p><b>1. Waist:</b> Measure straight across the top of the waistband laid flat.</p>
-                  <p><b>2. Hip:</b> Measure across the widest part of the hip.</p>
-                  <p><b>3. Rise:</b> Measure from the top of waistband to crotch seam.</p>
-                  <p><b>4. Inseam:</b> Measure from crotch seam to bottom hem.</p>
-                  <p><b>5. Outseam:</b> Measure from top of waistband to outer bottom.</p>
-                  <p><b>6. Leg Opening:</b> Measure across the bottom hem width.</p>
+                  <p><b>1. Rise:</b> Measure from the top of waistband to crotch seam.</p>
+                  <p><b>2. Inseam:</b> Measure from crotch seam to bottom hem.</p>
+                  <p><b>3. Outseam:</b> Measure from top of waistband to outer bottom.</p>
+                  <p><b>4. Leg Opening:</b> Measure across the bottom hem width.</p>
                 </div>
               </div>
             </div>
