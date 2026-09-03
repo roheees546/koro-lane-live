@@ -321,25 +321,25 @@ export default function ProductDetailPage() {
               {product.measurements?.chest && (
                 <div className="bg-white border border-gray-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
                   <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Chest</span>
-                  <span className="text-xs font-black text-[#111111]">{product.measurements.chest} cm</span>
+                  <span className="text-xs font-black text-[#111111]">{product.measurements.chest} inch</span>
                 </div>
               )}
               {product.measurements?.length && (
                 <div className="bg-white border border-gray-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
                   <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Length</span>
-                  <span className="text-xs font-black text-[#111111]">{product.measurements.length} cm</span>
+                  <span className="text-xs font-black text-[#111111]">{product.measurements.length} inch</span>
                 </div>
               )}
               {product.measurements?.shoulder && (
                 <div className="bg-white border border-gray-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
                   <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Shoulder</span>
-                  <span className="text-xs font-black text-[#111111]">{product.measurements.shoulder} cm</span>
+                  <span className="text-xs font-black text-[#111111]">{product.measurements.shoulder} inch</span>
                 </div>
               )}
               {product.measurements?.sleeve && (
                 <div className="bg-white border border-gray-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
                   <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Sleeve</span>
-                  <span className="text-xs font-black text-[#111111]">{product.measurements.sleeve} cm</span>
+                  <span className="text-xs font-black text-[#111111]">{product.measurements.sleeve} inch</span>
                 </div>
               )}
               {product.color && (
