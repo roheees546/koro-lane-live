@@ -19,18 +19,16 @@ export default function ProductDetailPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [copied, setCopied] = useState(false);
   
-  // 🔥 User ID State Added
+  // 🔥 New State for Related Products
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   
-  // 🔥 Image Zoom & UPI Copy States
   const [isZoomed, setIsZoomed] = useState(false);
   const [upiCopied, setUpiCopied] = useState(false);
 
-  // Mobile Touch States for Swipe (Optional fallback)
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-  // Checkout States
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState(1);
   const [timeLeft, setTimeLeft] = useState(565); 
@@ -39,7 +37,6 @@ export default function ProductDetailPage() {
 
   const images = product?.image_urls?.length > 0 ? product.image_urls : [product?.image_url].filter(Boolean);
 
-  // FOMO Timer Logic
   useEffect(() => {
     if (isCheckoutOpen && timeLeft > 0) {
       const timerId = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
@@ -58,7 +55,7 @@ export default function ProductDetailPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          setUserId(session.user.id); // 🔥 Saved User ID here
+          setUserId(session.user.id);
           const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           if (userProfile) {
             setFormData(prev => ({
@@ -102,6 +99,23 @@ export default function ProductDetailPage() {
               setPendingOrder(null); 
             }
           }
+
+          // 🔥 FETCH RELATED PRODUCTS LOGIC
+          let relatedQuery = supabase
+            .from("products")
+            .select("*")
+            .eq("category", prodData.category)
+            .neq("id", prodData.id)
+            .eq("is_sold", false)
+            .order("created_at", { ascending: false })
+            .limit(4); // Fetch 4 for a perfect 2x2 grid
+
+          if (prodData.gender) {
+            relatedQuery = relatedQuery.eq("gender", prodData.gender);
+          }
+
+          const { data: relatedData } = await relatedQuery;
+          if (relatedData) setRelatedProducts(relatedData);
         }
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -153,13 +167,11 @@ export default function ProductDetailPage() {
     setTimeout(() => setUpiCopied(false), 2000);
   };
 
-  // 🔥 CORE LOGIC FOR ON-HOLD (I HAVE PAID)
   const handlePaymentConfirm = async () => {
     setIsProcessing(true);
     try {
-      // 1. Create the Pending Order
       const { error: orderError } = await supabase.from('orders').insert([{
-        user_id: userId, // 🔥 NAYA COLUMN YAHAN BHEJ DIYA
+        user_id: userId,
         dealer_id: product.dealer_id, 
         product_id: product.id, 
         product_name: product.title,
@@ -203,21 +215,18 @@ export default function ProductDetailPage() {
   return (
     <div className="min-h-screen bg-[#F6F3EE] text-[#111111] font-sans flex flex-col relative selection:bg-[#FF3B30] selection:text-white pb-40">
       
-      {/* HEADER (Only Back Button Now) */}
       <header className="fixed top-0 left-0 w-full px-5 py-4 flex justify-between items-center z-40 pointer-events-none">
         <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md border border-gray-200 text-[#111111] hover:text-[#FF3B30] transition pointer-events-auto shadow-sm">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
         </button>
       </header>
 
-      {/* 🔥 MAIN IMAGE CONTAINER WITH ARROWS */}
       <div 
         className="relative w-full aspect-[4/5] bg-gray-100 max-w-xl mx-auto overflow-hidden select-none group border-b border-gray-200"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* RIGHT SIDE ACTION BUTTONS (Share + Wishlist) */}
         <div className="absolute top-4 right-4 flex flex-col items-center gap-3 z-30 pointer-events-auto">
           <button onClick={handleShare} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md border border-gray-200 text-[#111111] hover:text-[#FF3B30] transition shadow-md">
             {copied ? <svg className="w-5 h-5 text-[#FF3B30]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>}
@@ -227,7 +236,6 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        {/* 🔥 MAIN SLIDER ARROWS */}
         {images.length > 1 && (
           <>
             <button 
@@ -360,6 +368,41 @@ export default function ProductDetailPage() {
         <div className="mt-8 mb-6">
           <ProductEngagement productId={product.id} sellerId={product.dealer_id || seller?.id} />
         </div>
+
+        {/* 🔥 MORE LIKE THIS (DEPOP STYLE GRID) */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-10 mb-8 border-t border-gray-200 pt-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-black text-[#111111] uppercase tracking-widest">More Like This</h3>
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Explore</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              {relatedProducts.map((related) => (
+                <div 
+                  key={related.id} 
+                  onClick={() => router.push(`/product/${related.id}`)}
+                  className="bg-[#FFFFFF] border border-gray-200 rounded-[16px] overflow-hidden cursor-pointer hover:shadow-md transition flex flex-col group shadow-sm"
+                >
+                  <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
+                    {related.image_url ? (
+                      <img src={related.image_url} className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-3xl">👕</div>
+                    )}
+                    <div className="absolute top-2 left-2 flex flex-col gap-1">
+                      {related.size && <span className="bg-white/90 backdrop-blur text-[#111111] text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest">{related.size}</span>}
+                    </div>
+                  </div>
+                  <div className="p-3 flex flex-col flex-1 bg-white">
+                    <h4 className="text-[11px] font-bold uppercase text-[#111111] line-clamp-2 leading-tight mb-1">{related.title}</h4>
+                    <span className="text-[12px] font-black text-[#FF3B30] mt-auto">₹{related.price}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
 
