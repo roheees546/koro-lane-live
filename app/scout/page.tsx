@@ -157,21 +157,10 @@ export default function ScoutTerminal() {
     }
 
     // 🔥 THE BRAMHASTRA FIX (Corrected PostgREST Syntax for Spaces)
-    let orQuery = `user_id.eq.${session.user.id}`;
-    
-    if (nameToUse && nameToUse !== "New Buyer") {
-      // ✅ Added double quotes around the search string to handle names like "kartik kk"
-      orQuery += `,customer_name.ilike."%${nameToUse}%"`;
-    }
-    if (profile?.phone) {
-      // ✅ Added double quotes here too for safety
-      orQuery += `,customer_phone.eq."${profile?.phone}"`;
-    }
-
     const { data: scoutOrders, error: orderError } = await supabase
       .from("orders")
       .select(`*, products (image_urls, image_url)`)
-      .or(orQuery)
+      .eq("user_id", session.user.id) // Sirf User ID se fetch, no complex OR logic
       .order("created_at", { ascending: false });
       
     if (orderError) console.error("Order Fetch Error:", orderError);
