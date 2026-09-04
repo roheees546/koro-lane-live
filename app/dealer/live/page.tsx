@@ -24,8 +24,41 @@ export default function UploadReelStudio() {
       if (session) {
         const id = session.user.id;
         setDealerId(id);
-        const { data } = await supabase.from('products').select('*').eq('dealer_id', id);
-        if (data) setInventory(data);
+        
+        // 🔥 SMART FILTER: Sirf unsold items fetch karo
+        const { data } = await supabase
+          .from('products')
+          .select('*')
+          .eq('dealer_id', id)
+          .eq('is_sold', false)
+          .order('created_at', { ascending: false });
+          
+        if (data && data.length > 0) {
+          const productIds = data.map(p => p.id);
+          
+          // 🔥 DOUBLE FILTER: Check orders table so we don't show "On Hold" items either
+          const { data: ordersData } = await supabase
+            .from("orders")
+            .select("product_id, status")
+            .in("product_id", productIds)
+            .neq("status", "cancelled");
+
+          const orderMap: Record<string, string> = {};
+          if (ordersData) {
+            ordersData.forEach(o => { orderMap[o.product_id] = o.status; });
+          }
+
+          // Filter out items that have any active order
+          const availableProducts = data.filter((p) => {
+            // Agar koi active order (pending, packed, shipped, delivered) hai, toh hata do
+            if (orderMap[p.id]) return false;
+            return true;
+          });
+
+          setInventory(availableProducts);
+        } else {
+          setInventory([]);
+        }
       }
     };
     fetchInventory();
@@ -197,7 +230,10 @@ export default function UploadReelStudio() {
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {inventory.length === 0 ? (
-              <p className="text-center text-xs text-gray-500 mt-10">No products found in inventory.</p>
+              <div className="flex flex-col items-center mt-10 opacity-50">
+                <p className="text-center text-xs text-gray-400 uppercase tracking-widest font-bold">No active products found.</p>
+                <p className="text-center text-[10px] text-gray-500 mt-1">Upload fresh items to pin them in reels.</p>
+              </div>
             ) : (
               inventory.map((item) => (
                 <div 
@@ -222,7 +258,7 @@ export default function UploadReelStudio() {
             )}
           </div>
           <div className="p-4 border-t border-gray-800">
-            <button onClick={() => setShowProductModal(false)} className="w-full bg-white text-black font-black uppercase text-xs py-3 rounded-xl">
+            <button onClick={() => setShowProductModal(false)} className="w-full bg-white text-black font-black uppercase text-xs py-3 rounded-xl hover:bg-gray-200 transition">
               Confirm Selection ({selectedProducts.length})
             </button>
           </div>
