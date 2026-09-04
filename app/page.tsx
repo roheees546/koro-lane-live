@@ -47,25 +47,42 @@ export default function Home() {
         
       if (sellers) setFeaturedSellers(sellers);
 
+      // 🔥 FILTER 1: Sirf wahi products laaye jinka is_sold 'false' hai
       let { data: prods } = await supabase
         .from("products")
         .select(`*, profiles(store_name)`)
+        .eq("is_sold", false) 
         .order("created_at", { ascending: false })
-        .limit(8);
+        .limit(15); // Extra items fetch kiye taaki orders se filter out kar sakein
 
-      if (prods) {
-        const { data: pendingOrders } = await supabase
+      if (prods && prods.length > 0) {
+        const productIds = prods.map(p => p.id);
+        const { data: ordersData } = await supabase
           .from("orders")
-          .select("product_id")
-          .eq("status", "pending");
+          .select("product_id, status")
+          .in("product_id", productIds)
+          .neq("status", "cancelled");
 
-        const pendingIds = pendingOrders?.map(o => o.product_id) || [];
+        const orderMap: Record<string, string> = {};
+        if (ordersData) {
+          ordersData.forEach(o => { orderMap[o.product_id] = o.status; });
+        }
 
-        const enrichedProds = prods.map(p => ({
+        const filteredProds = prods.filter(p => {
+          const status = orderMap[p.id];
+          // 🔥 FILTER 2: Agar order dispatch ya deliver ho chuka hai, toh Home Page se uda do
+          if (status === 'delivered' || status === 'dispatched' || status === 'shipped') {
+            return false;
+          }
+          return true;
+        }).map(p => ({
           ...p,
-          isOnHold: p.is_sold && pendingIds.includes(p.id)
-        }));
-        setProducts(enrichedProds);
+          isOnHold: !!orderMap[p.id] // Agar pending order hai toh 'ON HOLD' badge lag jayega
+        })).slice(0, 8); // Sirf top 8 items Home page ke liye
+
+        setProducts(filteredProds);
+      } else {
+        setProducts([]);
       }
     } catch (err) {
       console.error(err);
@@ -241,25 +258,18 @@ export default function Home() {
                       <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
                         <div className="bg-yellow-400 text-black text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">ON HOLD</div>
                       </div>
-                    ) : product.is_sold ? (
-                      <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-[2px]">
-                        <div className="bg-[#111111] text-white text-[10px] font-black uppercase px-3 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">SOLD OUT</div>
-                      </div>
                     ) : null}
 
                     <img src={product.image_urls?.[0] || product.image_url} alt={product.title} className="w-full h-full object-cover" />
                   </div>
                 </div>
 
-                {/* 🔥 UPDATED CARD TEXT LAYOUT EXACTLY LIKE THE IMAGE */}
                 <div className="p-3 flex flex-col flex-1 bg-white">
                   <h4 className="text-[11px] font-bold uppercase text-[#111111] line-clamp-2 leading-tight mb-0.5">{product.title}</h4>
                   <p className="text-[10px] text-gray-500 font-medium mb-1.5">{product.size || 'M'}</p>
                   
-                  {/* RED BOLD PRICE */}
                   <span className="text-[14px] font-black text-[#FF3B30] mb-1">₹{product.price.toLocaleString('en-IN')}</span>
                   
-                  {/* SELLER NAME WITH RED TICK */}
                   <div className="flex items-center gap-1 mt-auto">
                     <span className="text-[10px] text-[#111111] truncate">{product.profiles?.store_name || "Verified Seller"}</span>
                     <svg className="w-3 h-3 text-[#FF3B30] shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>

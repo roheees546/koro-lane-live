@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import WishlistButton from "@/components/WishlistButton";
 
-export default function Home() {
+export default function ShopPage() { // Renamed to ShopPage for clarity, change to Home if needed
   const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,25 +24,41 @@ export default function Home() {
 
   const fetchProducts = async () => {
     try {
+      // 🔥 FILTER 1: Sirf wahi products laaye jinka is_sold 'false' hai
       const { data: prods } = await supabase
         .from("products")
         .select(`*, profiles(store_name)`)
+        .eq("is_sold", false) 
         .order("created_at", { ascending: false });
 
-      if (prods) {
-        const { data: pendingOrders } = await supabase
+      if (prods && prods.length > 0) {
+        const productIds = prods.map((p) => p.id);
+        const { data: ordersData } = await supabase
           .from("orders")
-          .select("product_id")
-          .eq("status", "pending");
+          .select("product_id, status")
+          .in("product_id", productIds)
+          .neq("status", "cancelled");
 
-        const pendingIds = pendingOrders?.map((o) => o.product_id) || [];
+        const orderMap: Record<string, string> = {};
+        if (ordersData) {
+          ordersData.forEach(o => { orderMap[o.product_id] = o.status; });
+        }
 
-        const enrichedProds = prods.map((p) => ({
+        const filteredProds = prods.filter((p) => {
+          const status = orderMap[p.id];
+          // 🔥 FILTER 2: Agar order dispatch ya deliver ho chuka hai, toh Shop Page se uda do
+          if (status === 'delivered' || status === 'dispatched' || status === 'shipped') {
+            return false;
+          }
+          return true;
+        }).map((p) => ({
           ...p,
-          isOnHold: p.is_sold && pendingIds.includes(p.id),
+          isOnHold: !!orderMap[p.id] // Pending order hai toh 'ON HOLD'
         }));
 
-        setProducts(enrichedProds);
+        setProducts(filteredProds);
+      } else {
+        setProducts([]);
       }
     } catch (err) {
       console.error(err);
@@ -163,7 +179,7 @@ export default function Home() {
                 <div key={p.id} onClick={() => handleCardClick(p.id)} className="bg-[#FFFFFF] border border-gray-200 rounded-[16px] overflow-hidden cursor-pointer hover:shadow-md transition flex flex-col">
                   
                   <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
-                    <img src={p.image_urls?.[0] || p.image_url} alt={p.title} className={`w-full h-full object-cover transition duration-700 group-hover:scale-105 ${p.is_sold && !p.isOnHold ? 'grayscale opacity-40' : ''}`} />
+                    <img src={p.image_urls?.[0] || p.image_url} alt={p.title} className={`w-full h-full object-cover transition duration-700 group-hover:scale-105`} />
                     
                     <div className="absolute top-2 right-2 z-30">
                       <WishlistButton productId={p.id} onRequireAuth={() => {}} />
@@ -172,50 +188,30 @@ export default function Home() {
                     <span className="absolute top-2 left-2 bg-[#111111] text-white text-[8px] font-black px-2 py-1 rounded-[4px] z-10 uppercase tracking-widest">{p.category || 'TOP'}</span>
 
                     <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
-                      {p.isOnHold ? (
-                        <div className="bg-yellow-400 text-black text-[10px] font-black uppercase px-2.5 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">
+                      {p.isOnHold && (
+                        <div className="bg-yellow-400 text-black text-[10px] font-black uppercase px-2.5 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm mt-6">
                           ON HOLD
                         </div>
-                      ) : p.is_sold ? (
-                        <div className="bg-[#111111] text-white text-[10px] font-black uppercase px-2.5 py-1 tracking-widest shadow-md rotate-[-8deg] rounded-sm">
-                          SOLD OUT
-                        </div>
-                      ) : null}
+                      )}
                     </div>
-
-                    {p.is_sold && !p.isOnHold && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-white/40 backdrop-blur-[2px]">
-                        <h3 className="text-sm font-black text-[#111111] uppercase tracking-widest">SOLD OUT</h3>
-                      </div>
-                    )}
                   </div>
 
-                  {/* 🔥 UPDATED CARD TEXT LAYOUT EXACTLY LIKE THE IMAGE */}
                   <div className="p-3 flex flex-col flex-1 bg-white">
                     <h4 className="text-[11px] font-bold uppercase text-[#111111] line-clamp-2 leading-tight mb-0.5">{p.title}</h4>
                     <p className="text-[10px] text-gray-500 font-medium mb-1.5">{p.size || 'M'}</p>
                     
-                    {/* RED BOLD PRICE */}
                     <span className="text-[14px] font-black text-[#FF3B30] mb-1">₹{p.price.toLocaleString('en-IN')}</span>
                     
-                    {/* SELLER NAME WITH RED TICK */}
                     <div className="flex items-center gap-1 mt-auto">
                       <span className="text-[10px] text-[#111111] truncate font-medium">{p.profiles?.store_name || "Verified Seller"}</span>
                       <svg className="w-3 h-3 text-[#FF3B30] shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                     </div>
-
-                    {p.is_sold && !p.isOnHold && (
-                      <button onClick={(e) => { e.stopPropagation(); alert("Added to waitlist! We'll notify you if a similar item drops."); }} className="mt-3 w-full border border-gray-300 text-[#111111] text-[10px] font-black uppercase tracking-widest py-2 rounded-xl hover:bg-gray-100 transition">
-                        Notify Me
-                      </button>
-                    )}
                   </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          /* 🔥 PREMIUM "NO RESULTS" STATE */
           <div className="flex flex-col items-center justify-center py-20 border border-dashed border-gray-300 rounded-2xl bg-white shadow-sm">
             <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
             <h3 className="text-sm font-black text-[#111111] uppercase tracking-widest mb-1">No Drops Found</h3>
