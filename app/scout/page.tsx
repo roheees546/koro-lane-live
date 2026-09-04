@@ -54,7 +54,6 @@ export default function ScoutTerminal() {
   useEffect(() => {
     if (!userId) return;
 
-    // Fetch existing notifications
     const fetchNotifs = async () => {
       const { data } = await supabase
         .from("notifications")
@@ -70,7 +69,6 @@ export default function ScoutTerminal() {
     };
     fetchNotifs();
 
-    // Subscribe to real-time inserts
     const channel = supabase
       .channel(`buyer-notifs-${userId}`)
       .on(
@@ -86,7 +84,6 @@ export default function ScoutTerminal() {
           setNotifications(prev => [newNotif, ...prev]);
           setHasUnread(true);
           
-          // Play sound
           if (audioRef.current) {
             audioRef.current.play().catch(e => console.log("Audio play blocked", e));
           }
@@ -104,7 +101,6 @@ export default function ScoutTerminal() {
     if (!hasUnread || !userId) return;
 
     setHasUnread(false);
-    // Update in database
     await supabase
       .from("notifications")
       .update({ is_read: true })
@@ -160,14 +156,16 @@ export default function ScoutTerminal() {
       setAvatarUrl(profile.avatar_url || "");
     }
 
-    // 🔥 THE BRAMHASTRA FIX: Fetching by ID, Name (case-insensitive), AND Phone
+    // 🔥 THE BRAMHASTRA FIX (Corrected PostgREST Syntax for Spaces)
     let orQuery = `user_id.eq.${session.user.id}`;
     
     if (nameToUse && nameToUse !== "New Buyer") {
-      orQuery += `,customer_name.ilike.%${nameToUse}%`;
+      // ✅ Added double quotes around the search string to handle names like "kartik kk"
+      orQuery += `,customer_name.ilike."%${nameToUse}%"`;
     }
     if (profile?.phone) {
-      orQuery += `,customer_phone.eq.${profile?.phone}`;
+      // ✅ Added double quotes here too for safety
+      orQuery += `,customer_phone.eq."${profile?.phone}"`;
     }
 
     const { data: scoutOrders, error: orderError } = await supabase
@@ -176,6 +174,7 @@ export default function ScoutTerminal() {
       .or(orQuery)
       .order("created_at", { ascending: false });
       
+    if (orderError) console.error("Order Fetch Error:", orderError);
     if (scoutOrders) setOrders(scoutOrders);
 
     const { count: wlCount } = await supabase.from("wishlist").select("*", { count: 'exact', head: true }).eq("user_id", session.user.id);
@@ -226,6 +225,8 @@ export default function ScoutTerminal() {
     if (!error) {
       setFullName(editName || "New Buyer"); 
       setShowProfileModal(false);
+      // Re-fetch to update orders if name/phone changed
+      fetchUserData(); 
     } else {
       alert("Error saving profile: " + error.message);
     }
