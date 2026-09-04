@@ -100,7 +100,7 @@ export default function ProductDetailPage() {
             }
           }
 
-          // 🔥 FETCH RELATED PRODUCTS LOGIC
+          // 🔥 FIXED FETCH RELATED PRODUCTS LOGIC (Double Filter)
           let relatedQuery = supabase
             .from("products")
             .select("*")
@@ -108,14 +108,38 @@ export default function ProductDetailPage() {
             .neq("id", prodData.id)
             .eq("is_sold", false)
             .order("created_at", { ascending: false })
-            .limit(4); // Fetch 4 for a perfect 2x2 grid
+            .limit(10); // Fetch extra to safely filter down to 4
 
           if (prodData.gender) {
             relatedQuery = relatedQuery.eq("gender", prodData.gender);
           }
 
           const { data: relatedData } = await relatedQuery;
-          if (relatedData) setRelatedProducts(relatedData);
+          
+          if (relatedData && relatedData.length > 0) {
+            const relProductIds = relatedData.map(p => p.id);
+            
+            const { data: relOrdersData } = await supabase
+              .from("orders")
+              .select("product_id, status")
+              .in("product_id", relProductIds)
+              .neq("status", "cancelled");
+
+            const relOrderMap: Record<string, string> = {};
+            if (relOrdersData) {
+              relOrdersData.forEach(o => { relOrderMap[o.product_id] = o.status; });
+            }
+
+            const cleanRelated = relatedData.filter(p => {
+              // Exclude if it has any active order (pending, packed, shipped, delivered)
+              if (relOrderMap[p.id]) return false; 
+              return true;
+            }).slice(0, 4); // Keep exactly 4 for the grid
+
+            setRelatedProducts(cleanRelated);
+          } else {
+            setRelatedProducts([]);
+          }
         }
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -340,6 +364,30 @@ export default function ProductDetailPage() {
                 <div className="bg-white border border-gray-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
                   <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Sleeve</span>
                   <span className="text-xs font-black text-[#111111]">{product.measurements.sleeve} inch</span>
+                </div>
+              )}
+              {product.measurements?.rise && (
+                <div className="bg-white border border-gray-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Rise</span>
+                  <span className="text-xs font-black text-[#111111]">{product.measurements.rise} inch</span>
+                </div>
+              )}
+              {product.measurements?.inseam && (
+                <div className="bg-white border border-gray-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Inseam</span>
+                  <span className="text-xs font-black text-[#111111]">{product.measurements.inseam} inch</span>
+                </div>
+              )}
+              {product.measurements?.outseam && (
+                <div className="bg-white border border-gray-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Outseam</span>
+                  <span className="text-xs font-black text-[#111111]">{product.measurements.outseam} inch</span>
+                </div>
+              )}
+              {product.measurements?.legOpening && (
+                <div className="bg-white border border-gray-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Leg Opening</span>
+                  <span className="text-xs font-black text-[#111111]">{product.measurements.legOpening} inch</span>
                 </div>
               )}
               {product.color && (
