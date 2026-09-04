@@ -115,11 +115,12 @@ export default function ScoutTerminal() {
       return;
     }
     
-    setUserId(session.user.id);
+    const currentUserId = session.user.id;
+    setUserId(currentUserId);
     const userEmail = session.user.email || "";
     setEmail(userEmail);
 
-    let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+    let { data: profile } = await supabase.from("profiles").select("*").eq("id", currentUserId).single();
     
     if (profile && profile.role === 'dealer') {
       router.push("/dealer");
@@ -128,7 +129,7 @@ export default function ScoutTerminal() {
 
     if (!profile) {
       const { data: newProfile } = await supabase.from("profiles").insert({
-        id: session.user.id,
+        id: currentUserId,
         email: userEmail,
         role: "scout",
         full_name: "" 
@@ -136,7 +137,7 @@ export default function ScoutTerminal() {
       
       if (newProfile) profile = newProfile;
     } else if (profile && !profile.email) {
-      await supabase.from("profiles").update({ email: userEmail }).eq("id", session.user.id);
+      await supabase.from("profiles").update({ email: userEmail }).eq("id", currentUserId);
       profile.email = userEmail;
     }
 
@@ -156,20 +157,26 @@ export default function ScoutTerminal() {
       setAvatarUrl(profile.avatar_url || "");
     }
 
-    // 🔥 THE BRAMHASTRA FIX (Corrected PostgREST Syntax for Spaces)
+    // 🔥 BULLETPROOF FETCH WITH DEBUG LOGS
+    console.log("Fetching orders for User ID:", currentUserId);
+
     const { data: scoutOrders, error: orderError } = await supabase
       .from("orders")
-      .select(`*, products (image_urls, image_url)`)
-      .eq("user_id", session.user.id) // Sirf User ID se fetch, no complex OR logic
+      .select(`*`)
+      .eq("user_id", currentUserId)
       .order("created_at", { ascending: false });
       
-    if (orderError) console.error("Order Fetch Error:", orderError);
-    if (scoutOrders) setOrders(scoutOrders);
+    if (orderError) {
+      console.error("Order Fetch Error ❌:", orderError);
+    } else {
+      console.log("Fetched Orders Successfully ✅:", scoutOrders);
+      if (scoutOrders) setOrders(scoutOrders);
+    }
 
-    const { count: wlCount } = await supabase.from("wishlist").select("*", { count: 'exact', head: true }).eq("user_id", session.user.id);
+    const { count: wlCount } = await supabase.from("wishlist").select("*", { count: 'exact', head: true }).eq("user_id", currentUserId);
     setWishlistCount(wlCount || 0);
 
-    const { count: fCount } = await supabase.from("follows").select("*", { count: 'exact', head: true }).eq("follower_id", session.user.id);
+    const { count: fCount } = await supabase.from("follows").select("*", { count: 'exact', head: true }).eq("follower_id", currentUserId);
     setFollowingCount(fCount || 0);
 
     setLoading(false);
@@ -214,7 +221,6 @@ export default function ScoutTerminal() {
     if (!error) {
       setFullName(editName || "New Buyer"); 
       setShowProfileModal(false);
-      // Re-fetch to update orders if name/phone changed
       fetchUserData(); 
     } else {
       alert("Error saving profile: " + error.message);
