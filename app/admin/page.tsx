@@ -89,7 +89,8 @@ export default function AdminDashboard() {
       orderData.forEach(o => {
         if (o.status !== 'cancelled' && o.payment_status === "Verified") {
           volume += o.price;
-          profit += (o.price * 0.05); 
+          // 🔥 FIXED: Platform Profit is now 5% + ₹6 Platform Fee
+          profit += (o.price * 0.05) + 6; 
         }
         if (o.status !== 'cancelled' && o.payment_status === "Pending WhatsApp Confirmation") {
           pendingPay += 1;
@@ -101,7 +102,7 @@ export default function AdminDashboard() {
       
       setStats({ grossVolume: volume, platformProfit: profit, pendingPayments: pendingPay, pendingPickups: readyToPickup });
 
-      // 🔥 ALARM LOGIC: If new pending order arrives, play sound
+      // ALARM LOGIC
       const currentActionNeeded = pendingPay + readyToPickup;
       if (isBackground && currentActionNeeded > prevPendingCount.current) {
         playNotification();
@@ -117,13 +118,27 @@ export default function AdminDashboard() {
     audio.volume = 1;
     audio.play().catch(e => console.log("Audio block by browser", e));
     
-    // Fallback vibrate for mobile
     if (navigator.vibrate) {
       navigator.vibrate([200, 100, 200]);
     }
   };
 
-  // 🔥 DOUBLE-TRIGGER NOTIFICATION LOGIC
+  // 🔥 CORE FINANCIAL CALCULATION LOGIC
+  const calculateFinancials = (price: number) => {
+    const itemPrice = price || 0;
+    const platformFee = 6;
+    const commission = itemPrice * 0.05; // 5%
+    const buyerPaid = itemPrice + platformFee;
+    const koroProfit = platformFee + commission;
+    const sellerPayout = itemPrice - commission; // 95% remaining
+
+    return {
+      buyerPaid: buyerPaid.toFixed(2),
+      koroProfit: koroProfit.toFixed(2),
+      sellerPayout: sellerPayout.toFixed(2)
+    };
+  };
+
   const handleVerifyPayment = async (orderId: string) => {
     if (!confirm("Confirm WhatsApp Payment?")) return;
 
@@ -137,7 +152,7 @@ export default function AdminDashboard() {
     if (!error && targetOrder) {
       const notificationsToInsert = [];
 
-      // 1. 🛍️ Buyer Notification
+      // 1. Buyer Notification
       if (targetOrder.user_id) {
         notificationsToInsert.push({
           user_id: targetOrder.user_id,
@@ -147,7 +162,7 @@ export default function AdminDashboard() {
         });
       }
 
-      // 2. 🏪 Seller (Dealer) Notification
+      // 2. Seller Notification
       if (targetOrder.dealer_id) {
         notificationsToInsert.push({
           user_id: targetOrder.dealer_id,
@@ -311,7 +326,7 @@ export default function AdminDashboard() {
                     <div className="bg-gradient-to-br from-[#13141F] to-[#0A0B14] border border-[#1F2132] p-4 md:p-5 rounded-2xl relative overflow-hidden group hover:border-purple-500/50 transition">
                       <div className="flex items-center gap-2 mb-2"><div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]"></div><p className="text-[9px] md:text-[10px] text-purple-500 font-bold uppercase tracking-widest">Platform Profit</p></div>
                       <h3 className="text-xl md:text-3xl font-black text-white">₹{stats.platformProfit.toLocaleString('en-IN')}</h3>
-                      <p className="text-[8px] md:text-[9px] text-gray-500 mt-1">Total Earnings (5%)</p>
+                      <p className="text-[8px] md:text-[9px] text-gray-500 mt-1">Total Earnings (Fee + 5%)</p>
                       <svg className="absolute bottom-0 left-0 w-full h-12 text-purple-500/10 group-hover:text-purple-500/20 transition duration-500" preserveAspectRatio="none" viewBox="0 0 100 100"><path d="M0,100 C30,50 60,100 100,50 L100,100 Z" fill="currentColor"/></svg>
                     </div>
 
@@ -340,14 +355,22 @@ export default function AdminDashboard() {
 
                   {/* Horizontal Logistics Cards */}
                   <div className="space-y-4">
-                    {activeOrders.map(order => (
+                    {activeOrders.map(order => {
+                      const fin = calculateFinancials(order.price);
+
+                      return (
                       <div key={order.id} className="bg-[#13141F] border border-[#1F2132] rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-5 hover:border-indigo-500/30 transition shadow-lg">
                         
                         {/* Item Identity */}
                         <div className="md:w-1/4 shrink-0">
                           <p className="text-[9px] text-indigo-400 font-mono mb-1 bg-indigo-500/10 inline-block px-2 py-0.5 rounded">#{order.id.substring(0, 8).toUpperCase()}</p>
                           <h3 className="font-black text-white uppercase text-sm line-clamp-1">{order.product_name}</h3>
-                          <p className="text-[#00e599] font-black text-sm md:text-base mt-0.5">₹{order.price.toLocaleString('en-IN')}</p>
+                          <p className="text-gray-400 font-bold text-xs mt-0.5">₹{order.price.toLocaleString('en-IN')}</p>
+                          
+                          {/* 🔥 NEW PAYOUT BADGE */}
+                          <div className="mt-2 inline-block bg-[#00e599]/10 border border-[#00e599]/30 px-2.5 py-1 rounded text-[#00e599] text-[9px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(0,229,153,0.1)]">
+                             Payout: ₹{fin.sellerPayout}
+                          </div>
                         </div>
 
                         {/* Logistics Timeline Route */}
@@ -408,7 +431,7 @@ export default function AdminDashboard() {
                         </div>
 
                       </div>
-                    ))}
+                    )})}
                     {activeOrders.length === 0 && (
                       <div className="py-16 text-center border border-dashed border-[#1F2132] rounded-2xl bg-[#0A0B14]">
                         <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">No Active Logistics</p>
@@ -429,7 +452,10 @@ export default function AdminDashboard() {
                   </div>
                   
                   <div className="space-y-3">
-                    {historyOrders.map(order => (
+                    {historyOrders.map(order => {
+                      const fin = calculateFinancials(order.price);
+
+                      return (
                       <div key={order.id} className="bg-[#13141F] border border-[#1F2132] rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 opacity-80 hover:opacity-100 transition">
                          <div className="flex gap-4 items-center w-full md:w-auto">
                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${order.status === 'cancelled' ? 'bg-red-500/10 text-red-500' : 'bg-[#00e599]/10 text-[#00e599]'}`}>
@@ -438,6 +464,11 @@ export default function AdminDashboard() {
                            <div>
                              <h3 className="font-bold text-white text-xs uppercase">{order.product_name}</h3>
                              <p className="text-[10px] text-gray-500 mt-0.5">#{order.id.substring(0,8)} • {order.profiles?.store_name}</p>
+                             
+                             {/* 🔥 NEW PAYOUT BADGE FOR HISTORY */}
+                             <div className="mt-1.5 inline-block bg-[#00e599]/10 border border-[#00e599]/30 px-2 py-0.5 rounded text-[#00e599] text-[8px] font-black uppercase tracking-widest">
+                                Payout: ₹{fin.sellerPayout}
+                             </div>
                            </div>
                          </div>
                          
@@ -449,7 +480,7 @@ export default function AdminDashboard() {
                            <button onClick={() => handleViewDetails(order)} className="bg-[#0A0B14] border border-[#1F2132] px-3 py-1.5 rounded-lg text-[9px] text-gray-400 hover:text-white uppercase font-bold transition shrink-0">View</button>
                          </div>
                       </div>
-                    ))}
+                    )})}
                     {historyOrders.length === 0 && (
                       <p className="text-gray-500 text-center py-10 text-[10px] font-bold uppercase tracking-widest">No History Found</p>
                     )}
@@ -575,6 +606,38 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
+
+              {/* 🔥 NEW FINANCIALS & PAYOUT BLOCK */}
+              <div className="bg-[#13141F] border border-[#1F2132] rounded-2xl p-5 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-[#00e599]"></div>
+                <h3 className="text-[11px] text-gray-400 font-black uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-[#1F2132] pb-3">
+                   💰 Financials & Payout
+                </h3>
+                
+                {(() => {
+                  const selFin = calculateFinancials(selectedOrder.price);
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                       <div className="bg-[#0A0B14] p-3 rounded-xl border border-[#1F2132]">
+                          <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1">Buyer Paid</p>
+                          <p className="text-sm font-black text-white">₹{selFin.buyerPaid}</p>
+                          <p className="text-[8px] text-gray-600 mt-1">(₹{selectedOrder.price} + ₹6 Fee)</p>
+                       </div>
+                       <div className="bg-purple-500/5 p-3 rounded-xl border border-purple-500/20">
+                          <p className="text-[9px] text-purple-400 uppercase tracking-widest font-bold mb-1">Koro Profit</p>
+                          <p className="text-sm font-black text-purple-400">₹{selFin.koroProfit}</p>
+                          <p className="text-[8px] text-purple-500/60 mt-1">(5% Comm + ₹6 Fee)</p>
+                       </div>
+                       <div className="bg-[#00e599]/10 p-3 rounded-xl border border-[#00e599]/30 shadow-[0_0_15px_rgba(0,229,153,0.1)]">
+                          <p className="text-[9px] text-[#00e599] uppercase tracking-widest font-bold mb-1">Seller Payout</p>
+                          <p className="text-lg font-black text-[#00e599]">₹{selFin.sellerPayout}</p>
+                          <p className="text-[8px] text-[#00e599]/60 mt-1">To be transferred</p>
+                       </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
             </div>
           </div>
         </div>
