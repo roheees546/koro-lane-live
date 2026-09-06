@@ -19,7 +19,6 @@ export default function ProductDetailPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [copied, setCopied] = useState(false);
   
-  // 🔥 New State for Related Products
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   
@@ -36,6 +35,16 @@ export default function ProductDetailPage() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const images = product?.image_urls?.length > 0 ? product.image_urls : [product?.image_url].filter(Boolean);
+
+  // 🚀 BACKGROUND IMAGE PRELOADER (Fixes the 3-4s slide lag)
+  useEffect(() => {
+    if (images && images.length > 0) {
+      images.forEach((url: string) => {
+        const img = new window.Image();
+        img.src = url;
+      });
+    }
+  }, [images]);
 
   useEffect(() => {
     if (isCheckoutOpen && timeLeft > 0) {
@@ -100,7 +109,6 @@ export default function ProductDetailPage() {
             }
           }
 
-          // 🔥 FIXED FETCH RELATED PRODUCTS LOGIC (Double Filter)
           let relatedQuery = supabase
             .from("products")
             .select("*")
@@ -108,7 +116,7 @@ export default function ProductDetailPage() {
             .neq("id", prodData.id)
             .eq("is_sold", false)
             .order("created_at", { ascending: false })
-            .limit(10); // Fetch extra to safely filter down to 4
+            .limit(10);
 
           if (prodData.gender) {
             relatedQuery = relatedQuery.eq("gender", prodData.gender);
@@ -131,10 +139,9 @@ export default function ProductDetailPage() {
             }
 
             const cleanRelated = relatedData.filter(p => {
-              // Exclude if it has any active order (pending, packed, shipped, delivered)
               if (relOrderMap[p.id]) return false; 
               return true;
-            }).slice(0, 4); // Keep exactly 4 for the grid
+            }).slice(0, 4);
 
             setRelatedProducts(cleanRelated);
           } else {
@@ -287,21 +294,27 @@ export default function ProductDetailPage() {
           </div>
         )}
         
+        {/* 🔥 ZERO-LAG STACKED SLIDER */}
         {images.length > 0 ? (
-          <img 
-            onClick={() => setIsZoomed(true)} 
-            src={images[activeImage]} 
-            alt={product.title} 
-            draggable={false}
-            className="w-full h-full object-cover cursor-zoom-in pointer-events-auto" 
-          />
+          images.map((url: any, idx: number) => (
+            <img 
+              key={idx}
+              onClick={() => setIsZoomed(true)} 
+              src={url} 
+              alt={`${product.title} ${idx}`} 
+              draggable={false}
+              className={`absolute inset-0 w-full h-full object-cover cursor-zoom-in pointer-events-auto transition-opacity duration-300 ease-in-out ${
+                activeImage === idx ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+              }`}
+            />
+          ))
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold uppercase">No Image Available</div>
         )}
         
         {images.length > 1 && (
-          <div className="absolute bottom-4 left-0 w-full flex justify-center gap-2 z-10">
-            {images.map((url: any, idx: number) => <button key={idx} onClick={(e) => { e.stopPropagation(); setActiveImage(idx); }} className={`w-2 h-2 rounded-full transition-all ${activeImage === idx ? 'bg-[#FF3B30] w-6' : 'bg-gray-300 hover:bg-gray-400'}`} />)}
+          <div className="absolute bottom-4 left-0 w-full flex justify-center gap-2 z-30">
+            {images.map((_: any, idx: number) => <button key={idx} onClick={(e) => { e.stopPropagation(); setActiveImage(idx); }} className={`w-2 h-2 rounded-full transition-all ${activeImage === idx ? 'bg-[#FF3B30] w-6' : 'bg-gray-300 hover:bg-gray-400 shadow-sm'}`} />)}
           </div>
         )}
       </div>
@@ -638,10 +651,10 @@ export default function ProductDetailPage() {
         </div>
       )}
 
-      {/* 🔥 ZOOM MODAL WITH ARROWS */}
+      {/* 🔥 ZOOM MODAL STACKED SLIDER */}
       {isZoomed && (
         <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center" onClick={() => setIsZoomed(false)}>
-          <button className="absolute top-6 right-6 text-white bg-black/50 p-2 rounded-full z-50 hover:bg-black/80 transition">
+          <button className="absolute top-6 right-6 text-white bg-black/50 p-2 rounded-full z-[120] hover:bg-black/80 transition">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
 
@@ -649,25 +662,30 @@ export default function ProductDetailPage() {
             <>
               <button 
                 onClick={handlePrevImage} 
-                className="absolute left-4 top-1/2 -translate-y-1/2 z-[110] w-12 h-12 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white hover:bg-black/80 hover:text-[#FF3B30] transition shadow-2xl"
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-[120] w-12 h-12 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white hover:bg-black/80 hover:text-[#FF3B30] transition shadow-2xl"
               >
                 <svg className="w-6 h-6 pr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
               </button>
               <button 
                 onClick={handleNextImage} 
-                className="absolute right-4 top-1/2 -translate-y-1/2 z-[110] w-12 h-12 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white hover:bg-black/80 hover:text-[#FF3B30] transition shadow-2xl"
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-[120] w-12 h-12 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white hover:bg-black/80 hover:text-[#FF3B30] transition shadow-2xl"
               >
                 <svg className="w-6 h-6 pl-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
               </button>
             </>
           )}
 
-          <img 
-            onClick={(e) => e.stopPropagation()} 
-            src={images[activeImage]} 
-            alt="Zoomed"
-            className="w-full h-auto max-h-[90vh] object-contain animate-in zoom-in duration-300 pointer-events-auto" 
-          />
+          {images.length > 0 && images.map((url: any, idx: number) => (
+            <img 
+              key={idx}
+              onClick={(e) => e.stopPropagation()} 
+              src={url} 
+              alt="Zoomed"
+              className={`absolute inset-0 w-full h-full max-h-[90vh] object-contain pointer-events-auto transition-opacity duration-300 ${
+                activeImage === idx ? "opacity-100 z-[110]" : "opacity-0 z-0 pointer-events-none"
+              }`}
+            />
+          ))}
         </div>
       )}
 
