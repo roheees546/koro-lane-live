@@ -157,12 +157,11 @@ export default function ScoutTerminal() {
       setAvatarUrl(profile.avatar_url || "");
     }
 
-    // 🔥 BULLETPROOF FETCH WITH DEBUG LOGS
     console.log("Fetching orders for User ID:", currentUserId);
 
     const { data: scoutOrders, error: orderError } = await supabase
       .from("orders")
-      .select(`*`)
+      .select(`*, products (image_urls, image_url)`)
       .eq("user_id", currentUserId)
       .order("created_at", { ascending: false });
       
@@ -556,8 +555,12 @@ export default function ScoutTerminal() {
             </h2>
 
             <div className="space-y-4 pb-10">
-              {orders.map((order) => {
-                const imgUrl = order.products?.image_urls?.[0] || order.products?.image_url;
+              {orders.filter(o => o.status !== 'cancelled' && o.payment_status !== 'Rejected').map((order) => {
+                
+                // 🔥 Image Extraction Fix
+                const prodData = Array.isArray(order.products) ? order.products[0] : order.products;
+                const imgUrl = prodData?.image_urls?.[0] || prodData?.image_url;
+
                 const orderDate = new Date(order.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
                 const orderTime = new Date(order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 
@@ -655,7 +658,7 @@ export default function ScoutTerminal() {
                 );
               })}
               
-              {orders.length === 0 && (
+              {orders.filter(o => o.status !== 'cancelled' && o.payment_status !== 'Rejected').length === 0 && (
                 <div className="text-center py-16 border border-gray-200 border-dashed rounded-[20px] bg-white shadow-sm">
                   <span className="text-3xl mb-3 block opacity-40">🛍️</span>
                   <p className="text-gray-500 text-[11px] uppercase tracking-widest font-black">No active orders found.</p>
