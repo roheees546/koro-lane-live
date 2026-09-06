@@ -157,18 +157,23 @@ export default function ScoutTerminal() {
       setAvatarUrl(profile.avatar_url || "");
     }
 
-    console.log("Fetching orders for User ID:", currentUserId);
+    // 🔥 THE ULTIMATE SAFE FETCH: Matching user_id OR phone
+    let queryFilter = `user_id.eq.${currentUserId}`;
+    if (profile?.phone) {
+      queryFilter += `,customer_phone.eq."${profile.phone}"`;
+    }
+
+    console.log("Fetching orders for User ID or Phone:", currentUserId, profile?.phone);
 
     const { data: scoutOrders, error: orderError } = await supabase
       .from("orders")
       .select(`*, products (image_urls, image_url)`)
-      .eq("user_id", currentUserId)
+      .or(queryFilter)
       .order("created_at", { ascending: false });
       
     if (orderError) {
       console.error("Order Fetch Error ❌:", orderError);
     } else {
-      console.log("Fetched Orders Successfully ✅:", scoutOrders);
       if (scoutOrders) setOrders(scoutOrders);
     }
 
@@ -282,9 +287,11 @@ export default function ScoutTerminal() {
 
   if (loading) return <div className="min-h-screen bg-[#F6F3EE] flex items-center justify-center text-[#FF3B30] font-black tracking-widest text-xs uppercase">Initializing Terminal...</div>;
 
-  const activeCount = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled').length;
-  const deliveredCount = orders.filter(o => o.status === 'delivered').length;
-  const historyCount = orders.length;
+  // 🔥 Filter out cancelled/rejected from the main stats
+  const validOrders = orders.filter(o => o.status !== 'cancelled' && o.payment_status !== 'Rejected');
+  const activeCount = validOrders.filter(o => o.status !== 'delivered').length;
+  const deliveredCount = validOrders.filter(o => o.status === 'delivered').length;
+  const historyCount = validOrders.length;
 
   return (
     <div className="min-h-screen bg-[#F6F3EE] text-[#111111] font-sans pb-12 selection:bg-[#FF3B30] selection:text-white overflow-x-hidden">
@@ -555,7 +562,7 @@ export default function ScoutTerminal() {
             </h2>
 
             <div className="space-y-4 pb-10">
-              {orders.filter(o => o.status !== 'cancelled' && o.payment_status !== 'Rejected').map((order) => {
+              {validOrders.map((order) => {
                 
                 // 🔥 Image Extraction Fix
                 const prodData = Array.isArray(order.products) ? order.products[0] : order.products;
@@ -658,7 +665,7 @@ export default function ScoutTerminal() {
                 );
               })}
               
-              {orders.filter(o => o.status !== 'cancelled' && o.payment_status !== 'Rejected').length === 0 && (
+              {validOrders.length === 0 && (
                 <div className="text-center py-16 border border-gray-200 border-dashed rounded-[20px] bg-white shadow-sm">
                   <span className="text-3xl mb-3 block opacity-40">🛍️</span>
                   <p className="text-gray-500 text-[11px] uppercase tracking-widest font-black">No active orders found.</p>
