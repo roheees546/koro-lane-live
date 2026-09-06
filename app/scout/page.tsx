@@ -157,26 +157,38 @@ export default function ScoutTerminal() {
       setAvatarUrl(profile.avatar_url || "");
     }
 
-    // 🔥 THE ULTIMATE SAFE FETCH: Matching user_id OR phone
-    let queryFilter = `user_id.eq.${currentUserId}`;
-    if (profile?.phone) {
-      queryFilter += `,customer_phone.eq."${profile.phone}"`;
-    }
-
-    console.log("Fetching orders for User ID or Phone:", currentUserId, profile?.phone);
-
-    const { data: scoutOrders, error: orderError } = await supabase
+    // 🔥 THE 100% BULLETPROOF FIX: TWO SEPARATE QUERIES (No more syntax crashes)
+    
+    // 1. Naye orders jisme user_id properly saved hai
+    const { data: byIdData, error: idError } = await supabase
       .from("orders")
       .select(`*, products (image_urls, image_url)`)
-      .or(queryFilter)
-      .order("created_at", { ascending: false });
-      
-    if (orderError) {
-      console.error("Order Fetch Error ❌:", orderError);
-    } else {
-      if (scoutOrders) setOrders(scoutOrders);
+      .eq("user_id", currentUserId);
+
+    if (idError) console.error("ID Fetch Error ❌:", idError);
+
+    // 2. Purane orders jisme user_id NULL hai par phone number match kar raha hai
+    let byPhoneData: any[] = [];
+    if (profile?.phone) {
+      const cleanPhone = profile.phone.trim();
+      const { data: phoneData, error: phoneError } = await supabase
+        .from("orders")
+        .select(`*, products (image_urls, image_url)`)
+        .eq("customer_phone", cleanPhone)
+        .is("user_id", null); // Prevent duplicates
+
+      if (phoneError) console.error("Phone Fetch Error ❌:", phoneError);
+      if (phoneData) byPhoneData = phoneData;
     }
 
+    // Dono ko mila ke date wise sort kar do
+    let allOrders = [...(byIdData || []), ...byPhoneData];
+    allOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    console.log("All Fetched Orders ✅:", allOrders);
+    setOrders(allOrders);
+
+    // Baki counts fetch
     const { count: wlCount } = await supabase.from("wishlist").select("*", { count: 'exact', head: true }).eq("user_id", currentUserId);
     setWishlistCount(wlCount || 0);
 
@@ -287,7 +299,7 @@ export default function ScoutTerminal() {
 
   if (loading) return <div className="min-h-screen bg-[#F6F3EE] flex items-center justify-center text-[#FF3B30] font-black tracking-widest text-xs uppercase">Initializing Terminal...</div>;
 
-  // 🔥 Filter out cancelled/rejected from the main stats
+  // 🔥 Filter out cancelled/rejected from the main active count stats
   const validOrders = orders.filter(o => o.status !== 'cancelled' && o.payment_status !== 'Rejected');
   const activeCount = validOrders.filter(o => o.status !== 'delivered').length;
   const deliveredCount = validOrders.filter(o => o.status === 'delivered').length;
