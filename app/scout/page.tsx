@@ -175,7 +175,7 @@ export default function ScoutTerminal() {
         .from("orders")
         .select(`*, products (image_urls, image_url)`)
         .eq("customer_phone", cleanPhone)
-        .is("user_id", null); // Prevent duplicates
+        .is("user_id", null);
 
       if (phoneError) console.error("Phone Fetch Error ❌:", phoneError);
       if (phoneData) byPhoneData = phoneData;
@@ -185,7 +185,6 @@ export default function ScoutTerminal() {
     let allOrders = [...(byIdData || []), ...byPhoneData];
     allOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    console.log("All Fetched Orders ✅:", allOrders);
     setOrders(allOrders);
 
     // Baki counts fetch
@@ -244,21 +243,33 @@ export default function ScoutTerminal() {
     setSaving(false);
   };
 
+  // 🔥 SMART WISHLIST LOGIC (SOLD ITEMS GAYAB)
   const loadWishlistItems = async () => {
     setActiveView('wishlist');
     try {
       const { data: wlData } = await supabase.from("wishlist").select("id, product_id").eq("user_id", userId);
       if (wlData && wlData.length > 0) {
         const productIds = wlData.map(w => w.product_id);
-        const { data: prodData } = await supabase.from("products").select("*").in("id", productIds);
         
-        const enriched = wlData.map(w => ({
-          ...w,
-          products: prodData?.find(p => p.id === w.product_id)
-        }));
+        // Sirf wahi products laao jo abhi tak is_sold: false hain
+        const { data: prodData } = await supabase
+          .from("products")
+          .select("*")
+          .in("id", productIds)
+          .eq("is_sold", false); 
+        
+        const enriched = wlData
+          .map(w => ({
+            ...w,
+            products: prodData?.find(p => p.id === w.product_id)
+          }))
+          .filter(item => item.products); // Jo bik gaye (null aaye), unhe array se filter maar do
+          
         setWishlistItems(enriched);
+        setWishlistCount(enriched.length); // Count ko exact unsold items se sync kar do
       } else {
         setWishlistItems([]);
+        setWishlistCount(0);
       }
     } catch(e) { console.error("Wishlist Fetch Error", e); }
   };
@@ -299,7 +310,6 @@ export default function ScoutTerminal() {
 
   if (loading) return <div className="min-h-screen bg-[#F6F3EE] flex items-center justify-center text-[#FF3B30] font-black tracking-widest text-xs uppercase">Initializing Terminal...</div>;
 
-  // 🔥 Filter out cancelled/rejected from the main active count stats
   const validOrders = orders.filter(o => o.status !== 'cancelled' && o.payment_status !== 'Rejected');
   const activeCount = validOrders.filter(o => o.status !== 'delivered').length;
   const deliveredCount = validOrders.filter(o => o.status === 'delivered').length;
