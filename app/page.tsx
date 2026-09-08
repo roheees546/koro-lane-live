@@ -91,26 +91,43 @@ export default function Home() {
     }
   };
 
+  // 🔥 YAHAN HUA HAI ASLI MAGIC UPDATE
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
     try {
+      // localStorage se check karega ki kis button se aaya tha
+      const intendedRole = typeof window !== 'undefined' ? (localStorage.getItem('koro_intended_role') || 'scout') : 'scout';
+
       if (authMode === 'signup') {
-        const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword, options: { data: { role: 'scout' } } });
+        const { error } = await supabase.auth.signUp({ 
+          email: authEmail, 
+          password: authPassword, 
+          options: { data: { role: intendedRole } } // HARDCODE HATA DIYA! 🚀
+        });
         if (error) throw error;
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
         if (error) throw error;
       }
       setIsLoggedIn(true);
-      setUserRole('scout');
+      setUserRole(intendedRole); // Naya role state me set kar diya
       setIsAuthModalOpen(false);
       setAuthEmail(""); setAuthPassword("");
 
+      // Naya profile banne ke baad sahi jagah bhejega
       if (selectedProduct) { 
           router.push(`/product/${selectedProduct.id}`);
+      } else if (intendedRole === 'dealer') {
+          router.push('/dealer'); 
+      } else {
+          router.push('/scout'); 
       }
-    } catch (error: any) { alert("Auth Error: " + error.message); } finally { setAuthLoading(false); }
+    } catch (error: any) { 
+      alert("Auth Error: " + error.message); 
+    } finally { 
+      setAuthLoading(false); 
+    }
   };
 
   const handleForgotPassword = async () => {

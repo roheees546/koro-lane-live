@@ -33,8 +33,10 @@ function LoginContent() {
     const urlRole = searchParams.get('role');
     if (urlRole === 'seller') {
       setRole('seller');
+      if (typeof window !== 'undefined') localStorage.setItem('koro_intended_role', 'dealer');
     } else if (urlRole === 'buyer') {
       setRole('buyer');
+      if (typeof window !== 'undefined') localStorage.setItem('koro_intended_role', 'scout');
     }
   }, [searchParams]);
 
@@ -104,6 +106,11 @@ function LoginContent() {
   // 🌐 Google Login Handler
   const handleGoogleLogin = async () => {
     setLoading(true);
+    // Google ko bhi intended role pass kar rahe hain DB logic ke liye
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('koro_intended_role', role === 'buyer' ? 'scout' : 'dealer');
+    }
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -148,13 +155,19 @@ function LoginContent() {
           {/* 🎛️ Tabs: Buyer vs Seller */}
           <div className="flex border-b border-gray-200 mb-6">
             <button 
-              onClick={() => setRole('buyer')}
+              onClick={() => {
+                setRole('buyer');
+                if (typeof window !== 'undefined') localStorage.setItem('koro_intended_role', 'scout');
+              }}
               className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${role === 'buyer' ? `${themeColorText} border-b-2 ${themeColorBorder}` : 'text-gray-400 hover:text-gray-700'}`}
             >
               Buyer {mode === 'login' ? 'Login' : 'Signup'}
             </button>
             <button 
-              onClick={() => setRole('seller')}
+              onClick={() => {
+                setRole('seller');
+                if (typeof window !== 'undefined') localStorage.setItem('koro_intended_role', 'dealer');
+              }}
               className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${role === 'seller' ? `${themeColorText} border-b-2 ${themeColorBorder}` : 'text-gray-400 hover:text-gray-700'}`}
             >
               Seller {mode === 'login' ? 'Login' : 'Signup'}
