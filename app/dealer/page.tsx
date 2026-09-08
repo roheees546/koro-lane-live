@@ -82,32 +82,33 @@ export default function DealerDashboard() {
     setUserId(session.user.id);
     const sessionEmail = session.user.email || "";
 
-    let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-    const intendedRole = typeof window !== 'undefined' ? localStorage.getItem('koro_intended_role') : null;
+    // 🔥 SMART ROLE CHECK: Check auth metadata first, then local storage, fallback to dealer (since this is dealer page)
+    const authRole = session.user.user_metadata?.role || (typeof window !== 'undefined' ? localStorage.getItem('koro_intended_role') : null) || 'dealer';
 
-    if (!profile || intendedRole === 'seller') {
+    let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+
+    // 1. Agar profile nahi hai toh SMART ROLE use karke banayenge
+    if (!profile) {
       const { data: savedProfile, error } = await supabase.from("profiles").upsert({
         id: session.user.id,
         email: sessionEmail,
-        role: "dealer",
-        store_name: profile?.store_name || "NEW SELLER STORE", 
-        store_address: profile?.store_address || profile?.address || "Please enter full address",
-        address: profile?.address || profile?.store_address || "Please enter full address"
+        role: authRole, // 🚀 Yahan 'dealer' hardcode ki jagah smart ho gaya
+        store_name: "NEW SELLER STORE", 
+        store_address: "Please enter full address",
+        address: "Please enter full address"
       }).select().single();
 
-      if (savedProfile) {
-        profile = savedProfile;
-      }
-      
-      if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
-      
+      if (savedProfile) profile = savedProfile;
     } else if (profile && !profile.email) {
       await supabase.from("profiles").update({ email: sessionEmail }).eq("id", session.user.id);
       profile.email = sessionEmail;
     }
-
+      
+    if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
+    
+    // 2. Agar ye technically dealer nahi hai (galti se yahan aa gaya hai) toh isko Scout pe fek do
     if (profile?.role !== "dealer") {
-      router.push("/");
+      router.push("/scout");
       return;
     }
 
@@ -972,7 +973,7 @@ export default function DealerDashboard() {
                 </div>
                 <div>
                   <h2 className="text-white font-black text-lg">How to Measure</h2>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">All measurements are in centimeters (cm)</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">All measurements are in centimeters (inch)</p>
                 </div>
               </div>
               <button onClick={() => setIsHowToMeasureOpen(false)} className="w-8 h-8 bg-[#0a0a0c] rounded-full flex items-center justify-center text-gray-400 hover:text-white border border-gray-800 transition">

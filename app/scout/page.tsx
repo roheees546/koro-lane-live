@@ -120,18 +120,17 @@ export default function ScoutTerminal() {
     const userEmail = session.user.email || "";
     setEmail(userEmail);
 
+    // 🔥 SMART ROLE CHECK: Check auth metadata first, then local storage, fallback to scout
+    const authRole = session.user.user_metadata?.role || (typeof window !== 'undefined' ? localStorage.getItem('koro_intended_role') : null) || 'scout';
+
     let { data: profile } = await supabase.from("profiles").select("*").eq("id", currentUserId).single();
     
-    if (profile && profile.role === 'dealer') {
-      router.push("/dealer");
-      return;
-    }
-
+    // 1. Agar profile nahi hai, toh SMART ROLE use karke banayenge! (Hardcode hataya)
     if (!profile) {
       const { data: newProfile } = await supabase.from("profiles").insert({
         id: currentUserId,
         email: userEmail,
-        role: "scout",
+        role: authRole, // 🚀 YAHAN THA ASLI CULPRIT! Ab smart ho gaya.
         full_name: "" 
       }).select().single();
       
@@ -139,6 +138,12 @@ export default function ScoutTerminal() {
     } else if (profile && !profile.email) {
       await supabase.from("profiles").update({ email: userEmail }).eq("id", currentUserId);
       profile.email = userEmail;
+    }
+
+    // 2. Agar ye actually dealer hai (chahe purana ho ya naya bana ho), toh isko Seller panel feko
+    if (profile && profile.role === 'dealer') {
+      router.push("/dealer");
+      return;
     }
 
     if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
