@@ -82,17 +82,24 @@ export default function DealerDashboard() {
     setUserId(session.user.id);
     const sessionEmail = session.user.email || "";
 
-    // 🔥 SMART ROLE CHECK: Check auth metadata first, then local storage, fallback to dealer (since this is dealer page)
-    const authRole = session.user.user_metadata?.role || (typeof window !== 'undefined' ? localStorage.getItem('koro_intended_role') : null) || 'dealer';
+    const intendedRole = typeof window !== 'undefined' ? localStorage.getItem('koro_intended_role') : null;
+    const authRole = session.user.user_metadata?.role || intendedRole || 'dealer';
 
     let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+
+    // 🔥 THE MASTER OVERRIDE: Agar DB trigger ne galti se isko 'scout' bana diya,
+    // par user ne 'Seller' choose kiya tha, toh database ko force overwrite maar do!
+    if (profile && profile.role === 'scout' && intendedRole === 'dealer') {
+      const { data: updatedProfile } = await supabase.from("profiles").update({ role: 'dealer' }).eq("id", session.user.id).select().single();
+      if (updatedProfile) profile = updatedProfile;
+    }
 
     // 1. Agar profile nahi hai toh SMART ROLE use karke banayenge
     if (!profile) {
       const { data: savedProfile, error } = await supabase.from("profiles").upsert({
         id: session.user.id,
         email: sessionEmail,
-        role: authRole, // 🚀 Yahan 'dealer' hardcode ki jagah smart ho gaya
+        role: authRole,
         store_name: "NEW SELLER STORE", 
         store_address: "Please enter full address",
         address: "Please enter full address"
