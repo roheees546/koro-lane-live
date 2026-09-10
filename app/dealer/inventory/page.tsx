@@ -33,10 +33,10 @@ export default function InventoryPage() {
   const [itemColor, setItemColor] = useState("");
   const [itemMaterial, setItemMaterial] = useState("");
   
-  // 🔥 JSON Measurements State (Waist & Hip removed)
+  // 🔥 JSON Measurements State (Waist kept, Length shared, Inseam/Outseam removed)
   const [measurements, setMeasurements] = useState({
     chest: "", length: "", shoulder: "", sleeve: "", // Top
-    rise: "", inseam: "", outseam: "", legOpening: "" // Bottom
+    rise: "", waist: "" // Bottom
   });
   const [measurementsConfirmed, setMeasurementsConfirmed] = useState(false);
   const [isHowToMeasureOpen, setIsHowToMeasureOpen] = useState(false);
@@ -108,18 +108,27 @@ export default function InventoryPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Bawa, are you sure you want to delete this item?")) return;
 
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (!error) {
-      setProducts(products.filter(p => p.id !== id));
-    } else {
-      alert("Delete failed: " + error.message);
+    try {
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      if (error) {
+        // 🔥 SUPABASE DELETE FIX: Checks if product is locked because of existing orders
+        if (error.message.includes("foreign key")) {
+          alert("Bawa, you can't delete this item because someone ordered it! Mark it as sold or cancel the order first.");
+        } else {
+          alert("Delete failed: " + error.message);
+        }
+        return;
+      }
+      setProducts(prev => prev.filter(p => p.id !== id));
+    } catch (err: any) {
+      alert("Delete failed: " + err.message);
     }
   };
 
   const openCreateModal = () => {
     setItemName(""); setItemPrice(""); setItemCategory("Top"); setItemGender("Unisex"); setItemSize("L"); setItemDesc("");
     setItemColor(""); setItemMaterial(""); setMeasurementsConfirmed(false);
-    setMeasurements({ chest: "", length: "", shoulder: "", sleeve: "", rise: "", inseam: "", outseam: "", legOpening: "" });
+    setMeasurements({ chest: "", length: "", shoulder: "", sleeve: "", rise: "", waist: "" });
     setImageFiles([]); setExistingImageUrls([]);
     setIsCreateModalOpen(true);
   };
@@ -138,7 +147,7 @@ export default function InventoryPage() {
     const meas = product.measurements || {};
     setMeasurements({
       chest: meas.chest || "", length: meas.length || "", shoulder: meas.shoulder || "", sleeve: meas.sleeve || "",
-      rise: meas.rise || "", inseam: meas.inseam || "", outseam: meas.outseam || "", legOpening: meas.legOpening || ""
+      rise: meas.rise || "", waist: meas.waist || ""
     });
     setMeasurementsConfirmed(true); 
     
@@ -163,7 +172,7 @@ export default function InventoryPage() {
 
   const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!measurementsConfirmed) {
+    if (['Top', 'Bottom'].includes(itemCategory) && !measurementsConfirmed) {
       alert("Please confirm that the measurements are accurate.");
       return;
     }
@@ -187,11 +196,12 @@ export default function InventoryPage() {
         uploadedUrls.push(publicUrlData.publicUrl);
       }
 
+      // 🔥 Final Measurements updated for 3 options in Bottom Wear
       const finalMeasurements = itemCategory === "Top" ? {
         chest: measurements.chest, length: measurements.length, shoulder: measurements.shoulder, sleeve: measurements.sleeve
-      } : {
-        rise: measurements.rise, inseam: measurements.inseam, outseam: measurements.outseam, legOpening: measurements.legOpening
-      };
+      } : itemCategory === "Bottom" ? {
+        rise: measurements.rise, length: measurements.length, waist: measurements.waist
+      } : {}; // Empty for Accessories
 
       const { error: insertError } = await supabase.from("products").insert([{
         dealer_id: userId,
@@ -222,7 +232,7 @@ export default function InventoryPage() {
 
   const handleUpdateItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!measurementsConfirmed) {
+    if (['Top', 'Bottom'].includes(itemCategory) && !measurementsConfirmed) {
       alert("Please confirm that the measurements are accurate.");
       return;
     }
@@ -244,11 +254,12 @@ export default function InventoryPage() {
         }
       }
 
+      // 🔥 Final Measurements updated for 3 options in Bottom Wear
       const finalMeasurements = itemCategory === "Top" ? {
         chest: measurements.chest, length: measurements.length, shoulder: measurements.shoulder, sleeve: measurements.sleeve
-      } : {
-        rise: measurements.rise, inseam: measurements.inseam, outseam: measurements.outseam, legOpening: measurements.legOpening
-      };
+      } : itemCategory === "Bottom" ? {
+        rise: measurements.rise, length: measurements.length, waist: measurements.waist
+      } : {}; // Empty for Accessories
 
       const { error } = await supabase.from("products").update({
         title: itemName,
@@ -464,6 +475,8 @@ export default function InventoryPage() {
                         <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#F5A623]">
                           {itemCategory === 'Bottom' ? (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13V6a2 2 0 00-2-2H5a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H5"></path></svg>
+                          ) : itemCategory === 'Accessories' ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                           ) : (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                           )}
@@ -471,6 +484,7 @@ export default function InventoryPage() {
                         <select value={itemCategory} onChange={(e) => {setItemCategory(e.target.value); setMeasurementsConfirmed(false);}} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white pl-10 pr-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition appearance-none cursor-pointer">
                           <option value="Top">Top</option>
                           <option value="Bottom">Bottom</option>
+                          <option value="Accessories">Accessories</option>
                         </select>
                         <svg className="w-4 h-4 text-gray-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                       </div>
@@ -504,125 +518,116 @@ export default function InventoryPage() {
                 </div>
 
                 {/* 📏 MEASUREMENTS MASTER SECTION */}
-                <div className="bg-[#1a1a1d] border border-gray-800 rounded-2xl p-1 shadow-inner relative overflow-hidden">
-                  <div className="flex justify-between items-center p-3 border-b border-gray-800/50">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>
-                      <h3 className="text-[11px] font-bold text-white tracking-widest uppercase">Measurements <span className="text-[#F5A623] ml-1">{itemCategory} Wear</span></h3>
+                {(itemCategory === 'Top' || itemCategory === 'Bottom') && (
+                  <div className="bg-[#1a1a1d] border border-gray-800 rounded-2xl p-1 shadow-inner relative overflow-hidden">
+                    <div className="flex justify-between items-center p-3 border-b border-gray-800/50">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>
+                        <h3 className="text-[11px] font-bold text-white tracking-widest uppercase">Measurements <span className="text-[#F5A623] ml-1">{itemCategory} Wear</span></h3>
+                      </div>
+                      <button type="button" onClick={() => setIsHowToMeasureOpen(true)} className="text-[10px] text-[#F5A623] flex items-center gap-1 hover:underline">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        How to measure?
+                      </button>
                     </div>
-                    <button type="button" onClick={() => setIsHowToMeasureOpen(true)} className="text-[10px] text-[#F5A623] flex items-center gap-1 hover:underline">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                      How to measure?
-                    </button>
-                  </div>
-                  
-                  <div className="p-3 space-y-3">
-                    {itemCategory === 'Top' ? (
-                      <>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Chest (Pit to Pit)</p><p className="text-[9px] text-gray-500">Armpit to armpit</p></div>
+                    
+                    <div className="p-3 space-y-3">
+                      {itemCategory === 'Top' ? (
+                        <>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Chest (Pit to Pit)</p><p className="text-[9px] text-gray-500">Armpit to armpit</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input required type="number" value={measurements.chest} onChange={e => setMeasurements({...measurements, chest: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 56" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                          <div className="relative w-24">
-                            <input required type="number" value={measurements.chest} onChange={e => setMeasurements({...measurements, chest: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 56" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                          
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v17" stroke="#F5A623" strokeWidth="2" strokeDasharray="2 2"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Length</p><p className="text-[9px] text-gray-500">Top to bottom</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input required type="number" value={measurements.length} onChange={e => setMeasurements({...measurements, length: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 72" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Length</p><p className="text-[9px] text-gray-500">Top to bottom</p></div>
-                          </div>
-                          <div className="relative w-24">
-                            <input required type="number" value={measurements.length} onChange={e => setMeasurements({...measurements, length: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 72" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Shoulder</p><p className="text-[9px] text-gray-500">Seam to seam</p></div>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 5h12" stroke="#F5A623" strokeWidth="2" strokeDasharray="2 2"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Shoulder</p><p className="text-[9px] text-gray-500">Seam to seam</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input required type="number" value={measurements.shoulder} onChange={e => setMeasurements({...measurements, shoulder: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 48" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                          <div className="relative w-24">
-                            <input required type="number" value={measurements.shoulder} onChange={e => setMeasurements({...measurements, shoulder: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 48" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Sleeve Length</p><p className="text-[9px] text-gray-500">Shoulder to cuff</p></div>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8L2 18" stroke="#F5A623" strokeWidth="2" strokeDasharray="2 2"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Sleeve Length</p><p className="text-[9px] text-gray-500">Shoulder to cuff</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input required type="number" value={measurements.sleeve} onChange={e => setMeasurements({...measurements, sleeve: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 64" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                          <div className="relative w-24">
-                            <input required type="number" value={measurements.sleeve} onChange={e => setMeasurements({...measurements, sleeve: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 64" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                        </>
+                      ) : (
+                        <>
+                          {/* 🔥 NEW Bottom Wear Inputs (Rise, Length, Waist) */}
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Rise</p><p className="text-[9px] text-gray-500">Crotch to waist</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input required type="number" value={measurements.rise} onChange={e => setMeasurements({...measurements, rise: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 31" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        {/* Bottom Wear Inputs */}
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Rise</p><p className="text-[9px] text-gray-500">Crotch to waist</p></div>
-                          </div>
-                          <div className="relative w-24">
-                            <input required type="number" value={measurements.rise} onChange={e => setMeasurements({...measurements, rise: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 31" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 11l-5 9"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Inseam</p><p className="text-[9px] text-gray-500">Crotch to bottom</p></div>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v17" stroke="#F5A623" strokeWidth="2" strokeDasharray="2 2"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Length</p><p className="text-[9px] text-gray-500">Waist to bottom hem</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input required type="number" value={measurements.length} onChange={e => setMeasurements({...measurements, length: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 104" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                          <div className="relative w-24">
-                            <input required type="number" value={measurements.inseam} onChange={e => setMeasurements({...measurements, inseam: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 76" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM7 4v16"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Outseam</p><p className="text-[9px] text-gray-500">Waist to outer bottom</p></div>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 5h12" stroke="#F5A623" strokeWidth="2" strokeDasharray="2 2"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Waist</p><p className="text-[9px] text-gray-500">Across the waistband</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input required type="number" value={measurements.waist} onChange={e => setMeasurements({...measurements, waist: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 32" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                          <div className="relative w-24">
-                            <input required type="number" value={measurements.outseam} onChange={e => setMeasurements({...measurements, outseam: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 104" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                          </div>
-                        </div>
+                        </>
+                      )}
 
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM6 20h5"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Leg Opening</p><p className="text-[9px] text-gray-500">Bottom hem width</p></div>
+                      <div className="mt-4 pt-3 border-t border-gray-800/50">
+                        <label className="flex items-center gap-3 cursor-pointer p-1">
+                          <div className="relative flex items-center justify-center">
+                            <input type="checkbox" checked={measurementsConfirmed} onChange={(e) => setMeasurementsConfirmed(e.target.checked)} className="peer appearance-none w-5 h-5 border-2 border-gray-600 rounded bg-[#0a0a0c] checked:bg-[#F5A623] checked:border-[#F5A623] transition cursor-pointer" />
+                            <svg className="w-3 h-3 text-black absolute opacity-0 peer-checked:opacity-100 pointer-events-none transition" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>
                           </div>
-                          <div className="relative w-24">
-                            <input required type="number" value={measurements.legOpening} onChange={e => setMeasurements({...measurements, legOpening: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 20" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    <div className="mt-4 pt-3 border-t border-gray-800/50">
-                      <label className="flex items-center gap-3 cursor-pointer p-1">
-                        <div className="relative flex items-center justify-center">
-                          <input type="checkbox" checked={measurementsConfirmed} onChange={(e) => setMeasurementsConfirmed(e.target.checked)} className="peer appearance-none w-5 h-5 border-2 border-gray-600 rounded bg-[#0a0a0c] checked:bg-[#F5A623] checked:border-[#F5A623] transition cursor-pointer" />
-                          <svg className="w-3 h-3 text-black absolute opacity-0 peer-checked:opacity-100 pointer-events-none transition" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>
-                        </div>
-                        <span className="text-[11px] font-bold text-white select-none">I confirm these measurements are accurate.</span>
-                      </label>
+                          <span className="text-[11px] font-bold text-white select-none">I confirm these measurements are accurate.</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Additional Optional Details */}
                 <div className="space-y-4">
@@ -695,7 +700,7 @@ export default function InventoryPage() {
             </div>
             
             <div className="sticky bottom-0 bg-[#0a0a0c] md:bg-[#121214] z-20 px-6 py-4 border-t border-gray-800">
-              <button type="submit" form="create-product-form" disabled={isCreating || !measurementsConfirmed} className="w-full bg-[#F5A623] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] transition shadow-[0_0_15px_rgba(245,166,35,0.2)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2">
+              <button type="submit" form="create-product-form" disabled={isCreating || (['Top', 'Bottom'].includes(itemCategory) && !measurementsConfirmed)} className="w-full bg-[#F5A623] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] transition shadow-[0_0_15px_rgba(245,166,35,0.2)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2">
                 {isCreating ? <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span> Publishing...</> : <>Publish Product</>}
               </button>
             </div>
@@ -738,6 +743,8 @@ export default function InventoryPage() {
                         <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#F5A623]">
                           {itemCategory === 'Bottom' ? (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13V6a2 2 0 00-2-2H5a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H5"></path></svg>
+                          ) : itemCategory === 'Accessories' ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                           ) : (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                           )}
@@ -745,6 +752,7 @@ export default function InventoryPage() {
                         <select value={itemCategory} onChange={(e) => {setItemCategory(e.target.value); setMeasurementsConfirmed(false);}} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white pl-10 pr-4 py-3.5 text-sm outline-none focus:border-[#F5A623] transition appearance-none cursor-pointer">
                           <option value="Top">Top</option>
                           <option value="Bottom">Bottom</option>
+                          <option value="Accessories">Accessories</option>
                         </select>
                         <svg className="w-4 h-4 text-gray-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                       </div>
@@ -778,122 +786,113 @@ export default function InventoryPage() {
                 </div>
 
                 {/* 📏 MEASUREMENTS MASTER SECTION (EDIT) */}
-                <div className="bg-[#1a1a1d] border border-gray-800 rounded-2xl p-1 shadow-inner relative overflow-hidden">
-                  <div className="flex justify-between items-center p-3 border-b border-gray-800/50">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>
-                      <h3 className="text-[11px] font-bold text-white tracking-widest uppercase">Measurements <span className="text-[#F5A623] ml-1">{itemCategory} Wear</span></h3>
+                {(itemCategory === 'Top' || itemCategory === 'Bottom') && (
+                  <div className="bg-[#1a1a1d] border border-gray-800 rounded-2xl p-1 shadow-inner relative overflow-hidden">
+                    <div className="flex justify-between items-center p-3 border-b border-gray-800/50">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>
+                        <h3 className="text-[11px] font-bold text-white tracking-widest uppercase">Measurements <span className="text-[#F5A623] ml-1">{itemCategory} Wear</span></h3>
+                      </div>
+                      <button type="button" onClick={() => setIsHowToMeasureOpen(true)} className="text-[10px] text-[#F5A623] flex items-center gap-1 hover:underline">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Guide
+                      </button>
                     </div>
-                    <button type="button" onClick={() => setIsHowToMeasureOpen(true)} className="text-[10px] text-[#F5A623] flex items-center gap-1 hover:underline">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                      Guide
-                    </button>
-                  </div>
-                  
-                  <div className="p-3 space-y-3">
-                    {itemCategory === 'Top' ? (
-                      <>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Chest</p><p className="text-[9px] text-gray-500">Pit to pit</p></div>
+                    
+                    <div className="p-3 space-y-3">
+                      {itemCategory === 'Top' ? (
+                        <>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Chest</p><p className="text-[9px] text-gray-500">Pit to pit</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input type="number" value={measurements.chest} onChange={e => setMeasurements({...measurements, chest: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                          <div className="relative w-24">
-                            <input type="number" value={measurements.chest} onChange={e => setMeasurements({...measurements, chest: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v17" stroke="#F5A623" strokeWidth="2" strokeDasharray="2 2"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Length</p><p className="text-[9px] text-gray-500">Top to bottom</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input type="number" value={measurements.length} onChange={e => setMeasurements({...measurements, length: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Length</p><p className="text-[9px] text-gray-500">Top to bottom</p></div>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 5h12" stroke="#F5A623" strokeWidth="2" strokeDasharray="2 2"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Shoulder</p><p className="text-[9px] text-gray-500">Seam to seam</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input type="number" value={measurements.shoulder} onChange={e => setMeasurements({...measurements, shoulder: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                          <div className="relative w-24">
-                            <input type="number" value={measurements.length} onChange={e => setMeasurements({...measurements, length: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8L2 18" stroke="#F5A623" strokeWidth="2" strokeDasharray="2 2"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Sleeve</p><p className="text-[9px] text-gray-500">Shoulder to cuff</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input type="number" value={measurements.sleeve} onChange={e => setMeasurements({...measurements, sleeve: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Shoulder</p><p className="text-[9px] text-gray-500">Seam to seam</p></div>
+                        </>
+                      ) : (
+                        <>
+                          {/* 🔥 NEW Bottom Wear Inputs (Rise, Length, Waist) */}
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Rise</p><p className="text-[9px] text-gray-500">Crotch to waist</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input type="number" value={measurements.rise} onChange={e => setMeasurements({...measurements, rise: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                          <div className="relative w-24">
-                            <input type="number" value={measurements.shoulder} onChange={e => setMeasurements({...measurements, shoulder: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 8c0-2 2-3 4-3h8c2 0 4 1 4 3v10c0 2-2 3-4 3H8c-2 0-4-1-4-3V8z"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Sleeve</p><p className="text-[9px] text-gray-500">Shoulder to cuff</p></div>
-                          </div>
-                          <div className="relative w-24">
-                            <input type="number" value={measurements.sleeve} onChange={e => setMeasurements({...measurements, sleeve: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        {/* Bottom Wear Inputs (Waist & Hip removed) */}
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Rise</p><p className="text-[9px] text-gray-500">Crotch to waist</p></div>
-                          </div>
-                          <div className="relative w-24">
-                            <input type="number" value={measurements.rise} onChange={e => setMeasurements({...measurements, rise: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 11l-5 9"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Inseam</p><p className="text-[9px] text-gray-500">Crotch to bottom</p></div>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v17" stroke="#F5A623" strokeWidth="2" strokeDasharray="2 2"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Length</p><p className="text-[9px] text-gray-500">Waist to bottom hem</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input type="number" value={measurements.length} onChange={e => setMeasurements({...measurements, length: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                          <div className="relative w-24">
-                            <input type="number" value={measurements.inseam} onChange={e => setMeasurements({...measurements, inseam: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM7 4v16"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Outseam</p><p className="text-[9px] text-gray-500">Waist to outer bottom</p></div>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-1/2">
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 5h12" stroke="#F5A623" strokeWidth="2" strokeDasharray="2 2"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Waist</p><p className="text-[9px] text-gray-500">Across the waistband</p></div>
+                            </div>
+                            <div className="relative w-24">
+                              <input type="number" value={measurements.waist} onChange={e => setMeasurements({...measurements, waist: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
+                            </div>
                           </div>
-                          <div className="relative w-24">
-                            <input type="number" value={measurements.outseam} onChange={e => setMeasurements({...measurements, outseam: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                          </div>
-                        </div>
+                        </>
+                      )}
 
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 w-1/2">
-                             <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM6 20h5"/></svg></div>
-                             <div><p className="text-[11px] font-bold text-white">Leg Opening</p><p className="text-[9px] text-gray-500">Bottom hem width</p></div>
+                      <div className="mt-4 pt-3 border-t border-gray-800/50">
+                        <label className="flex items-center gap-3 cursor-pointer p-1">
+                          <div className="relative flex items-center justify-center">
+                            <input type="checkbox" checked={measurementsConfirmed} onChange={(e) => setMeasurementsConfirmed(e.target.checked)} className="peer appearance-none w-5 h-5 border-2 border-gray-600 rounded bg-[#0a0a0c] checked:bg-[#F5A623] checked:border-[#F5A623] transition cursor-pointer" />
+                            <svg className="w-3 h-3 text-black absolute opacity-0 peer-checked:opacity-100 pointer-events-none transition" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>
                           </div>
-                          <div className="relative w-24">
-                            <input type="number" value={measurements.legOpening} onChange={e => setMeasurements({...measurements, legOpening: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    <div className="mt-4 pt-3 border-t border-gray-800/50">
-                      <label className="flex items-center gap-3 cursor-pointer p-1">
-                        <div className="relative flex items-center justify-center">
-                          <input type="checkbox" checked={measurementsConfirmed} onChange={(e) => setMeasurementsConfirmed(e.target.checked)} className="peer appearance-none w-5 h-5 border-2 border-gray-600 rounded bg-[#0a0a0c] checked:bg-[#F5A623] checked:border-[#F5A623] transition cursor-pointer" />
-                          <svg className="w-3 h-3 text-black absolute opacity-0 peer-checked:opacity-100 pointer-events-none transition" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>
-                        </div>
-                        <span className="text-[11px] font-bold text-white select-none">I confirm these measurements are accurate.</span>
-                      </label>
+                          <span className="text-[11px] font-bold text-white select-none">I confirm these measurements are accurate.</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Additional Optional Details */}
                 <div className="space-y-4">
@@ -975,7 +974,7 @@ export default function InventoryPage() {
             </div>
             
             <div className="sticky bottom-0 bg-[#0a0a0c] md:bg-[#121214] z-20 px-6 py-4 border-t border-gray-800">
-              <button type="submit" form="edit-product-form" disabled={isUpdating || !measurementsConfirmed} className="w-full bg-[#F5A623] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] transition shadow-[0_0_15px_rgba(245,166,35,0.2)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2">
+              <button type="submit" form="edit-product-form" disabled={isUpdating || (['Top', 'Bottom'].includes(itemCategory) && !measurementsConfirmed)} className="w-full bg-[#F5A623] text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] transition shadow-[0_0_15px_rgba(245,166,35,0.2)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2">
                 {isUpdating ? <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span> SAVING...</> : <>SAVE CHANGES</>}
               </button>
             </div>
@@ -1011,15 +1010,52 @@ export default function InventoryPage() {
                   <p><b>4. Sleeve Length:</b> Measure from shoulder seam to cuff.</p>
                 </div>
               </div>
+              
+              {/* 🔥 UPDATED BOTTOM WEAR GUIDE */}
               <div className="bg-[#1a1a1d] border border-gray-800 rounded-2xl p-6">
-                <h3 className="text-white font-black text-sm tracking-widest uppercase mb-4 border-b border-gray-800/50 pb-3">Bottom Wear Guide</h3>
-                <div className="space-y-4 text-xs text-gray-300">
-                  <p><b>1. Rise:</b> Measure from the top of waistband to crotch seam.</p>
-                  <p><b>2. Inseam:</b> Measure from crotch seam to bottom hem.</p>
-                  <p><b>3. Outseam:</b> Measure from top of waistband to outer bottom.</p>
-                  <p><b>4. Leg Opening:</b> Measure across the bottom hem width.</p>
+                <div className="flex items-center gap-2 mb-6 border-b border-gray-800/50 pb-3">
+                  <svg className="w-5 h-5 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"></path></svg>
+                  <div>
+                    <h3 className="text-white font-black text-sm tracking-widest uppercase">Bottom Wear</h3>
+                    <p className="text-[10px] text-gray-500 font-bold">Jeans, Cargo, Trousers, Pants</p>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-8 items-start">
+                  <div className="bg-[#0a0a0c] rounded-xl h-[300px] border border-gray-800 flex items-center justify-center p-4 relative">
+                     <svg viewBox="0 0 100 150" className="w-full h-full text-gray-200 opacity-90 drop-shadow-xl" fill="currentColor">
+                       <path d="M25,20 L75,20 L85,130 L55,130 L50,60 L45,130 L15,130 Z" className="text-[#1a1a1d] stroke-gray-700 stroke-[2]"/>
+                       
+                       {/* 1: Rise */}
+                       <path d="M50 20 L50 60" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
+                       <circle cx="50" cy="32" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="50" y="34.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">1</text>
+                       
+                       {/* 2: Length */}
+                       <path d="M15 20 L5 128" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
+                       <circle cx="10" cy="80" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="10" y="82.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">2</text>
+
+                       {/* 3: Waist */}
+                       <path d="M25 20 L75 20" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
+                       <circle cx="50" cy="20" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="50" y="22.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">3</text>
+                     </svg>
+                  </div>
+                  <div className="space-y-5">
+                    <div className="flex gap-4">
+                      <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">1</div>
+                      <div><p className="text-sm font-bold text-white">Rise</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure from the top of the waistband to the crotch seam.</p></div>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">2</div>
+                      <div><p className="text-sm font-bold text-white">Length</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure from the top of the waistband to the bottom hem.</p></div>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">3</div>
+                      <div><p className="text-sm font-bold text-white">Waist</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure straight across the top of the waistband.</p></div>
+                    </div>
+                  </div>
                 </div>
               </div>
+
             </div>
           </div>
         </div>
