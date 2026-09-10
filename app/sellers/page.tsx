@@ -126,10 +126,10 @@ export default function SellersPage() {
                 {/* Content Container */}
                 <div className="p-3 flex flex-col items-center w-full z-10 pt-6">
                   
-                  {/* Seller DP */}
+                  {/* 🔥 Seller DP (FIXED LOGIC) */}
                   <div className="w-14 h-14 bg-[#111111] border-2 border-white rounded-full flex items-center justify-center shrink-0 overflow-hidden shadow-md mb-2 relative group-hover:border-[#FF3B30] transition">
-                    {seller.avatar_url ? (
-                      <img src={seller.avatar_url} alt={seller.store_name} className="w-full h-full object-cover" />
+                    {(seller.store_logo || seller.avatar_url) ? (
+                      <img src={seller.store_logo || seller.avatar_url} alt={seller.store_name} className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-[14px] font-black text-white text-center uppercase">
                         {seller.store_name ? seller.store_name.substring(0, 2) : 'KL'}
