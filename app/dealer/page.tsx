@@ -48,10 +48,10 @@ export default function DealerDashboard() {
   const [isAdding, setIsAdding] = useState(false);
   const [isLogoUploading, setIsLogoUploading] = useState(false);
 
-  // 🔥 JSON Measurements State (Waist & Hip removed from bottom wear)
+  // 🔥 JSON Measurements State (Waist kept, Length shared)
   const [measurements, setMeasurements] = useState({
     chest: "", length: "", shoulder: "", sleeve: "", // Top
-    rise: "", inseam: "", outseam: "", legOpening: "" // Bottom (waist & hip removed)
+    rise: "", waist: "" // Bottom
   });
   const [measurementsConfirmed, setMeasurementsConfirmed] = useState(false);
 
@@ -232,7 +232,8 @@ export default function DealerDashboard() {
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!measurementsConfirmed) {
+    // Validate measurements only if Top or Bottom is selected
+    if (['Top', 'Bottom'].includes(itemCategory) && !measurementsConfirmed) {
       alert("Please confirm that the measurements are accurate.");
       return;
     }
@@ -258,18 +259,12 @@ export default function DealerDashboard() {
       }
     }
 
-    // Prepare JSON payload for measurements (Waist & Hip excluded for bottom wear)
+    // 🔥 Final Measurements updated for 3 options in Bottom Wear
     const finalMeasurements = itemCategory === "Top" ? {
-      chest: measurements.chest,
-      length: measurements.length,
-      shoulder: measurements.shoulder,
-      sleeve: measurements.sleeve
-    } : {
-      rise: measurements.rise,
-      inseam: measurements.inseam,
-      outseam: measurements.outseam,
-      legOpening: measurements.legOpening
-    };
+      chest: measurements.chest, length: measurements.length, shoulder: measurements.shoulder, sleeve: measurements.sleeve
+    } : itemCategory === "Bottom" ? {
+      rise: measurements.rise, length: measurements.length, waist: measurements.waist
+    } : {}; // Empty for Accessories
 
     const { error } = await supabase.from("products").insert([{
       dealer_id: userId,
@@ -290,7 +285,7 @@ export default function DealerDashboard() {
       setIsAddModalOpen(false);
       setItemName(""); setItemPrice(""); setItemCategory("Top"); setItemGender("Unisex"); setItemSize("L"); setItemDesc(""); setImageFiles([]); 
       setItemColor(""); setItemMaterial(""); setMeasurementsConfirmed(false);
-      setMeasurements({ chest: "", length: "", shoulder: "", sleeve: "", rise: "", inseam: "", outseam: "", legOpening: "" });
+      setMeasurements({ chest: "", length: "", shoulder: "", sleeve: "", rise: "", waist: "" });
       fetchDashboardData(); 
     } else {
       alert("Error adding item: " + error.message);
@@ -433,7 +428,7 @@ export default function DealerDashboard() {
           </div>
         </div>
 
-        {/* 🔥 MODIFIED QUICK ACTIONS: Messages & Upload Reel removed, now 2 clean cards */}
+        {/* 🔥 MODIFIED QUICK ACTIONS */}
         <div>
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">Quick Actions</p>
           <div className="grid grid-cols-2 gap-3">
@@ -459,7 +454,7 @@ export default function DealerDashboard() {
           </div>
         </div>
 
-        {/* 🔥 ACTIVE REELS SECTION (ZINDA DATA) */}
+        {/* 🔥 ACTIVE REELS SECTION */}
         <div className="mt-6 mb-6">
           <div className="flex items-center justify-between mb-3 px-1">
             <h3 className="text-[11px] font-black text-gray-500 uppercase tracking-wider">Active Reels 🔴</h3>
@@ -700,8 +695,7 @@ export default function DealerDashboard() {
                         <select value={itemCategory} onChange={(e) => {setItemCategory(e.target.value); setMeasurementsConfirmed(false);}} className="w-full bg-[#1a1a1d] border border-gray-800 rounded-xl text-white px-3 py-3.5 text-sm outline-none focus:border-[#F5A623] transition appearance-none cursor-pointer">
                           <option value="Top">Top</option>
                           <option value="Bottom">Bottom</option>
-                          <option value="Shoes">Shoes</option>
-                          <option value="Accessories">Accs</option>
+                          <option value="Accessories">Accessories</option>
                         </select>
                         <svg className="w-3.5 h-3.5 text-gray-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                       </div>
@@ -799,10 +793,10 @@ export default function DealerDashboard() {
                         </>
                       ) : (
                         <>
-                          {/* Bottom Wear Inputs (Waist & Hip removed, Rise, Inseam, Outseam, Leg Opening kept) */}
+                          {/* 🔥 NEW Bottom Wear Inputs (Rise, Length, Waist) */}
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3 w-1/2">
-                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/><path d="M12 4v7" stroke="#F5A623" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 2"/><path d="M10 4l2 -2l2 2" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/><path d="M10 11l2 2l2 -2" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/></svg></div>
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"/></svg></div>
                                <div><p className="text-[11px] font-bold text-white">Rise</p><p className="text-[9px] text-gray-500">Crotch to waist</p></div>
                             </div>
                             <div className="relative w-24">
@@ -813,33 +807,22 @@ export default function DealerDashboard() {
 
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3 w-1/2">
-                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/><path d="M12 11l-5 9" stroke="#F5A623" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 2"/><path d="M11 9l1 2l2 -1" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/><path d="M6 18l1 2l2 -1" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/></svg></div>
-                               <div><p className="text-[11px] font-bold text-white">Inseam</p><p className="text-[9px] text-gray-500">Crotch to bottom</p></div>
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v17" stroke="#F5A623" strokeWidth="2" strokeDasharray="2 2"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Length</p><p className="text-[9px] text-gray-500">Waist to bottom hem</p></div>
                             </div>
                             <div className="relative w-24">
-                              <input required type="number" value={measurements.inseam} onChange={e => setMeasurements({...measurements, inseam: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 76" />
+                              <input required type="number" value={measurements.length} onChange={e => setMeasurements({...measurements, length: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 104" />
                               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                             </div>
                           </div>
 
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3 w-1/2">
-                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/><path d="M7 4v16" stroke="#F5A623" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 2"/><path d="M5 4l2 -2l2 2" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/><path d="M5 20l2 2l2 -2" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/></svg></div>
-                               <div><p className="text-[11px] font-bold text-white">Outseam</p><p className="text-[9px] text-gray-500">Waist to outer bottom</p></div>
+                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 5h12" stroke="#F5A623" strokeWidth="2" strokeDasharray="2 2"/></svg></div>
+                               <div><p className="text-[11px] font-bold text-white">Waist</p><p className="text-[9px] text-gray-500">Across the waistband</p></div>
                             </div>
                             <div className="relative w-24">
-                              <input required type="number" value={measurements.outseam} onChange={e => setMeasurements({...measurements, outseam: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 104" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 w-1/2">
-                               <div className="w-8 h-8 opacity-60"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10l1 16H6L7 4z"/><path d="M6 20h5" stroke="#F5A623" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 2"/><path d="M4 20l2 -2M4 20l2 2" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/><path d="M13 20l-2 -2M13 20l-2 2" stroke="#F5A623" strokeWidth="2" strokeLinecap="round"/></svg></div>
-                               <div><p className="text-[11px] font-bold text-white">Leg Opening</p><p className="text-[9px] text-gray-500">Bottom hem width</p></div>
-                            </div>
-                            <div className="relative w-24">
-                              <input required type="number" value={measurements.legOpening} onChange={e => setMeasurements({...measurements, legOpening: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 20" />
+                              <input required type="number" value={measurements.waist} onChange={e => setMeasurements({...measurements, waist: e.target.value})} className="w-full bg-[#0a0a0c] border border-gray-800 rounded-lg text-white text-center py-2 text-sm outline-none focus:border-[#F5A623] pr-6" placeholder="e.g. 32" />
                               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-bold">inch</span>
                             </div>
                           </div>
@@ -1043,7 +1026,7 @@ export default function DealerDashboard() {
                 </div>
               </div>
 
-              {/* BOTTOM WEAR GUIDE */}
+              {/* 🔥 UPDATED BOTTOM WEAR GUIDE */}
               <div className="bg-[#1a1a1d] border border-gray-800 rounded-2xl p-6">
                 <div className="flex items-center gap-2 mb-6 border-b border-gray-800/50 pb-3">
                   <svg className="w-5 h-5 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 4h10l1 16H6L7 4zM12 4v7m-5-7v7m10-7v7"></path></svg>
@@ -1058,18 +1041,17 @@ export default function DealerDashboard() {
                      <svg viewBox="0 0 100 150" className="w-full h-full text-gray-200 opacity-90 drop-shadow-xl" fill="currentColor">
                        <path d="M25,20 L75,20 L85,130 L55,130 L50,60 L45,130 L15,130 Z" className="text-[#1a1a1d] stroke-gray-700 stroke-[2]"/>
                        
+                       {/* 1: Rise */}
                        <path d="M50 20 L50 60" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
                        <circle cx="50" cy="32" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="50" y="34.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">1</text>
-                       <path d="M48 22 L50 20 L52 22 M48 58 L50 60 L52 58" stroke="#F5A623" fill="none" strokeWidth="1.5"/>
-
-                       <path d="M50 60 L78 128" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
-                       <circle cx="60" cy="95" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="60" y="97.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">2</text>
                        
+                       {/* 2: Length */}
                        <path d="M15 20 L5 128" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
-                       <circle cx="10" cy="80" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="10" y="82.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">3</text>
+                       <circle cx="10" cy="80" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="10" y="82.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">2</text>
 
-                       <path d="M60 135 L82 135" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
-                       <circle cx="71" cy="135" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="71" y="137.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">4</text>
+                       {/* 3: Waist */}
+                       <path d="M25 20 L75 20" stroke="#F5A623" strokeWidth="1.5" strokeDasharray="2 2" />
+                       <circle cx="50" cy="20" r="4" fill="#0a0a0c" stroke="#F5A623"/> <text x="50" y="22.5" fontSize="5" fill="white" textAnchor="middle" fontWeight="bold">3</text>
                      </svg>
                   </div>
                   <div className="space-y-5">
@@ -1079,15 +1061,11 @@ export default function DealerDashboard() {
                     </div>
                     <div className="flex gap-4">
                       <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">2</div>
-                      <div><p className="text-sm font-bold text-white">Inseam</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure from the crotch seam to the bottom hem.</p></div>
+                      <div><p className="text-sm font-bold text-white">Length</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure from the top of the waistband to the bottom hem.</p></div>
                     </div>
                     <div className="flex gap-4">
                       <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">3</div>
-                      <div><p className="text-sm font-bold text-white">Outseam</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure from the top of the waistband to the bottom hem.</p></div>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold text-xs shrink-0">4</div>
-                      <div><p className="text-sm font-bold text-white">Leg Opening</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure across the bottom opening of the leg.</p></div>
+                      <div><p className="text-sm font-bold text-white">Waist</p><p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">Measure straight across the top of the waistband.</p></div>
                     </div>
                   </div>
                 </div>
