@@ -9,15 +9,13 @@ export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   
-  const [showRoleModal, setShowRoleModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [userAvatar, setUserAvatar] = useState<string | null>(null); // 🔥 NAYA STATE DP KE LIYE
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
   const isDealerRoute = pathname?.startsWith('/dealer');
 
   useEffect(() => {
-    // 🔥 AB ROLE KE SATH SATH PHOTO BHI FETCH HOGI
     const fetchUserProfile = async (userId: string) => {
       const { data: profile } = await supabase
         .from('profiles')
@@ -60,14 +58,17 @@ export default function BottomNav() {
   const handleProfileClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isLoggedIn) {
-      setShowRoleModal(true);
+      // 1. Agar login nahi hai, seedha login page pe bhej do.
+      router.push('/login');
     } else {
+      // 2. Agar login hai, check karo uska role kya hai.
       if (userRole === 'dealer') {
         router.push('/dealer');
       } else if (userRole === 'scout') {
         router.push('/scout');
       } else {
-        setShowRoleModal(true);
+        // 3. Agar login hai par profile nahi bani (role null hai), toh Onboarding page par bhej do.
+        router.push('/onboarding');
       }
     }
   };
@@ -96,9 +97,9 @@ export default function BottomNav() {
           </Link>
 
           {/* 🔥 PROFILE / DYNAMIC AVATAR */}
-          <button onClick={handleProfileClick} className={`flex flex-col items-center gap-1.5 w-16 ${pathname === '/scout' || pathname === '/login' ? 'text-[#FF3B30]' : 'text-[#555555] hover:text-[#111111] transition'}`}>
+          <button onClick={handleProfileClick} className={`flex flex-col items-center gap-1.5 w-16 ${pathname === '/scout' || pathname === '/login' || pathname === '/onboarding' ? 'text-[#FF3B30]' : 'text-[#555555] hover:text-[#111111] transition'}`}>
             {isLoggedIn && userAvatar ? (
-              <div className={`w-6 h-6 rounded-full overflow-hidden transition-all shadow-sm ${pathname === '/scout' || pathname === '/login' ? 'border-[2px] border-[#FF3B30] scale-110' : 'border border-gray-300'}`}>
+              <div className={`w-6 h-6 rounded-full overflow-hidden transition-all shadow-sm ${pathname === '/scout' || pathname === '/login' || pathname === '/onboarding' ? 'border-[2px] border-[#FF3B30] scale-110' : 'border border-gray-300'}`}>
                 <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
               </div>
             ) : (
@@ -108,40 +109,6 @@ export default function BottomNav() {
           </button>
 
         </nav>
-      )}
-
-      {/* ROLE SELECTION MODAL */}
-      {showRoleModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-5" onClick={() => setShowRoleModal(false)}>
-          <div className="bg-[#FFFFFF] border border-gray-200 rounded-[32px] w-full max-w-sm p-8 relative overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
-            
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-black uppercase tracking-tight text-[#111111] mb-1">
-                SELECT <span className="text-[#FF3B30]">PROFILE</span>
-              </h3>
-              <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest">Choose your path on Koro Lane</p>
-            </div>
-
-            <div className="space-y-4">
-              <button onClick={() => { setShowRoleModal(false); router.push(isLoggedIn ? '/scout' : '/login?role=buyer'); }} className="w-full bg-[#F6F3EE] border border-gray-200 hover:border-[#FF3B30]/50 p-4 rounded-2xl flex items-center gap-4 text-left transition shadow-sm">
-                <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center shrink-0 text-xl shadow-sm">🧑‍🚀</div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-black uppercase tracking-widest text-[#111111] mb-0.5">Buyer Profile</h4>
-                  <p className="text-[10px] font-medium text-gray-500">Shop unique thrift finds.</p>
-                </div>
-              </button>
-              
-              <button onClick={() => { setShowRoleModal(false); router.push(isLoggedIn ? '/dealer' : '/login?role=seller'); }} className="w-full bg-[#F6F3EE] border border-gray-200 hover:border-[#FF3B30]/50 p-4 rounded-2xl flex items-center gap-4 text-left transition shadow-sm">
-                <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center shrink-0 text-xl shadow-sm">🏪</div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-black uppercase tracking-widest text-[#111111] mb-0.5">Seller Profile</h4>
-                  <p className="text-[10px] font-medium text-gray-500">List your surplus drops.</p>
-                </div>
-              </button>
-            </div>
-
-          </div>
-        </div>
       )}
     </>
   );
