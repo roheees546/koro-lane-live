@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 export default function Onboarding() {
   const router = useRouter();
@@ -20,7 +19,6 @@ export default function Onboarding() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        // Agar login hi nahi hai, to wapas login pe fenko
         router.push("/login");
         return;
       }
@@ -38,7 +36,7 @@ export default function Onboarding() {
       } else if (profile && profile.role === 'scout') {
         router.push('/scout');
       } else {
-        // Agar profile nahi hai ya role null hai, toh Onboarding dikhao
+        // Agar profile 'pending' hai ya nahi bani, toh Onboarding dikhao
         setCheckingAuth(false);
       }
     };
@@ -46,7 +44,7 @@ export default function Onboarding() {
     verifyUser();
   }, [router]);
 
-  // 2. Final Role Assignment Logic
+  // 2. Final Role Assignment Logic (🔥 FIXED: NO UPSERT, ONLY UPDATE)
   const handleCompleteSetup = async () => {
     if (!selectedRole) {
       alert("Bawa, pehle ek profile toh select kar lo! 🧐");
@@ -65,7 +63,6 @@ export default function Onboarding() {
       if (!session) throw new Error("Session expired. Please login again.");
 
       const userId = session.user.id;
-      const userEmail = session.user.email;
       const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || "";
       const avatarUrl = session.user.user_metadata?.avatar_url || "";
 
@@ -74,14 +71,14 @@ export default function Onboarding() {
         data: { role: selectedRole }
       });
 
-      // B. Database (profiles table) mein permanently insert/update karo
-      const { error } = await supabase.from('profiles').upsert({
-        id: userId,
-        email: userEmail,
-        role: selectedRole,
-        full_name: fullName,
-        avatar_url: avatarUrl
-      }, { onConflict: 'id' });
+      // B. Database (profiles table) mein directly UPDATE karo (Row trigger ne already bana di hai)
+      const { error } = await supabase.from('profiles')
+        .update({
+          role: selectedRole,
+          full_name: fullName,
+          avatar_url: avatarUrl
+        })
+        .eq('id', userId);
 
       if (error) throw error;
 
