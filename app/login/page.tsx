@@ -33,73 +33,10 @@ function LoginContent() {
     const urlRole = searchParams.get('role');
     if (urlRole === 'seller') {
       setRole('seller');
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('koro_intended_role', 'dealer');
-      }
     } else if (urlRole === 'buyer') {
       setRole('buyer');
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('koro_intended_role', 'scout');
-      }
     }
   }, [searchParams]);
-
-  // 🔥 THE TRAP: Google se wapas aate hi role update karne wala logic (WITH NEW USER FIX)
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        
-        // 1. URL se role pakdo
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlRole = urlParams.get('auth_role');
-        const savedRole = urlRole || localStorage.getItem('koro_intended_role');
-        
-        if (savedRole) {
-          // 🔥 NEW USER CHECK: Kya ye user pichle 2 minute ke andar bana hai?
-          const userAgeMs = new Date().getTime() - new Date(session.user.created_at).getTime();
-          const isNewUser = userAgeMs < 120000; // 120000 ms = 2 minutes
-
-          // RACE CONDITION FIX: 1.5 seconds wait
-          setTimeout(async () => {
-            
-            if (isNewUser) {
-              // SCENARIO A: NEW USER (Sirf naye user ka role overwrite karo)
-              const { error } = await supabase.from('profiles')
-                .update({ role: savedRole })
-                .eq('id', session.user.id);
-                
-              if (error) console.error("Bawa Update fail ho gaya:", error);
-                
-              await supabase.auth.updateUser({ data: { role: savedRole } });
-              
-              localStorage.removeItem('koro_intended_role');
-              router.push(savedRole === 'dealer' ? '/dealer' : '/scout');
-
-            } else {
-              // SCENARIO B: OLD/RETURNING USER (Overwrite mat karo, real role fetch karo)
-              localStorage.removeItem('koro_intended_role');
-
-              // Purane user ka real role DB se lao
-              const { data: profile } = await supabase.from('profiles')
-                .select('role')
-                .eq('id', session.user.id)
-                .single();
-              
-              const finalRole = profile?.role || session.user.user_metadata?.role || 'scout';
-              
-              router.push(finalRole === 'dealer' ? '/dealer' : '/scout');
-            }
-          }, 1500); 
-        } else {
-          // Agar kisi ne direct login kiya bina role change kiye (Normal login flow)
-          const currentRole = session.user.user_metadata?.role;
-          router.push(currentRole === 'dealer' ? '/dealer' : '/scout');
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [router]);
 
   // 📧 Email/Password Auth Handler
   const handleAuth = async (e: React.FormEvent) => {
@@ -164,20 +101,21 @@ function LoginContent() {
     setLoading(false);
   };
 
-  // 🌐 Google Login Handler (Brahmastra Edition)
+  // 🌐 Google Login Handler (COOKIE FIX)
   const handleGoogleLogin = async () => {
     setLoading(true);
     const intendedRole = role === 'buyer' ? 'scout' : 'dealer';
 
     if (typeof window !== 'undefined') {
-      localStorage.setItem('koro_intended_role', intendedRole);
+      // 🔥 COOKIE IS KING: Ye redirect ke baad bhi zinda rahegi (10 mins max-age)
+      document.cookie = `koro_intended_role=${intendedRole}; path=/; max-age=600`;
     }
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // 🔥 JADUU YAHAN HAI: Wapas aate time URL mein hi role de diya
-        redirectTo: `${window.location.origin}/login?auth_role=${intendedRole}`, 
+        // Humesha Scout page par force karo, wahan humara asli Gatekeeper baitha hai jo Cookie check karega
+        redirectTo: `${window.location.origin}/scout`, 
         queryParams: {
           prompt: 'select_account' 
         }
@@ -219,23 +157,13 @@ function LoginContent() {
           {/* 🎛️ Tabs: Buyer vs Seller */}
           <div className="flex border-b border-gray-200 mb-6">
             <button 
-              onClick={() => {
-                setRole('buyer');
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('koro_intended_role', 'scout');
-                }
-              }}
+              onClick={() => setRole('buyer')}
               className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${role === 'buyer' ? `${themeColorText} border-b-2 ${themeColorBorder}` : 'text-gray-400 hover:text-gray-700'}`}
             >
               Buyer {mode === 'login' ? 'Login' : 'Signup'}
             </button>
             <button 
-              onClick={() => {
-                setRole('seller');
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('koro_intended_role', 'dealer');
-                }
-              }}
+              onClick={() => setRole('seller')}
               className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${role === 'seller' ? `${themeColorText} border-b-2 ${themeColorBorder}` : 'text-gray-400 hover:text-gray-700'}`}
             >
               Seller {mode === 'login' ? 'Login' : 'Signup'}

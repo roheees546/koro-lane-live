@@ -6,6 +6,21 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import WishlistButton from "@/components/WishlistButton";
 
+// 🔥 COOKIE UTILS - Indestructible data storage
+const getCookie = (name: string) => {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return null;
+};
+
+const deleteCookie = (name: string) => {
+  if (typeof document !== 'undefined') {
+    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  }
+};
+
 export default function ScoutTerminal() {
   const router = useRouter();
   
@@ -120,27 +135,37 @@ export default function ScoutTerminal() {
     const userEmail = session.user.email || "";
     setEmail(userEmail);
 
-    // 🔥 THE BRAHMASTRA SAFETY NET TRAP 🔥
-    // Agar banda galti se is page par aa gaya, par wo Seller banna chahta tha, toh isko yahin pakdo!
-    const intendedRole = typeof window !== 'undefined' ? localStorage.getItem('koro_intended_role') : null;
-    
-    if (intendedRole === 'dealer') {
-      // 1. Zabardasti profile ko update maaro
-      await supabase.from("profiles").update({ role: 'dealer' }).eq("id", currentUserId);
-      await supabase.auth.updateUser({ data: { role: 'dealer' } });
-      
-      // 2. Kachra saaf karo
+    // 🌟 SMART GATEKEEPER LOGIC (Cookie & Age Check) 🌟
+    const intendedRole = getCookie('koro_intended_role');
+    const userAgeMs = new Date().getTime() - new Date(session.user.created_at).getTime();
+    const isNewUser = userAgeMs < 120000; // 2 minutes (120,000 ms)
+
+    let { data: profile } = await supabase.from("profiles").select("*").eq("id", currentUserId).single();
+
+    // 1. Agar NEW USER hai, aur Seller banna chahta tha
+    if (intendedRole === 'dealer' && isNewUser) {
+      deleteCookie('koro_intended_role'); // Clean immediately
       if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
       
-      // 3. User ko pata chalne se pehle seedha Seller Dashboard pe phenk do
+      if (!profile) {
+        await supabase.from("profiles").insert({ id: currentUserId, email: userEmail, role: 'dealer', full_name: "" });
+      } else {
+        await supabase.from("profiles").update({ role: 'dealer' }).eq("id", currentUserId);
+      }
+      
+      await supabase.auth.updateUser({ data: { role: 'dealer' } });
+      
       router.push("/dealer");
-      return; // Aage ka code chalne hi mat do!
+      return; // Stop rendering Buyer dashboard
     }
 
-    // Agar yahan tak aaya hai, matlab wo genuinely ek Buyer hi hai
-    let { data: profile } = await supabase.from("profiles").select("*").eq("id", currentUserId).single();
-    
-    // Agar profile nahi hai, toh as a buyer bana do
+    // Safely delete cookie if we didn't use it
+    if (intendedRole) {
+      deleteCookie('koro_intended_role');
+      if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
+    }
+
+    // 2. Agar koi profile nahi hai (matlab normally buyer banne aaya hai)
     if (!profile) {
       const { data: newProfile } = await supabase.from("profiles").insert({
         id: currentUserId,
@@ -155,14 +180,13 @@ export default function ScoutTerminal() {
       profile.email = userEmail;
     }
 
-    // Safety Check: Agar ye profile pehle se dealer hai, toh isko bhej do
+    // 3. Purane Returning user ka check (Agar wo asliyat mein dealer hai)
     if (profile && profile.role === 'dealer') {
       router.push("/dealer");
       return;
     }
 
-    if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
-
+    // 4. Yahan se aage sirf real 'Scout' (Buyer) ka code chalega
     const nameToUse = profile?.full_name || "New Buyer";
     setFullName(nameToUse);
     
