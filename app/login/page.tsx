@@ -1,13 +1,28 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
+// 🔥 COOKIE UTILS
+const getCookie = (name: string) => {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return null;
+};
+const deleteCookie = (name: string) => {
+  if (typeof document !== 'undefined') {
+    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  }
+};
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isHandlingAuth = useRef(false);
   
   // States
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
@@ -37,6 +52,57 @@ function LoginContent() {
       setRole('buyer');
     }
   }, [searchParams]);
+
+  // 🔥 THE ULTIMATE TRAP: Server-Time Check + UPSERT
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user && !isHandlingAuth.current) {
+        isHandlingAuth.current = true; // Prevent double trigger
+
+        const intendedRole = getCookie('koro_intended_role') || localStorage.getItem('koro_intended_role');
+        
+        // 🕒 MAGIC FIX: Compare Server Time with Server Time (No phone clock issues)
+        const createdAt = new Date(session.user.created_at).getTime();
+        const lastSignIn = new Date(session.user.last_sign_in_at || session.user.created_at).getTime();
+        const isNewUser = Math.abs(lastSignIn - createdAt) < 60000; // Less than 60 seconds diff = Brand New User
+
+        if (intendedRole && isNewUser) {
+          // 🚀 SCENARIO A: Brand New User + Requested a Role
+          // UPSERT: Create if missing, Update if exists
+          const { error } = await supabase.from('profiles').upsert({
+            id: session.user.id,
+            email: session.user.email,
+            role: intendedRole,
+            full_name: "" // Fallback for new profiles
+          }, { onConflict: 'id' });
+
+          if (error) console.error("Bawa Upsert fail ho gaya:", error);
+            
+          await supabase.auth.updateUser({ data: { role: intendedRole } });
+          
+          deleteCookie('koro_intended_role');
+          localStorage.removeItem('koro_intended_role');
+          
+          router.push(intendedRole === 'dealer' ? '/dealer' : '/scout');
+        } else {
+          // 🛡️ SCENARIO B: Returning User (Ignore request, load real role)
+          deleteCookie('koro_intended_role');
+          localStorage.removeItem('koro_intended_role');
+
+          const { data: profile } = await supabase.from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+            
+          const finalRole = profile?.role || session.user.user_metadata?.role || 'scout';
+          
+          router.push(finalRole === 'dealer' ? '/dealer' : '/scout');
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
 
   // 📧 Email/Password Auth Handler
   const handleAuth = async (e: React.FormEvent) => {
@@ -109,13 +175,14 @@ function LoginContent() {
     if (typeof window !== 'undefined') {
       // 🔥 COOKIE IS KING: Ye redirect ke baad bhi zinda rahegi (10 mins max-age)
       document.cookie = `koro_intended_role=${intendedRole}; path=/; max-age=600`;
+      localStorage.setItem('koro_intended_role', intendedRole);
     }
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // Humesha Scout page par force karo, wahan humara asli Gatekeeper baitha hai jo Cookie check karega
-        redirectTo: `${window.location.origin}/scout`, 
+        // Humesha login page par wapas laao taaki humara TRAP trigger ho
+        redirectTo: `${window.location.origin}/login`, 
         queryParams: {
           prompt: 'select_account' 
         }

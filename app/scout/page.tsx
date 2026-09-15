@@ -135,23 +135,29 @@ export default function ScoutTerminal() {
     const userEmail = session.user.email || "";
     setEmail(userEmail);
 
-    // 🌟 SMART GATEKEEPER LOGIC (Cookie & Age Check) 🌟
-    const intendedRole = getCookie('koro_intended_role');
-    const userAgeMs = new Date().getTime() - new Date(session.user.created_at).getTime();
-    const isNewUser = userAgeMs < 120000; // 2 minutes (120,000 ms)
+    // 🌟 SMART GATEKEEPER LOGIC (Server-Time & Upsert Fix) 🌟
+    const intendedRole = getCookie('koro_intended_role') || (typeof window !== 'undefined' ? localStorage.getItem('koro_intended_role') : null);
+    
+    // PC clock ka problem khatam! Server-time ko Server-time se match kar rahe hain.
+    const createdAt = new Date(session.user.created_at).getTime();
+    const lastSignIn = new Date(session.user.last_sign_in_at || session.user.created_at).getTime();
+    const isNewUser = Math.abs(lastSignIn - createdAt) < 60000; // Account 60 seconds ke andar bana hai
 
     let { data: profile } = await supabase.from("profiles").select("*").eq("id", currentUserId).single();
 
     // 1. Agar NEW USER hai, aur Seller banna chahta tha
     if (intendedRole === 'dealer' && isNewUser) {
-      deleteCookie('koro_intended_role'); // Clean immediately
+      // Clean immediately
+      deleteCookie('koro_intended_role'); 
       if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
       
-      if (!profile) {
-        await supabase.from("profiles").insert({ id: currentUserId, email: userEmail, role: 'dealer', full_name: "" });
-      } else {
-        await supabase.from("profiles").update({ role: 'dealer' }).eq("id", currentUserId);
-      }
+      // RACE CONDITION KILLER: UPSERT (Insert if not exists, Update if exists)
+      await supabase.from("profiles").upsert({ 
+        id: currentUserId, 
+        email: userEmail, 
+        role: 'dealer', 
+        full_name: profile?.full_name || "" 
+      }, { onConflict: 'id' });
       
       await supabase.auth.updateUser({ data: { role: 'dealer' } });
       
