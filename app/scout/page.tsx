@@ -120,17 +120,32 @@ export default function ScoutTerminal() {
     const userEmail = session.user.email || "";
     setEmail(userEmail);
 
-    // 🔥 SMART ROLE CHECK: Check auth metadata first, then local storage, fallback to scout
-    const authRole = session.user.user_metadata?.role || (typeof window !== 'undefined' ? localStorage.getItem('koro_intended_role') : null) || 'scout';
+    // 🔥 THE BRAHMASTRA SAFETY NET TRAP 🔥
+    // Agar banda galti se is page par aa gaya, par wo Seller banna chahta tha, toh isko yahin pakdo!
+    const intendedRole = typeof window !== 'undefined' ? localStorage.getItem('koro_intended_role') : null;
+    
+    if (intendedRole === 'dealer') {
+      // 1. Zabardasti profile ko update maaro
+      await supabase.from("profiles").update({ role: 'dealer' }).eq("id", currentUserId);
+      await supabase.auth.updateUser({ data: { role: 'dealer' } });
+      
+      // 2. Kachra saaf karo
+      if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
+      
+      // 3. User ko pata chalne se pehle seedha Seller Dashboard pe phenk do
+      router.push("/dealer");
+      return; // Aage ka code chalne hi mat do!
+    }
 
+    // Agar yahan tak aaya hai, matlab wo genuinely ek Buyer hi hai
     let { data: profile } = await supabase.from("profiles").select("*").eq("id", currentUserId).single();
     
-    // 1. Agar profile nahi hai, toh SMART ROLE use karke banayenge! (Hardcode hataya)
+    // Agar profile nahi hai, toh as a buyer bana do
     if (!profile) {
       const { data: newProfile } = await supabase.from("profiles").insert({
         id: currentUserId,
         email: userEmail,
-        role: authRole, // 🚀 YAHAN THA ASLI CULPRIT! Ab smart ho gaya.
+        role: 'scout', 
         full_name: "" 
       }).select().single();
       
@@ -140,7 +155,7 @@ export default function ScoutTerminal() {
       profile.email = userEmail;
     }
 
-    // 2. Agar ye actually dealer hai (chahe purana ho ya naya bana ho), toh isko Seller panel feko
+    // Safety Check: Agar ye profile pehle se dealer hai, toh isko bhej do
     if (profile && profile.role === 'dealer') {
       router.push("/dealer");
       return;
@@ -162,8 +177,6 @@ export default function ScoutTerminal() {
       setAvatarUrl(profile.avatar_url || "");
     }
 
-    // 🔥 THE 100% BULLETPROOF FIX: TWO SEPARATE QUERIES (No more syntax crashes)
-    
     // 1. Naye orders jisme user_id properly saved hai
     const { data: byIdData, error: idError } = await supabase
       .from("orders")
