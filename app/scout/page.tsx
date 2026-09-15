@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import WishlistButton from "@/components/WishlistButton";
 
@@ -122,23 +122,19 @@ export default function ScoutTerminal() {
 
     let { data: profile } = await supabase.from("profiles").select("*").eq("id", currentUserId).single();
 
-    // 1. Agar koi banda sach mein dealer hai, usko yahan aane ki izzazat nahi
-    if (profile && profile.role === 'dealer') {
+    // 🚨 FRESH LOGIC: Agar Profile nahi bani hai, seedha Onboarding pe bhejo!
+    if (!profile) {
+      router.push("/onboarding");
+      return;
+    }
+
+    // Agar koi banda sach mein dealer hai, usko yahan aane ki izzazat nahi
+    if (profile.role === 'dealer') {
       router.push("/dealer");
       return;
     }
 
-    // 2. Normal Profile check for scout (Fallback agar onboarding skip ho gaya ho)
-    if (!profile) {
-      const { data: newProfile } = await supabase.from("profiles").insert({
-        id: currentUserId,
-        email: userEmail,
-        role: 'scout', 
-        full_name: "" 
-      }).select().single();
-      
-      if (newProfile) profile = newProfile;
-    } else if (profile && !profile.email) {
+    if (profile && !profile.email) {
       await supabase.from("profiles").update({ email: userEmail }).eq("id", currentUserId);
       profile.email = userEmail;
     }
