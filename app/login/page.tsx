@@ -44,37 +44,54 @@ function LoginContent() {
     }
   }, [searchParams]);
 
-  // 🔥 THE TRAP: Google se wapas aate hi role update karne wala logic (with Race Condition Fix)
+  // 🔥 THE TRAP: Google se wapas aate hi role update karne wala logic (WITH NEW USER FIX)
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         
-        // 1. URL se role pakdo (Incognito ab ise delete nahi kar payega!)
+        // 1. URL se role pakdo
         const urlParams = new URLSearchParams(window.location.search);
         const urlRole = urlParams.get('auth_role');
         const savedRole = urlRole || localStorage.getItem('koro_intended_role');
         
         if (savedRole) {
-          // 🔥 RACE CONDITION FIX: 1.5 seconds ka wait karo taaki backend aram se apna profile bana le
+          // 🔥 NEW USER CHECK: Kya ye user pichle 2 minute ke andar bana hai?
+          const userAgeMs = new Date().getTime() - new Date(session.user.created_at).getTime();
+          const isNewUser = userAgeMs < 120000; // 120000 ms = 2 minutes
+
+          // RACE CONDITION FIX: 1.5 seconds wait
           setTimeout(async () => {
-            // A. Database mein profile update karo
-            const { error } = await supabase.from('profiles')
-              .update({ role: savedRole })
-              .eq('id', session.user.id);
-              
-            if (error) console.error("Bawa Update fail ho gaya:", error);
-              
-            // B. Supabase Auth MetaData mein save karo
-            await supabase.auth.updateUser({ data: { role: savedRole } });
             
-            // C. Kachra saaf karo
-            localStorage.removeItem('koro_intended_role');
-            
-            // D. Sahi dashboard pe phenk do
-            router.push(savedRole === 'dealer' ? '/dealer' : '/scout');
+            if (isNewUser) {
+              // SCENARIO A: NEW USER (Sirf naye user ka role overwrite karo)
+              const { error } = await supabase.from('profiles')
+                .update({ role: savedRole })
+                .eq('id', session.user.id);
+                
+              if (error) console.error("Bawa Update fail ho gaya:", error);
+                
+              await supabase.auth.updateUser({ data: { role: savedRole } });
+              
+              localStorage.removeItem('koro_intended_role');
+              router.push(savedRole === 'dealer' ? '/dealer' : '/scout');
+
+            } else {
+              // SCENARIO B: OLD/RETURNING USER (Overwrite mat karo, real role fetch karo)
+              localStorage.removeItem('koro_intended_role');
+
+              // Purane user ka real role DB se lao
+              const { data: profile } = await supabase.from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .single();
+              
+              const finalRole = profile?.role || session.user.user_metadata?.role || 'scout';
+              
+              router.push(finalRole === 'dealer' ? '/dealer' : '/scout');
+            }
           }, 1500); 
         } else {
-          // Agar kisi ne direct login kiya bina role change kiye
+          // Agar kisi ne direct login kiya bina role change kiye (Normal login flow)
           const currentRole = session.user.user_metadata?.role;
           router.push(currentRole === 'dealer' ? '/dealer' : '/scout');
         }
@@ -159,7 +176,7 @@ function LoginContent() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // 🔥 JADUU YAHAN HAI: Wapas aate time URL mein hi role de diya (e.g. ?auth_role=dealer)
+        // 🔥 JADUU YAHAN HAI: Wapas aate time URL mein hi role de diya
         redirectTo: `${window.location.origin}/login?auth_role=${intendedRole}`, 
         queryParams: {
           prompt: 'select_account' 
