@@ -1,103 +1,29 @@
 "use client";
 
-import { useState, useEffect, Suspense, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-// 🔥 COOKIE UTILS
-const getCookie = (name: string) => {
-  if (typeof document === 'undefined') return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift();
-  return null;
-};
-const deleteCookie = (name: string) => {
-  if (typeof document !== 'undefined') {
-    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-  }
-};
-
-function LoginContent() {
+export default function UnifiedLogin() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const isHandlingAuth = useRef(false);
   
-  // States
-  const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
+  // 🧹 Saare complex states hata diye. Sirf basic auth states rakhe hain.
   const [mode, setMode] = useState<'login' | 'signup'>('login');
-  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [agreeRules, setAgreeRules] = useState(false);
 
   // Theme Colors
-  const accentColor = '#FF3B30';
   const themeColorText = 'text-[#FF3B30]';
-  const themeColorBg = 'bg-[#FF3B30]';
-  const themeColorBorder = 'border-[#FF3B30]';
-  const themeColorHover = 'hover:bg-[#e03229]';
-  const shadowGlow = 'shadow-md';
   const topBarGlow = 'bg-[#FF3B30]';
 
-  // Read URL Params & Set Initial Roles
+  // 🚀 SIMPLE AUTH LISTENER: Agar login ho gaya, toh seedha onboarding pe chalo!
   useEffect(() => {
-    const urlRole = searchParams.get('role');
-    if (urlRole === 'seller') {
-      setRole('seller');
-    } else if (urlRole === 'buyer') {
-      setRole('buyer');
-    }
-  }, [searchParams]);
-
-  // 🔥 THE ULTIMATE TRAP: Server-Time Check + UPSERT
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user && !isHandlingAuth.current) {
-        isHandlingAuth.current = true; // Prevent double trigger
-
-        const intendedRole = getCookie('koro_intended_role') || localStorage.getItem('koro_intended_role');
-        
-        // 🕒 MAGIC FIX: Compare Server Time with Server Time (No phone clock issues)
-        const createdAt = new Date(session.user.created_at).getTime();
-        const lastSignIn = new Date(session.user.last_sign_in_at || session.user.created_at).getTime();
-        const isNewUser = Math.abs(lastSignIn - createdAt) < 60000; // Less than 60 seconds diff = Brand New User
-
-        if (intendedRole && isNewUser) {
-          // 🚀 SCENARIO A: Brand New User + Requested a Role
-          // UPSERT: Create if missing, Update if exists
-          const { error } = await supabase.from('profiles').upsert({
-            id: session.user.id,
-            email: session.user.email,
-            role: intendedRole,
-            full_name: "" // Fallback for new profiles
-          }, { onConflict: 'id' });
-
-          if (error) console.error("Bawa Upsert fail ho gaya:", error);
-            
-          await supabase.auth.updateUser({ data: { role: intendedRole } });
-          
-          deleteCookie('koro_intended_role');
-          localStorage.removeItem('koro_intended_role');
-          
-          router.push(intendedRole === 'dealer' ? '/dealer' : '/scout');
-        } else {
-          // 🛡️ SCENARIO B: Returning User (Ignore request, load real role)
-          deleteCookie('koro_intended_role');
-          localStorage.removeItem('koro_intended_role');
-
-          const { data: profile } = await supabase.from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-            
-          const finalRole = profile?.role || session.user.user_metadata?.role || 'scout';
-          
-          router.push(finalRole === 'dealer' ? '/dealer' : '/scout');
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        router.push('/onboarding');
       }
     });
 
@@ -111,43 +37,17 @@ function LoginContent() {
 
     try {
       if (mode === 'signup') {
-        if (role === 'seller' && !agreeRules) {
-          alert("Bawa, pehle Koro Lane seller rules agree karo! 📜");
-          setLoading(false);
-          return;
-        }
-
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { role: role === 'buyer' ? 'scout' : 'dealer' }
-          }
-        });
+        const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        alert(`Welcome to Koro Lane! Your ${role} account is created. 🎉`);
-        router.push(role === 'buyer' ? "/scout" : "/dealer");
-        
+        // Onboarding pe bhejo, wahan puchenge Buyer banna hai ya Seller
+        router.push("/onboarding");
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-
-        const actualRole = data.user?.user_metadata?.role;
-
-        if (actualRole === 'dealer') {
-          router.push("/dealer");
-        } else if (actualRole === 'scout') {
-          router.push("/scout");
-        } else {
-          router.push(role === 'buyer' ? "/scout" : "/dealer");
-        }
+        router.push("/onboarding");
       }
     } catch (error: any) {
       alert("Error: " + error.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -167,22 +67,15 @@ function LoginContent() {
     setLoading(false);
   };
 
-  // 🌐 Google Login Handler (COOKIE FIX)
+  // 🌐 Google Login Handler (CLEAN & SIMPLE)
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const intendedRole = role === 'buyer' ? 'scout' : 'dealer';
-
-    if (typeof window !== 'undefined') {
-      // 🔥 COOKIE IS KING: Ye redirect ke baad bhi zinda rahegi (10 mins max-age)
-      document.cookie = `koro_intended_role=${intendedRole}; path=/; max-age=600`;
-      localStorage.setItem('koro_intended_role', intendedRole);
-    }
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // Humesha login page par wapas laao taaki humara TRAP trigger ho
-        redirectTo: `${window.location.origin}/login`, 
+        // Sidha onboarding page pe wapas laao
+        redirectTo: `${window.location.origin}/onboarding`, 
         queryParams: {
           prompt: 'select_account' 
         }
@@ -209,32 +102,15 @@ function LoginContent() {
       <div className="flex-1 flex items-center justify-center p-5 mt-10">
         <div className="w-full max-w-[400px] bg-[#FFFFFF] border border-gray-200 rounded-[28px] p-6 sm:p-8 relative overflow-hidden shadow-xl transition-all duration-500">
           
-          {/* Top Accent Line */}
           <div className={`absolute top-0 left-0 w-full h-1 ${topBarGlow}`}></div>
 
-          <div className="text-center mb-6 mt-2">
+          <div className="text-center mb-8 mt-2">
             <h2 className="text-2xl font-black uppercase tracking-tight text-[#111111] mb-1">
               {mode === 'login' ? 'WELCOME BACK' : 'JOIN KORO LANE'}
             </h2>
             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
               {mode === 'login' ? 'Sign in to continue your journey.' : 'Create an account to start exploring.'}
             </p>
-          </div>
-
-          {/* 🎛️ Tabs: Buyer vs Seller */}
-          <div className="flex border-b border-gray-200 mb-6">
-            <button 
-              onClick={() => setRole('buyer')}
-              className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${role === 'buyer' ? `${themeColorText} border-b-2 ${themeColorBorder}` : 'text-gray-400 hover:text-gray-700'}`}
-            >
-              Buyer {mode === 'login' ? 'Login' : 'Signup'}
-            </button>
-            <button 
-              onClick={() => setRole('seller')}
-              className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${role === 'seller' ? `${themeColorText} border-b-2 ${themeColorBorder}` : 'text-gray-400 hover:text-gray-700'}`}
-            >
-              Seller {mode === 'login' ? 'Login' : 'Signup'}
-            </button>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-4">
@@ -285,21 +161,9 @@ function LoginContent() {
               </div>
             </div>
 
-            {/* Seller Rules */}
-            {mode === 'signup' && role === 'seller' && (
-              <div className="bg-[#FCECEC] border border-red-200 rounded-xl p-4 mt-2">
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="rules" required checked={agreeRules} onChange={(e) => setAgreeRules(e.target.checked)} className="accent-[#FF3B30] w-3.5 h-3.5 cursor-pointer" />
-                  <label htmlFor="rules" className="text-[9px] text-[#FF3B30] font-black uppercase tracking-widest cursor-pointer hover:opacity-80 transition">
-                    I AGREE TO KORO LANE SELLER RULES (5% FEE)
-                  </label>
-                </div>
-              </div>
-            )}
-
             <button 
               type="submit" 
-              disabled={loading || (mode === 'signup' && role === 'seller' && !agreeRules)} 
+              disabled={loading} 
               className="w-full bg-[#111111] text-white font-black py-4 rounded-xl uppercase tracking-widest text-[11px] hover:bg-black transition-all duration-300 shadow-md disabled:opacity-50 mt-4 active:scale-[0.98]"
             >
               {loading ? "Authenticating..." : (mode === 'login' ? "Login" : "Sign Up")}
@@ -330,10 +194,7 @@ function LoginContent() {
           <div className="mt-6 pt-5 border-t border-gray-200 text-center">
             <button 
               type="button"
-              onClick={() => {
-                setMode(mode === 'login' ? 'signup' : 'login');
-                setAgreeRules(false);
-              }} 
+              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')} 
               className="text-[10px] text-gray-500 uppercase tracking-widest font-bold hover:text-[#111111] transition"
             >
               {mode === 'login' ? (
@@ -347,17 +208,5 @@ function LoginContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function UnifiedLogin() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#F6F3EE] text-[#FF3B30] flex items-center justify-center font-black tracking-widest uppercase text-sm">
-        Loading...
-      </div>
-    }>
-      <LoginContent />
-    </Suspense>
   );
 }

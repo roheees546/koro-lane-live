@@ -2,24 +2,9 @@
 
 import { useState, useEffect, Suspense, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import WishlistButton from "@/components/WishlistButton";
-
-// 🔥 COOKIE UTILS - Indestructible data storage
-const getCookie = (name: string) => {
-  if (typeof document === 'undefined') return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift();
-  return null;
-};
-
-const deleteCookie = (name: string) => {
-  if (typeof document !== 'undefined') {
-    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-  }
-};
 
 export default function ScoutTerminal() {
   const router = useRouter();
@@ -135,43 +120,15 @@ export default function ScoutTerminal() {
     const userEmail = session.user.email || "";
     setEmail(userEmail);
 
-    // 🌟 SMART GATEKEEPER LOGIC (Server-Time & Upsert Fix) 🌟
-    const intendedRole = getCookie('koro_intended_role') || (typeof window !== 'undefined' ? localStorage.getItem('koro_intended_role') : null);
-    
-    // PC clock ka problem khatam! Server-time ko Server-time se match kar rahe hain.
-    const createdAt = new Date(session.user.created_at).getTime();
-    const lastSignIn = new Date(session.user.last_sign_in_at || session.user.created_at).getTime();
-    const isNewUser = Math.abs(lastSignIn - createdAt) < 60000; // Account 60 seconds ke andar bana hai
-
     let { data: profile } = await supabase.from("profiles").select("*").eq("id", currentUserId).single();
 
-    // 1. Agar NEW USER hai, aur Seller banna chahta tha
-    if (intendedRole === 'dealer' && isNewUser) {
-      // Clean immediately
-      deleteCookie('koro_intended_role'); 
-      if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
-      
-      // RACE CONDITION KILLER: UPSERT (Insert if not exists, Update if exists)
-      await supabase.from("profiles").upsert({ 
-        id: currentUserId, 
-        email: userEmail, 
-        role: 'dealer', 
-        full_name: profile?.full_name || "" 
-      }, { onConflict: 'id' });
-      
-      await supabase.auth.updateUser({ data: { role: 'dealer' } });
-      
+    // 1. Agar koi banda sach mein dealer hai, usko yahan aane ki izzazat nahi
+    if (profile && profile.role === 'dealer') {
       router.push("/dealer");
-      return; // Stop rendering Buyer dashboard
+      return;
     }
 
-    // Safely delete cookie if we didn't use it
-    if (intendedRole) {
-      deleteCookie('koro_intended_role');
-      if (typeof window !== 'undefined') localStorage.removeItem('koro_intended_role');
-    }
-
-    // 2. Agar koi profile nahi hai (matlab normally buyer banne aaya hai)
+    // 2. Normal Profile check for scout (Fallback agar onboarding skip ho gaya ho)
     if (!profile) {
       const { data: newProfile } = await supabase.from("profiles").insert({
         id: currentUserId,
@@ -186,13 +143,6 @@ export default function ScoutTerminal() {
       profile.email = userEmail;
     }
 
-    // 3. Purane Returning user ka check (Agar wo asliyat mein dealer hai)
-    if (profile && profile.role === 'dealer') {
-      router.push("/dealer");
-      return;
-    }
-
-    // 4. Yahan se aage sirf real 'Scout' (Buyer) ka code chalega
     const nameToUse = profile?.full_name || "New Buyer";
     setFullName(nameToUse);
     

@@ -15,14 +15,6 @@ export default function Home() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [authLoading, setAuthLoading] = useState(false);
-
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-
   useEffect(() => {
     fetchInitialData();
     checkAuthStatus();
@@ -53,7 +45,7 @@ export default function Home() {
         .select(`*, profiles(store_name)`)
         .eq("is_sold", false) 
         .order("created_at", { ascending: false })
-        .limit(15); // Extra items fetch kiye taaki orders se filter out kar sakein
+        .limit(15);
 
       if (prods && prods.length > 0) {
         const productIds = prods.map(p => p.id);
@@ -77,7 +69,7 @@ export default function Home() {
           return true;
         }).map(p => ({
           ...p,
-          isOnHold: !!orderMap[p.id] // Agar pending order hai toh 'ON HOLD' badge lag jayega
+          isOnHold: !!orderMap[p.id] // Agar pending order hai toh 'ON HOLD' badge
         })).slice(0, 8); // Sirf top 8 items Home page ke liye
 
         setProducts(filteredProds);
@@ -89,51 +81,6 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // 🔥 YAHAN HUA HAI ASLI MAGIC UPDATE
-  const handleAuthSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    try {
-      // localStorage se check karega ki kis button se aaya tha
-      const intendedRole = typeof window !== 'undefined' ? (localStorage.getItem('koro_intended_role') || 'scout') : 'scout';
-
-      if (authMode === 'signup') {
-        const { error } = await supabase.auth.signUp({ 
-          email: authEmail, 
-          password: authPassword, 
-          options: { data: { role: intendedRole } } // HARDCODE HATA DIYA! 🚀
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
-        if (error) throw error;
-      }
-      setIsLoggedIn(true);
-      setUserRole(intendedRole); // Naya role state me set kar diya
-      setIsAuthModalOpen(false);
-      setAuthEmail(""); setAuthPassword("");
-
-      // Naya profile banne ke baad sahi jagah bhejega
-      if (selectedProduct) { 
-          router.push(`/product/${selectedProduct.id}`);
-      } else if (intendedRole === 'dealer') {
-          router.push('/dealer'); 
-      } else {
-          router.push('/scout'); 
-      }
-    } catch (error: any) { 
-      alert("Auth Error: " + error.message); 
-    } finally { 
-      setAuthLoading(false); 
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    if (!authEmail) return alert("Please enter your email in the box first! 📩");
-    const { error } = await supabase.auth.resetPasswordForEmail(authEmail);
-    if (error) alert(error.message); else alert("Reset link sent! Check your email. 🚀");
   };
 
   const handleCardClick = (product: any) => { 
@@ -265,8 +212,9 @@ export default function Home() {
                 <div className="relative w-full pt-[125%] bg-gray-100 flex-none overflow-hidden">
                   <div className="absolute inset-0 w-full h-full">
                     
-                    <div className="absolute top-2 right-2 z-30">
-                      <WishlistButton productId={product.id} onRequireAuth={() => setIsAuthModalOpen(true)} />
+                    <div className="absolute top-2 right-2 z-30" onClick={(e) => e.stopPropagation()}>
+                      {/* 🔥 Redirect to login if user isn't auth'd instead of opening a modal */}
+                      <WishlistButton productId={product.id} onRequireAuth={() => router.push('/login')} />
                     </div>
                     
                     <span className="absolute top-2 left-2 bg-[#111111] text-white text-[8px] font-black px-2 py-1 rounded-[4px] z-10 uppercase tracking-widest">{product.category || 'TOP'}</span>
@@ -322,43 +270,6 @@ export default function Home() {
           </Link>
         </div>
       </section>
-
-      {/* 🛡️ SECURE AUTH MODAL */}
-      {isAuthModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#FFFFFF] border border-gray-200 rounded-2xl w-full max-w-sm p-8 relative shadow-2xl">
-            <button onClick={() => { setIsAuthModalOpen(false); setSelectedProduct(null); }} className="absolute top-4 right-4 text-gray-400 hover:text-[#111111] transition">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-            <h2 className="text-2xl font-black uppercase tracking-tight mb-2 text-center text-[#111111]">{authMode === 'signup' ? 'Create Account' : 'Welcome Back'}</h2>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-center mb-6">{selectedProduct ? "Secure your 1-of-1 item now." : "Access Buyer Terminal"}</p>
-
-            <form onSubmit={handleAuthSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1.5">Email Address</label>
-                <input required type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} className="w-full bg-[#F6F3EE] border border-gray-300 rounded-xl text-[#111111] px-4 py-3 text-sm outline-none focus:border-[#FF3B30] transition" placeholder="you@example.com" />
-              </div>
-              <div>
-                <div className="flex justify-between mb-1.5">
-                  <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest">Password</label>
-                  {authMode === 'login' && <button type="button" onClick={handleForgotPassword} className="text-[9px] text-[#FF3B30] hover:underline uppercase tracking-widest font-black">Forgot?</button>}
-                </div>
-                <input required type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} className="w-full bg-[#F6F3EE] border border-gray-300 rounded-xl text-[#111111] px-4 py-3 text-sm outline-none focus:border-[#FF3B30] transition" placeholder="••••••••" />
-              </div>
-              
-              <button type="submit" disabled={authLoading} className="w-full bg-[#111111] text-white font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:bg-black transition shadow-md disabled:opacity-70 mt-4">
-                {authLoading ? "Authenticating..." : (authMode === 'signup' ? "Create Account & Continue" : "Login Securely")}
-              </button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="text-[10px] text-gray-600 uppercase tracking-widest font-black hover:text-[#111111] transition">
-                {authMode === 'login' ? "New Buyer? Create Account" : "Already a Buyer? Login Here"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       
       <style dangerouslySetInnerHTML={{__html: `
         body, html { background-color: #F6F3EE !important; }
