@@ -2,49 +2,41 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
 
 export default function Onboarding() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   
-  // Naya State for UI selection
   const [selectedRole, setSelectedRole] = useState<'scout' | 'dealer' | null>(null);
   const [agreeRules, setAgreeRules] = useState(false);
 
-  // 1. Page load hote hi check karo user logged in hai ya nahi
   useEffect(() => {
     const verifyUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        router.push("/login");
+        window.location.href = "/login";
         return;
       }
 
-      // Check karo kya iski profile pehle se bani hui hai?
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', session.user.id)
         .single();
 
-      // Agar pehle se role set hai (Matlab galti se yahan aagaya), toh seedha dashboard bhejo
       if (profile && profile.role === 'dealer') {
-        router.push('/dealer');
+        window.location.href = '/dealer';
       } else if (profile && profile.role === 'scout') {
-        router.push('/scout');
+        window.location.href = '/scout';
       } else {
-        // Agar profile 'pending' hai ya nahi bani, toh Onboarding dikhao
         setCheckingAuth(false);
       }
     };
 
     verifyUser();
-  }, [router]);
+  }, []);
 
-  // 2. Final Role Assignment Logic (🔥 FIXED: NO UPSERT, ONLY UPDATE)
   const handleCompleteSetup = async () => {
     if (!selectedRole) {
       alert("Bawa, pehle ek profile toh select kar lo! 🧐");
@@ -63,6 +55,7 @@ export default function Onboarding() {
       if (!session) throw new Error("Session expired. Please login again.");
 
       const userId = session.user.id;
+      const userEmail = session.user.email;
       const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || "";
       const avatarUrl = session.user.user_metadata?.avatar_url || "";
 
@@ -71,19 +64,46 @@ export default function Onboarding() {
         data: { role: selectedRole }
       });
 
-      // B. Database (profiles table) mein directly UPDATE karo (Row trigger ne already bana di hai)
-      const { error } = await supabase.from('profiles')
-        .update({
+      // B. Database Check (Pehle check karo profile hai ya nahi)
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (existingProfile) {
+        // 🔥 UPDATE with .select() to catch silent RLS fails
+        const { data: updatedData, error: updateError } = await supabase.from('profiles')
+          .update({
+            role: selectedRole,
+            full_name: fullName,
+            avatar_url: avatarUrl
+          })
+          .eq('id', userId)
+          .select();
+
+        if (updateError) throw updateError;
+        
+        // Agar Supabase ne silent fail kiya, toh yahan alert aayega!
+        if (!updatedData || updatedData.length === 0) {
+          alert("⚠️ SUPABASE ERROR: Tumhari profile update block ho gayi hai. Supabase mein RLS policies check karo.");
+          setLoading(false);
+          return;
+        }
+      } else {
+        // Agar Bhoot trigger fail ho gaya tha, toh manually Insert karo
+        const { error: insertError } = await supabase.from('profiles').insert({
+          id: userId,
+          email: userEmail,
           role: selectedRole,
           full_name: fullName,
           avatar_url: avatarUrl
-        })
-        .eq('id', userId);
+        });
+        if (insertError) throw insertError;
+      }
 
-      if (error) throw error;
-
-      // C. Sahi Dashboard par Rawangi! 🚀
-      router.push(selectedRole === 'dealer' ? '/dealer' : '/scout');
+      // C. Sahi Dashboard par Rawangi! (HARD RELOAD - No Next.js Cache loop 🚀)
+      window.location.href = selectedRole === 'dealer' ? '/dealer' : '/scout';
 
     } catch (error: any) {
       alert("Error setting up profile: " + error.message);
@@ -102,14 +122,12 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-[#F6F3EE] text-[#111111] flex flex-col font-sans selection:bg-[#FF3B30] selection:text-white pb-10">
       
-      {/* Header */}
       <header className="px-6 py-6 w-full flex justify-center">
         <div className="text-2xl font-black tracking-tighter text-[#111111]">
           KORO <span className="text-[#FF3B30]">LANE</span>
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col px-5 max-w-[400px] mx-auto w-full mt-4">
         
         <div className="mb-8">
@@ -123,7 +141,6 @@ export default function Onboarding() {
 
         <div className="space-y-4 mb-8">
           
-          {/* BUYER CARD */}
           <button 
             onClick={() => setSelectedRole('scout')}
             className={`w-full p-5 rounded-[24px] flex items-center gap-5 text-left transition-all duration-300 shadow-sm ${
@@ -141,7 +158,6 @@ export default function Onboarding() {
             </div>
           </button>
 
-          {/* SELLER CARD */}
           <button 
             onClick={() => setSelectedRole('dealer')}
             className={`w-full p-5 rounded-[24px] flex items-center gap-5 text-left transition-all duration-300 shadow-sm ${
@@ -161,7 +177,6 @@ export default function Onboarding() {
 
         </div>
 
-        {/* SELLER RULES (Only shows if Seller is selected) */}
         <div className={`transition-all duration-500 overflow-hidden ${selectedRole === 'dealer' ? 'max-h-24 opacity-100 mb-6' : 'max-h-0 opacity-0 mb-0'}`}>
           <div className="bg-[#FCECEC] border border-red-200 rounded-xl p-4">
             <div className="flex items-center gap-2">
@@ -179,7 +194,6 @@ export default function Onboarding() {
           </div>
         </div>
 
-        {/* CONTINUE BUTTON */}
         <button 
           onClick={handleCompleteSetup}
           disabled={loading || !selectedRole || (selectedRole === 'dealer' && !agreeRules)}
