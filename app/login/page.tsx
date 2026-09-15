@@ -44,30 +44,37 @@ function LoginContent() {
     }
   }, [searchParams]);
 
-  // 🔥 THE TRAP: Google se wapas aate hi role update karne wala logic
+  // 🔥 THE TRAP: Google se wapas aate hi role update karne wala logic (with Race Condition Fix)
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Jaise hi login successful ho (Google se aane ke baad)
       if (event === 'SIGNED_IN' && session?.user) {
-        const savedRole = localStorage.getItem('koro_intended_role');
         
-        // Agar user Google par jane se pehle role select karke gaya tha
+        // 1. URL se role pakdo (Incognito ab ise delete nahi kar payega!)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRole = urlParams.get('auth_role');
+        const savedRole = urlRole || localStorage.getItem('koro_intended_role');
+        
         if (savedRole) {
-          // 1. Database mein profile update karo (using user ID for safety)
-          await supabase.from('profiles')
-            .update({ role: savedRole })
-            .eq('id', session.user.id);
+          // 🔥 RACE CONDITION FIX: 1.5 seconds ka wait karo taaki backend aram se apna profile bana le
+          setTimeout(async () => {
+            // A. Database mein profile update karo
+            const { error } = await supabase.from('profiles')
+              .update({ role: savedRole })
+              .eq('id', session.user.id);
+              
+            if (error) console.error("Bawa Update fail ho gaya:", error);
+              
+            // B. Supabase Auth MetaData mein save karo
+            await supabase.auth.updateUser({ data: { role: savedRole } });
             
-          // 2. Supabase Auth MetaData mein bhi save kar do
-          await supabase.auth.updateUser({ data: { role: savedRole } });
-          
-          // 3. Kachra saaf karo (Reset local storage)
-          localStorage.removeItem('koro_intended_role');
-          
-          // 4. Sahi dashboard pe phenk do
-          router.push(savedRole === 'dealer' ? '/dealer' : '/scout');
+            // C. Kachra saaf karo
+            localStorage.removeItem('koro_intended_role');
+            
+            // D. Sahi dashboard pe phenk do
+            router.push(savedRole === 'dealer' ? '/dealer' : '/scout');
+          }, 1500); 
         } else {
-          // Agar local storage nahi hai, toh jo current role hai wahan bhej do
+          // Agar kisi ne direct login kiya bina role change kiye
           const currentRole = session.user.user_metadata?.role;
           router.push(currentRole === 'dealer' ? '/dealer' : '/scout');
         }
@@ -140,12 +147,11 @@ function LoginContent() {
     setLoading(false);
   };
 
-  // 🌐 Google Login Handler (Updated)
+  // 🌐 Google Login Handler (Brahmastra Edition)
   const handleGoogleLogin = async () => {
     setLoading(true);
     const intendedRole = role === 'buyer' ? 'scout' : 'dealer';
 
-    // Google pe jane se pehle role pakka yaad rakho
     if (typeof window !== 'undefined') {
       localStorage.setItem('koro_intended_role', intendedRole);
     }
@@ -153,8 +159,8 @@ function LoginContent() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // 🔥 Wapas kisi fake API pe nahi, seedha isi login page pe lao taaki Trap pakad le
-        redirectTo: `${window.location.origin}/login`, 
+        // 🔥 JADUU YAHAN HAI: Wapas aate time URL mein hi role de diya (e.g. ?auth_role=dealer)
+        redirectTo: `${window.location.origin}/login?auth_role=${intendedRole}`, 
         queryParams: {
           prompt: 'select_account' 
         }
