@@ -19,7 +19,7 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [agreeRules, setAgreeRules] = useState(false);
 
-  // Theme Colors (Depop Light & Bold Theme)
+  // Theme Colors
   const accentColor = '#FF3B30';
   const themeColorText = 'text-[#FF3B30]';
   const themeColorBg = 'bg-[#FF3B30]';
@@ -28,17 +28,54 @@ function LoginContent() {
   const shadowGlow = 'shadow-md';
   const topBarGlow = 'bg-[#FF3B30]';
 
-  // Read URL Params
+  // Read URL Params & Set Initial Roles
   useEffect(() => {
     const urlRole = searchParams.get('role');
     if (urlRole === 'seller') {
       setRole('seller');
-      if (typeof window !== 'undefined') localStorage.setItem('koro_intended_role', 'dealer');
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('koro_intended_role', 'dealer');
+      }
     } else if (urlRole === 'buyer') {
       setRole('buyer');
-      if (typeof window !== 'undefined') localStorage.setItem('koro_intended_role', 'scout');
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('koro_intended_role', 'scout');
+      }
     }
   }, [searchParams]);
+
+  // 🔥 THE TRAP: Google se wapas aate hi role update karne wala logic
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Jaise hi login successful ho (Google se aane ke baad)
+      if (event === 'SIGNED_IN' && session?.user) {
+        const savedRole = localStorage.getItem('koro_intended_role');
+        
+        // Agar user Google par jane se pehle role select karke gaya tha
+        if (savedRole) {
+          // 1. Database mein profile update karo (using user ID for safety)
+          await supabase.from('profiles')
+            .update({ role: savedRole })
+            .eq('id', session.user.id);
+            
+          // 2. Supabase Auth MetaData mein bhi save kar do
+          await supabase.auth.updateUser({ data: { role: savedRole } });
+          
+          // 3. Kachra saaf karo (Reset local storage)
+          localStorage.removeItem('koro_intended_role');
+          
+          // 4. Sahi dashboard pe phenk do
+          router.push(savedRole === 'dealer' ? '/dealer' : '/scout');
+        } else {
+          // Agar local storage nahi hai, toh jo current role hai wahan bhej do
+          const currentRole = session.user.user_metadata?.role;
+          router.push(currentRole === 'dealer' ? '/dealer' : '/scout');
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
 
   // 📧 Email/Password Auth Handler
   const handleAuth = async (e: React.FormEvent) => {
@@ -103,23 +140,27 @@ function LoginContent() {
     setLoading(false);
   };
 
-  // 🌐 Google Login Handler
+  // 🌐 Google Login Handler (Updated)
   const handleGoogleLogin = async () => {
     setLoading(true);
-    // Google ko bhi intended role pass kar rahe hain DB logic ke liye
+    const intendedRole = role === 'buyer' ? 'scout' : 'dealer';
+
+    // Google pe jane se pehle role pakka yaad rakho
     if (typeof window !== 'undefined') {
-      localStorage.setItem('koro_intended_role', role === 'buyer' ? 'scout' : 'dealer');
+      localStorage.setItem('koro_intended_role', intendedRole);
     }
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/${role === 'buyer' ? 'scout' : 'dealer'}`, 
+        // 🔥 Wapas kisi fake API pe nahi, seedha isi login page pe lao taaki Trap pakad le
+        redirectTo: `${window.location.origin}/login`, 
         queryParams: {
           prompt: 'select_account' 
         }
       }
     });
+    
     if (error) {
       alert("Google Login Error: " + error.message);
       setLoading(false);
@@ -157,7 +198,9 @@ function LoginContent() {
             <button 
               onClick={() => {
                 setRole('buyer');
-                if (typeof window !== 'undefined') localStorage.setItem('koro_intended_role', 'scout');
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('koro_intended_role', 'scout');
+                }
               }}
               className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${role === 'buyer' ? `${themeColorText} border-b-2 ${themeColorBorder}` : 'text-gray-400 hover:text-gray-700'}`}
             >
@@ -166,7 +209,9 @@ function LoginContent() {
             <button 
               onClick={() => {
                 setRole('seller');
-                if (typeof window !== 'undefined') localStorage.setItem('koro_intended_role', 'dealer');
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('koro_intended_role', 'dealer');
+                }
               }}
               className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${role === 'seller' ? `${themeColorText} border-b-2 ${themeColorBorder}` : 'text-gray-400 hover:text-gray-700'}`}
             >
