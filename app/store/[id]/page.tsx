@@ -175,8 +175,8 @@ export default function MiniStorePage() {
 
       <div className="px-5 w-full max-w-xl mx-auto">
         
-        {/* 🚀 IDENTITY SECTION */}
-        <div className="flex gap-5 items-center mt-4">
+        {/* 🚀 IDENTITY SECTION - REDESIGNED */}
+        <div className="flex gap-5 items-start mt-4">
           <div className="relative shrink-0">
             <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-[#FF3B30] via-red-400 to-transparent">
               <div className="w-full h-full bg-[#111111] rounded-full overflow-hidden border-2 border-white flex items-center justify-center shadow-md">
@@ -192,15 +192,37 @@ export default function MiniStorePage() {
             </div>
           </div>
 
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <h1 className="text-2xl font-black uppercase tracking-tight text-[#111111] flex items-center gap-2 truncate">
-              {displayName}
+          <div className="flex flex-col flex-1 min-w-0">
+            <h1 className="text-2xl font-black uppercase tracking-tight text-[#111111] flex items-center gap-1.5 truncate">
+              <span className="truncate">{displayName}</span>
               <svg className="w-5 h-5 text-[#FF3B30] shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
             </h1>
-            <p className="text-xs text-gray-500 font-medium mt-1 lowercase truncate">
-              the one and only {displayName.split(' ')[0]}
-            </p>
-            <div className="mt-2 inline-flex items-center gap-1.5 bg-[#FCECEC] border border-red-100 px-2 py-1 rounded-[4px] w-fit shrink-0 shadow-sm">
+            
+            {/* Dynamic Store Bio */}
+            {storeProfile.bio && (
+              <p className="text-[11px] text-gray-500 font-medium mt-0.5 leading-tight line-clamp-2">
+                {storeProfile.bio}
+              </p>
+            )}
+
+            {/* Instagram & Address Links */}
+            <div className="flex flex-col gap-1.5 mt-2.5 mb-1">
+              {storeProfile.instagram && (
+                <a href={`https://instagram.com/${storeProfile.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[10px] font-bold text-[#111111] hover:text-[#FF3B30] transition w-fit">
+                  <svg className="w-3.5 h-3.5 text-[#FF3B30]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                  {storeProfile.instagram.startsWith('@') ? storeProfile.instagram : `@${storeProfile.instagram}`}
+                </a>
+              )}
+              
+              {(storeProfile.store_address || storeProfile.address) && (
+                <div className="flex items-start gap-1.5 text-[10px] font-medium text-gray-500">
+                  <svg className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-[1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                  <span className="leading-tight line-clamp-2 capitalize">{storeProfile.store_address || storeProfile.address}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-1 inline-flex items-center gap-1.5 bg-[#FCECEC] border border-red-100 px-2 py-1 rounded-[4px] w-fit shrink-0 shadow-sm">
               <svg className="w-3 h-3 text-[#FF3B30]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
               <span className="text-[#FF3B30] font-bold uppercase tracking-widest text-[8px]">Verified Seller</span>
             </div>
