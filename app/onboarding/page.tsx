@@ -11,30 +11,46 @@ export default function Onboarding() {
   const [agreeRules, setAgreeRules] = useState(false);
 
   useEffect(() => {
+    // 1. Initial Check: Agar URL mein access_token hai, toh Supabase ko time do, turant redirect mat karo.
     const verifyUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        window.location.href = "/login";
+      if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+        // Wait for onAuthStateChange to handle it
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-
-      if (profile && profile.role === 'dealer') {
-        window.location.href = '/dealer';
-      } else if (profile && profile.role === 'scout') {
-        window.location.href = '/scout';
-      } else {
-        setCheckingAuth(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.href = "/login";
       }
     };
 
     verifyUser();
+
+    // 2. Real-time Listener: Ye aaram se token process hone ke baad chalega
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile && profile.role === 'dealer') {
+          window.location.href = '/dealer';
+        } else if (profile && profile.role === 'scout') {
+          window.location.href = '/scout';
+        } else {
+          // Profile pending hai, loading hatao aur Onboarding dikhao
+          setCheckingAuth(false);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        window.location.href = "/login";
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const handleCompleteSetup = async () => {
