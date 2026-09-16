@@ -11,9 +11,9 @@ export default function Onboarding() {
   const [agreeRules, setAgreeRules] = useState(false);
 
   useEffect(() => {
-    // 1. Initial Check: Agar URL mein access_token hai, toh Supabase ko time do, turant redirect mat karo.
+    // 1. Initial Check: Agar URL mein 'code=' ya 'access_token=' hai, toh Supabase ko time do.
     const verifyUser = async () => {
-      if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+      if (typeof window !== 'undefined' && (window.location.href.includes('code=') || window.location.href.includes('access_token='))) {
         // Wait for onAuthStateChange to handle it
         return;
       }
